@@ -1,21 +1,30 @@
-const UserVerifyOtpService=async(Request,DataModel)=>{
+const UserVerifyOtpService = async (Request, DataModel) => {
     try {
-        let email=Request.params.email;
-        let OTPCode=Request.params.otp;
-        let status=0;
-        let statusUpdate=1;
+        const email = Request.params.email;
+        const OTPCode = Request.params.otp;
 
-        let OTPCount=await DataModel.aggregate([{$match:{email:email,otp:OTPCode,status:status}},{$count:"total"}])
+        // 1. Check OTP validity
+        const otpRecord = await DataModel.findOne({
+            email: email,
+            otp: OTPCode,
+            status: 0 // unused
+        });
 
-        if (OTPCount.length>0) {
-            let OTPUpdate=await DataModel.updateOne({email:email,otp:OTPCode,status:status}, {email:email,otp:OTPCode,status:statusUpdate})
-            return {status:'success',data:OTPUpdate}
-        } else {
-            return {status:'fail',data:'Invalid OTP Code'}
+        if (!otpRecord) {
+            return { status: 'fail', data: 'Invalid or expired OTP Code' };
         }
-    } catch (error) {
-        return {status:'fail',data:error.toString()}
-    }
-}
 
-module.exports=UserVerifyOtpService;
+        // 2. Mark OTP as used
+        const OTPUpdate = await DataModel.updateOne(
+            { email: email, otp: OTPCode },
+            { status: 1 }   // only update status field
+        );
+
+        return { status: 'success', data: OTPUpdate };
+
+    } catch (error) {
+        return { status: 'fail', data: error.toString() };
+    }
+};
+
+module.exports = UserVerifyOtpService;

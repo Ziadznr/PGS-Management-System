@@ -1,21 +1,47 @@
-const OTPSModel=require('../../models/Users/OTPSModel.js');
+const bcrypt = require('bcrypt');
+const OTPSModel = require('../../models/Users/OTPSModel.js');
 
-const UserResetPassService=async(Request,DataModel)=>{
-    let email=Request.body['email'];
-    let OTPCode=Request.body['OTP'];
-    let NewPass=Request.body['password']
-    let statusUpdate=1;
+const UserResetPassService = async (Request, DataModel) => {
     try {
-        let OTPUsedCount=await OTPSModel.aggregate([{$match:{email:email,otp:OTPCode}}])
-        if(OTPUsedCount.length>0){
-            let PassUpdate=await DataModel.updateOne({email:email},{password:NewPass})
-            return {status:'success',data:PassUpdate}
-        }else{
-            return {status:'fail',data:"Invalid Request"}
-        }
-    } catch (error) {
-        return {status:'fail',data:error.toString()}
-    }
-}
+        const { email, OTP, password } = Request.body;
 
-module.exports=UserResetPassService;
+        // 1. Validate input
+        if (!email || !OTP || !password) {
+            return { status: 'fail', data: 'Missing required fields' };
+        }
+
+        // 2. Check OTP validity and expiry
+        const otpRecord = await OTPSModel.findOne({
+            email: email,
+            otp: OTP,
+            status: 0 // unused OTP
+        });
+
+        if (!otpRecord) {
+            return { status: 'fail', data: "Invalid or expired OTP" };
+        }
+
+        // 3. Hash new password
+        const salt = await bcrypt.genSalt(10);
+        const hashedPass = await bcrypt.hash(password, salt);
+
+        // 4. Update password
+        const passUpdate = await DataModel.updateOne(
+            { email: email },
+            { password: hashedPass }
+        );
+
+        // 5. Mark OTP as used
+        await OTPSModel.updateOne(
+            { email: email, otp: OTP },
+            { status: 1 }     // 1 = used
+        );
+
+        return { status: 'success', data: passUpdate };
+
+    } catch (error) {
+        return { status: 'fail', data: error.toString() };
+    }
+};
+
+module.exports = UserResetPassService;

@@ -16,7 +16,6 @@ const DataSchema = new mongoose.Schema({
     category: {
         type: String,
         enum: ['admin', 'teacher', 'dean', 'student'],  // allowed roles
-        default: 'student'                               // default role
     },
 
     createdDate: {
