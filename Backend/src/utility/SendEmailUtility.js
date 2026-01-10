@@ -17,7 +17,7 @@ const SendEmailUtility = async (EmailTo, EmailText, EmailSubject, attachments = 
     }));
 
     let mailOption = {
-        from: "PSG Management System <ziadznr311@gmail.com>",
+        from: "Inventory System <ziadznr311@gmail.com>",
         to: EmailTo,
         subject: EmailSubject,
         text: EmailText,

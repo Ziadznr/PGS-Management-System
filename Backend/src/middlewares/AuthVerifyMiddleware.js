@@ -1,22 +1,15 @@
-const jwt = require('jsonwebtoken');
-
-module.exports = (req, res, next) => {
-    const token = req.headers['token'];
-
-    if (!token) {
-        return res.status(401).json({ status: 'unauthorized', message: 'Token missing' });
-    }
-
-    jwt.verify(token, 'SecretKey123456789', (err, decoded) => {
+const jwt=require('jsonwebtoken');
+module.exports=(req,res,next)=>{
+    let Token=req.headers['token'];
+    jwt.verify(Token,'SecretKey123456789',function (err,decoded) {
         if (err) {
-            return res.status(401).json({ status: 'unauthorized', message: 'Invalid or expired token' });
+            console.log(Token)
+            res.status(401).json({status:'unauthorized'})
+        } else {
+            let email=decoded['data'];
+            console.log(email)
+            req.headers.email=email
+            next();
         }
-
-        req.user = {
-            email: decoded.data.email,
-            category: decoded.data.category
-        };
-
-        next();
-    });
-};
+    })
+}

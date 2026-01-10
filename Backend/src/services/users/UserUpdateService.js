@@ -1,27 +1,27 @@
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
+const UsersModel = require('../../models/Users/UsersModel');
 
-const UserUpdateService = async (Request, DataModel) => {
+const UserUpdateService = async (Request) => {
     try {
-        const email = Request.user.email; // from middleware
-        let updateData = { ...Request.body };
+        // Email from UserAuthMiddleware (JWT)
+        const email = Request.user.email;
+        const updateData = { ...Request.body };
 
-        // 1. Prevent user from updating role/category
-        if (updateData.category) {
-            delete updateData.category; 
-        }
+        // ❌ Prevent role & department change by user
+        delete updateData.role;
+        delete updateData.department;
 
-        // 2. Hash new password if provided
+        // ❌ Prevent system field updates
+        delete updateData._id;
+        delete updateData.createdAt;
+
+        // 🔐 Hash password if user wants to change it
         if (updateData.password) {
             const salt = await bcrypt.genSalt(10);
             updateData.password = await bcrypt.hash(updateData.password, salt);
         }
 
-        // 3. Prevent changing system fields
-        delete updateData._id;
-        delete updateData.createdDate;
-
-        // 4. Update user data
-        const result = await DataModel.updateOne(
+        const result = await UsersModel.updateOne(
             { email: email },
             updateData
         );

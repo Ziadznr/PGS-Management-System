@@ -1,22 +1,37 @@
-const UserDetailsService = async (Request, DataModel) => {
+const UsersModel = require('../../models/Users/UsersModel');
+
+const UserDetailsService = async (Request) => {
     try {
-        const email = Request.user.email; // from middleware
+        const email = Request.user.email;
 
-        // find the user
-        let data = await DataModel.findOne(
-            { email: email },
-            { password: 0 }       // hide password for security
-        );
+        const user = await UsersModel.findOne(
+            { email },
+            { password: 0 }
+        ).lean();
 
-        if (!data) {
+        if (!user) {
             return { status: "fail", data: "User not found" };
         }
 
-        return { status: "success", data: data };
+        // 🚫 Block temporary student access
+        if (user.role === "Student" && user.isEnrolled === false) {
+            return {
+                status: "fail",
+                data: "Enrollment not completed"
+            };
+        }
+
+        return {
+            status: "success",
+            data: user
+        };
 
     } catch (error) {
-        return { status: "fail", data: error.toString() };
+        return {
+            status: "fail",
+            data: error.toString()
+        };
     }
-}
+};
 
 module.exports = UserDetailsService;

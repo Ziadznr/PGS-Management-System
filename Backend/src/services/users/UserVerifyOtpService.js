@@ -1,26 +1,32 @@
-const UserVerifyOtpService = async (Request, DataModel) => {
-    try {
-        const email = Request.params.email;
-        const OTPCode = Request.params.otp;
+const OTPSModel = require('../../models/Admin/OTPSModel.js');
 
-        // 1. Check OTP validity
-        const otpRecord = await DataModel.findOne({
+const UserVerifyOtpService = async (emailInput, OTP) => {
+    try {
+        if (!emailInput || !OTP) {
+            return { status: 'fail', data: 'Email and OTP are required' };
+        }
+
+        // Normalize email
+        const email = emailInput.trim().toLowerCase();
+
+        // 1️⃣ Find unused OTP
+        const otpRecord = await OTPSModel.findOne({
             email: email,
-            otp: OTPCode,
-            status: 0 // unused
+            otp: OTP,
+            status: 0
         });
 
         if (!otpRecord) {
-            return { status: 'fail', data: 'Invalid or expired OTP Code' };
+            return { status: 'fail', data: 'Invalid or expired OTP' };
         }
 
-        // 2. Mark OTP as used
-        const OTPUpdate = await DataModel.updateOne(
-            { email: email, otp: OTPCode },
-            { status: 1 }   // only update status field
+        // 2️⃣ Mark OTP as used
+        const updateResult = await OTPSModel.updateOne(
+            { _id: otpRecord._id },
+            { status: 1 }
         );
 
-        return { status: 'success', data: OTPUpdate };
+        return { status: 'success', data: updateResult };
 
     } catch (error) {
         return { status: 'fail', data: error.toString() };

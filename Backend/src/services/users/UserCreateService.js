@@ -1,39 +1,75 @@
-const bcrypt = require('bcrypt');
+const UsersModel = require('../../models/Users/UsersModel');
+const DepartmentModel = require('../../models/Departments/DepartmentModel');
 
-const UserCreateService = async (Request, DataModel) => {
+const UserCreateService = async (Request) => {
     try {
-        let postBody = Request.body;
+        const postBody = Request.body;
 
-        // 1. Validate category/role
-        const allowedRoles = ['admin', 'teacher', 'dean', 'student'];
-        if (postBody.category && !allowedRoles.includes(postBody.category)) {
-            return { status: 'fail', data: "Invalid user category/role" };
+        // Normalize role
+        if (postBody.role) {
+            postBody.role = postBody.role.trim();
         }
 
-        // 2. Hash password
-        if (postBody.password) {
-            const salt = await bcrypt.genSalt(10);
-            postBody.password = await bcrypt.hash(postBody.password, salt);
+        // 1️⃣ Allowed roles (NO Student here)
+        const allowedRoles = ["Dean", "Chairman", "Supervisor"];
+        if (!allowedRoles.includes(postBody.role)) {
+            return { status: 'fail', data: 'Invalid or restricted role' };
         }
 
-        // 3. Check if email already exists  
-        const existingUser = await DataModel.findOne({ email: postBody.email });
-        if (existingUser) {
-            return { status: 'fail', data: "Email already exists" };
+        // 2️⃣ Prevent duplicate email
+        const emailExists = await UsersModel.findOne({ email: postBody.email });
+        if (emailExists) {
+            return { status: 'fail', data: 'Email already exists' };
         }
 
-        // 4. Create user
-        const data = await DataModel.create(postBody);
+        // 3️⃣ SINGLE Dean rule (PGS only)
+        if (postBody.role === "Dean") {
+            const deanExists = await UsersModel.findOne({ role: "Dean" });
+            if (deanExists) {
+                return { status: 'fail', data: 'Dean already exists' };
+            }
+            postBody.department = null;
+        }
 
-        return { status: 'success', data: data };
+        // 4️⃣ Department validation (Chairman & Supervisor)
+        if (postBody.role === "Chairman" || postBody.role === "Supervisor") {
+            if (!postBody.department) {
+                return { status: 'fail', data: 'Department is required' };
+            }
+
+            const department = await DepartmentModel.findById(postBody.department);
+            if (!department) {
+                return { status: 'fail', data: 'Invalid department' };
+            }
+
+            // 5️⃣ SINGLE Chairman per department
+            if (postBody.role === "Chairman") {
+                const chairmanExists = await UsersModel.findOne({
+                    role: "Chairman",
+                    department: postBody.department
+                });
+
+                if (chairmanExists) {
+                    return {
+                        status: 'fail',
+                        data: 'Chairman already exists for this department'
+                    };
+                }
+            }
+        }
+
+        // 6️⃣ Create user (password hashing handled by schema)
+        const data = await UsersModel.create(postBody);
+
+        // 7️⃣ Remove password from response
+        const safeData = data.toObject();
+        delete safeData.password;
+
+        return { status: 'success', data: safeData };
 
     } catch (error) {
-        // Log the error to the terminal
-        console.error('UserCreateService Error:', error);
-        
-        // Still return fail to API
         return { status: 'fail', data: error.toString() };
     }
-}
+};
 
 module.exports = UserCreateService;

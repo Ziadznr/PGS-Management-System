@@ -1,40 +1,46 @@
-const OTPSModel = require('../../models/Users/OTPSModel.js');
-const SendEmailUtility = require('../../utility/SendEmailUtility');
+const OTPSModel = require('../../models/Admin/OTPSModel.js');
+const SendEmailUtility = require('../../utility/SendEmailUtility.js');
+const UsersModel = require('../../models/Users/UsersModel.js');
 
-const UserVerifyEmailService = async (Request, DataModel) => {
+const UserVerifyEmailService = async (emailInput) => {
     try {
-        const email = Request.params.email;
-
-        // 1. Check if user exists
-        const user = await DataModel.findOne({ email: email });
-        if (!user) {
-            return { status: 'fail', data: 'No user found' };
+        if (!emailInput) {
+            return { status: 'fail', data: 'Email is required' };
         }
 
-        // 2. Generate 6-digit OTP
+        // Normalize email
+        const email = emailInput.trim().toLowerCase();
+
+        // 1️⃣ Check user exists
+        const user = await UsersModel.findOne({ email: email });
+        if (!user) {
+            return { status: 'fail', data: 'User not found' };
+        }
+
+        // 2️⃣ Generate 6-digit OTP
         const OTPCode = Math.floor(100000 + Math.random() * 900000);
 
-        // 3. Optional (Delete old OTPs for this email)
+        // 3️⃣ Remove previous OTPs for this email
         await OTPSModel.deleteMany({ email: email });
 
-        // 4. Save new OTP with status + expiry
+        // 4️⃣ Save new OTP (status = unused)
         await OTPSModel.create({
             email: email,
             otp: OTPCode,
-            status: 0,              // unused
-            createdAt: Date.now()   // needed for auto-expiry index
+            status: 0
         });
 
-        // 5. Send OTP Email
-        const subject = "Your Verification Code";
-        const body = `Your OTP code is: ${OTPCode}. It will expire in 5 minutes.`;
+        // 5️⃣ Send email
+        await SendEmailUtility(
+            email,
+            `Your verification code is ${OTPCode}. This code will expire in 5 minutes.`,
+            "PGS Account Verification"
+        );
 
-        const sendEmail = await SendEmailUtility(email, body, subject);
-
-        return { status: "success", data: sendEmail };
+        return { status: "success", data: "OTP sent successfully" };
 
     } catch (error) {
-        return { status: "fail", data: error.toString() };
+        return { status: 'fail', data: error.toString() };
     }
 };
 

@@ -1,43 +1,44 @@
-const bcrypt = require('bcrypt');
-const OTPSModel = require('../../models/Users/OTPSModel.js');
+const bcrypt = require('bcryptjs');
+const OTPSModel = require('../../models/Admin/OTPSModel.js');
+const UsersModel = require('../../models/Users/UsersModel.js');
 
-const UserResetPassService = async (Request, DataModel) => {
+const UserResetPassService = async (Request) => {
     try {
         const { email, OTP, password } = Request.body;
 
-        // 1. Validate input
+        // 1️⃣ Validate input
         if (!email || !OTP || !password) {
             return { status: 'fail', data: 'Missing required fields' };
         }
 
-        // 2. Check OTP validity and expiry
+        // 2️⃣ Check OTP (unused + valid)
         const otpRecord = await OTPSModel.findOne({
             email: email,
             otp: OTP,
-            status: 0 // unused OTP
+            status: 0
         });
 
         if (!otpRecord) {
-            return { status: 'fail', data: "Invalid or expired OTP" };
+            return { status: 'fail', data: 'Invalid or expired OTP' };
         }
 
-        // 3. Hash new password
+        // 3️⃣ Hash new password
         const salt = await bcrypt.genSalt(10);
-        const hashedPass = await bcrypt.hash(password, salt);
+        const hashedPassword = await bcrypt.hash(password, salt);
 
-        // 4. Update password
-        const passUpdate = await DataModel.updateOne(
+        // 4️⃣ Update user password
+        await UsersModel.updateOne(
             { email: email },
-            { password: hashedPass }
+            { password: hashedPassword }
         );
 
-        // 5. Mark OTP as used
+        // 5️⃣ Mark OTP as used
         await OTPSModel.updateOne(
             { email: email, otp: OTP },
-            { status: 1 }     // 1 = used
+            { status: 1 }
         );
 
-        return { status: 'success', data: passUpdate };
+        return { status: 'success', data: 'Password updated successfully' };
 
     } catch (error) {
         return { status: 'fail', data: error.toString() };
