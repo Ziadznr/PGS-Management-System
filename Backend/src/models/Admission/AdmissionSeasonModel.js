@@ -27,7 +27,11 @@ const AdmissionSeasonSchema = new mongoose.Schema({
         type: Boolean,
         default: true
     },
-
+isLocked: {
+  type: Boolean,
+  default: false
+}
+,
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "admin"

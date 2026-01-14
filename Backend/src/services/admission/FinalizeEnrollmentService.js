@@ -1,7 +1,7 @@
 const UsersModel = require("../../models/Users/UsersModel");
 const StudentEnrollmentModel = require("../../models/Students/StudentEnrollmentModel");
-const FacultyRegistrationRangeModel = require("../../models/Admission/FacultyRegistrationRangeModel");
-const TemporaryAccessModel = require("../../models/Admission/TemporaryAccessModel");
+const FacultyRegistrationRangeModel = require("../../models/Admission/DepartmentRegistrationRangeModel");
+const TemporaryAccessModel = require("../../models/Admission/AdmissionApplicationModel");
 
 const FinalizeEnrollmentService = async (req) => {
     try {

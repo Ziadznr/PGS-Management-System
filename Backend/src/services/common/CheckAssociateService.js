@@ -1,14 +1,12 @@
-const CheckAssociateService=async(QueryObject,AssociateModel)=>{
-    try {
-        
-        let data=await AssociateModel.aggregate([
-            {$match: QueryObject}
-        ])
+const CheckAssociateService = async (QueryObject, AssociateModel) => {
+  try {
+    const count = await AssociateModel.countDocuments(QueryObject);
+    return count === 0
+      ? { status: "success" }
+      : { status: "fail", message: "Associated data exists" };
+  } catch (error) {
+    return { status: "fail", message: error.message };
+  }
+};
 
-        return data.length>0;
-    } catch (error) {
-        return false;
-    }
-}
-
-module.exports=CheckAssociateService;
+module.exports = CheckAssociateService;

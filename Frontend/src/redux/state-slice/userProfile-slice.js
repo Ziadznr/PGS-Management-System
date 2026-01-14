@@ -1,8 +1,8 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { getUserToken, getUserDetails } from "../helper/SessionHelper";
+import { getToken, getUserDetails } from "../../helper/SessionHelper";
 
 // ================= INITIAL STATE =================
-const persistedToken = getUserToken();
+const persistedToken = getToken();
 const persistedUser = getUserDetails();
 
 const initialState = {

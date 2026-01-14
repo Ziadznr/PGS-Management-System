@@ -2,13 +2,13 @@ import axios from "axios";
 import { ErrorToast, SuccessToast } from "../helper/FormHelper";
 import store from "../redux/store/store";
 import { HideLoader, ShowLoader } from "../redux/state-slice/settings-slice";
-import { getToken, setEmail, setOTP, setToken, setUserDetails } from "../helper/SessionHelper";
+import { getAdminToken, setEmail, setOTP, setAdminToken, setUserDetails } from "../helper/SessionHelper";
 import { SetProfile } from "../redux/state-slice/profile-slice";
 import { BaseURL } from "../helper/config";
 
 // Helper to get fresh Axios headers with current token
 const getAxiosHeader = () => {
-  const token = getToken();
+  const token = getAdminToken();
   if (!token) {
     ErrorToast("Please login first");
   }
@@ -20,38 +20,40 @@ const getAxiosHeader = () => {
 };
 
 export async function LoginRequest(email, password) {
-    try {
-        store.dispatch(ShowLoader());
+  try {
+    store.dispatch(ShowLoader());
 
-        const res = await axios.post(`${BaseURL}/Login`, { email, password });
+    const res = await axios.post(`${BaseURL}/admin/login`, { email, password });
 
-        store.dispatch(HideLoader());
+    store.dispatch(HideLoader());
 
-        if (res.status === 200) {
-            const userData = res.data["data"];
-            setToken(res.data["token"]);
-            setUserDetails(userData);
+    if (res.status === 200 && res.data.status === "success") {
+      // ✅ save token
+      setAdminToken(res.data.token);
 
-            // ✅ Update Redux profile immediately
-            store.dispatch(SetProfile(userData));
+      // ✅ LOAD FULL PROFILE USING TOKEN
+      await GetProfileDetails();
 
-            SuccessToast("Login Success");
-            return true;
-        } else {
-            ErrorToast("Invalid Email or Password");
-            return false;
-        }
-    } catch (e) {
-        store.dispatch(HideLoader());
-        ErrorToast("Invalid Email or Password");
-        return false;
+      SuccessToast("Login Success");
+      return true;
     }
+
+    ErrorToast("Invalid Email or Password");
+    return false;
+
+  } catch (e) {
+    store.dispatch(HideLoader());
+    ErrorToast("Invalid Email or Password");
+    return false;
+  }
 }
+
+
 
 export async function RegistrationRequest(email, firstName, lastName, mobile, password, photo) {
   try {
     store.dispatch(ShowLoader());
-    let URL = BaseURL + "/Registration";
+    let URL = BaseURL + "/admin/register";
     let PostBody = { email, firstName, lastName, mobile, password, photo };
     let res = await axios.post(URL, PostBody);
     store.dispatch(HideLoader());
@@ -85,50 +87,64 @@ export async function GetProfileDetails() {
     if (!headers.headers.token) return false;
 
     store.dispatch(ShowLoader());
-    let URL = BaseURL + "/ProfileDetails";
-    let res = await axios.get(URL, headers);
+
+    const res = await axios.get(`${BaseURL}/admin/profile`, headers);
+
     store.dispatch(HideLoader());
-    if (res.status === 200) {
-      store.dispatch(SetProfile(res.data["data"][0]));
-    } else {
-      ErrorToast("Something Went Wrong");
+
+    if (res.status === 200 && res.data.status === "success") {
+      store.dispatch(SetProfile(res.data.data[0]));
+      return true;
     }
+
+    ErrorToast("Failed to load profile");
+    return false;
+
   } catch (e) {
     store.dispatch(HideLoader());
     ErrorToast("Something Went Wrong");
+    return false;
   }
 }
 
-export async function ProfileUpdateRequest(email, firstName, lastName, mobile, password, photo) {
+
+export async function ProfileUpdateRequest(firstName, lastName, mobile, photo) {
   try {
     const headers = getAxiosHeader();
     if (!headers.headers.token) return false;
 
     store.dispatch(ShowLoader());
-    let URL = BaseURL + "/ProfileUpdate";
-    let PostBody = { email, firstName, lastName, mobile, password, photo };
-    let UserDetails = { email, firstName, lastName, mobile, photo };
-    let res = await axios.post(URL, PostBody, headers);
+
+    const res = await axios.post(
+      `${BaseURL}/admin/profile/update`,
+      { firstName, lastName, mobile, photo },
+      headers
+    );
+
     store.dispatch(HideLoader());
-    if (res.status === 200) {
-      SuccessToast("Profile Update Success");
-      setUserDetails(UserDetails);
+
+    if (res.data.status === "success") {
+      SuccessToast("Profile Updated");
+      await GetProfileDetails(); // reload from DB
       return true;
-    } else {
-      ErrorToast("Something Went Wrong");
-      return false;
     }
-  } catch (e) {
-    ErrorToast("Something Went Wrong");
+
+    ErrorToast("Profile update failed");
+    return false;
+
+  } catch {
     store.dispatch(HideLoader());
+    ErrorToast("Server error");
     return false;
   }
 }
 
+
+
 export async function RecoverVerifyEmailRequest(email) {
   try {
     store.dispatch(ShowLoader());
-    let URL = BaseURL + "/RecoverVerifyEmail/" + email;
+    let URL = BaseURL + "/admin/recover/verify-email/" + email;
     let res = await axios.get(URL);
     store.dispatch(HideLoader());
     if (res.status === 200) {
@@ -154,7 +170,7 @@ export async function RecoverVerifyEmailRequest(email) {
 export async function RecoverVerifyOTPRequest(email, OTP) {
   try {
     store.dispatch(ShowLoader());
-    let URL = BaseURL + "/RecoverVerifyOTP/" + email + "/" + OTP;
+    let URL = BaseURL + "/admin/recover/verify-otp/" + email + "/" + OTP;
     let res = await axios.get(URL);
     store.dispatch(HideLoader());
     if (res.status === 200) {
@@ -181,7 +197,7 @@ export async function RecoverVerifyOTPRequest(email, OTP) {
 export async function RecoverResetPassRequest(email, OTP, password) {
   try {
     store.dispatch(ShowLoader());
-    let URL = BaseURL + "/RecoverResetPass";
+    let URL = BaseURL + "/admin/recover/reset-password";
     let PostBody = { email, OTP, password };
     let res = await axios.post(URL, PostBody);
     store.dispatch(HideLoader());

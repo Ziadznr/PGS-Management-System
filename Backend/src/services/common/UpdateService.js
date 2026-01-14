@@ -1,14 +1,17 @@
-const UpdateService=async (Request, DataModel) => {
+const UpdateService = async (Request, DataModel) => {
   try {
-    let PostBody = Request.body;
-    let id=Request.params.id;
-    let UserEmail= Request.headers['email'];
-    let data = await DataModel.updateOne({_id: id, UserEmail: UserEmail}, PostBody);
-    
-    return { success: 'success', data: data };
+    const id = Request.params.id;
+    const PostBody = Request.body;
+
+    const data = await DataModel.updateOne(
+      { _id: id },
+      { $set: PostBody }
+    );
+
+    return { status: "success", data };
   } catch (error) {
-    return { status: 'fail', data: error.toString() };
+    return { status: "fail", message: error.message };
   }
-}
+};
 
 module.exports = UpdateService;

@@ -4,7 +4,7 @@ const DepartmentByFacultyService = async (facultyId) => {
     try {
         const data = await DepartmentModel.find(
             { FacultyID: facultyId },
-            { _id: 1, Name: 1 }
+            { _id: 1, name: 1 }
         ).lean();
 
         return { status: "success", data };

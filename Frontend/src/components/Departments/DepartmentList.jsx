@@ -99,8 +99,8 @@ const DepartmentList = () => {
                         DataList.map((item, i) => (
                           <tr key={item._id || i}>
                             <td>{i + 1}</td>
-                            <td>{item.Name}</td>
-                            <td>{item.Faculty?.[0]?.Name || item.Faculty?.Name || "-"}</td>
+                            <td>{item.name}</td>
+                            <td>PGS</td>
                             <td>{new Date(item.CreatedDate).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</td>
                             <td>
                               <Link to={`/DepartmentCreateUpdatePage?id=${item._id}`} className="btn text-info btn-outline-light p-2 mb-0 btn-sm">

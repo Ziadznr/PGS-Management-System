@@ -3,11 +3,11 @@ import { HideLoader, ShowLoader } from "../redux/state-slice/settings-slice";
 import axios from "axios";
 import { ErrorToast, SuccessToast } from "../helper/FormHelper";
 import {
-  getUserToken,
-  removeUserSessions,
+  getToken,
+  removeSessions,
   setOTP,
   setEmail,
-  setUserToken,
+  setToken,
   setUserDetails
 } from "../helper/SessionHelper";
 import { SetUserProfile } from "../redux/state-slice/userProfile-slice";
@@ -16,13 +16,13 @@ import { BaseURL } from "../helper/config";
 /* ================= AXIOS HEADERS ================= */
 
 export const getAxiosHeaderOptional = () => {
-  const token = getUserToken();
+  const token = getToken();
   return token ? { headers: { token } } : {};
 };
 
 export const getAxiosHeader = () => {
-  const token = getUserToken();
-  if (!token) removeUserSessions();
+  const token = getToken();
+  if (!token) removeSessions();
   return { headers: { token } };
 };
 
@@ -65,7 +65,7 @@ export async function UserLoginRequest(email, password) {
     if (res.status === 200 && res.data?.status === "success") {
       const { token, data } = res.data;
 
-      setUserToken(token);
+      setToken(token);
       setUserDetails(data);
 
       store.dispatch(
@@ -117,7 +117,7 @@ export async function UserProfileRequest() {
     if (res.status === 200 && res.data?.status === "success") {
       store.dispatch(
         SetUserProfile({
-          token: getUserToken(),
+          token: getToken(),
           user: res.data.data
         })
       );
@@ -151,7 +151,7 @@ export async function UserUpdateRequest(userData) {
     if (res.status === 200 && res.data?.status === "success") {
       store.dispatch(
         SetUserProfile({
-          token: getUserToken(),
+          token: getToken(),
           user: res.data.data
         })
       );
@@ -353,25 +353,59 @@ export async function AdminSendEmailRequest(
 
 /* ================= DROPDOWNS ================= */
 
+// ✅ Faculty dropdown (PUBLIC)
 export async function FacultyDropdownRequest() {
-  const res = await axios.get(`${BaseURL}/faculty/dropdown`);
-  return res.data?.data || [];
+  try {
+    const res = await axios.get(`${BaseURL}/faculty/dropdown`);
+    if (res.status === 200 && res.data?.status === "success") {
+      return res.data.data || [];
+    }
+    return [];
+  } catch (e) {
+    console.error("FacultyDropdownRequest error:", e);
+    return [];
+  }
 }
 
-export async function DepartmentDropdownRequest(facultyID) {
-  const res = await axios.get(
-    `${BaseURL}/department/dropdown/${facultyID || ""}`
-  );
-  return res.data?.data || [];
+// ✅ Department dropdown (PUBLIC, faculty optional)
+// ================= PUBLIC DEPARTMENT DROPDOWN =================
+export async function DepartmentDropdownRequest() {
+  try {
+    const res = await axios.get(
+      `${BaseURL}/DepartmentDropdown`
+    );
+
+    if (res.status === 200 && res.data?.status === "success") {
+      return res.data.data || [];
+    }
+
+    return [];
+  } catch (e) {
+    console.error("DepartmentDropdownRequest error:", e);
+    return [];
+  }
 }
+
 
 /*
 ⚠️ Backend REQUIRED:
 GET /users/supervisors/:departmentID
 */
 export async function SupervisorDropdownRequest(departmentID) {
-  const res = await axios.get(
-    `${BaseURL}/users/supervisors/${departmentID}`
-  );
-  return res.data?.data || [];
+  try {
+    const res = await axios.get(
+      `${BaseURL}/users/supervisors/${departmentID}`,
+      getAxiosHeader()
+    );
+
+    if (res.status === 200 && res.data?.status === "success") {
+      return res.data.data || [];
+    }
+
+    return [];
+  } catch (e) {
+    console.error("SupervisorDropdownRequest error:", e);
+    return [];
+  }
 }
+

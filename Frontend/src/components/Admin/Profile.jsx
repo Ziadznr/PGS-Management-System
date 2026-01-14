@@ -1,161 +1,163 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import { GetProfileDetails, ProfileUpdateRequest } from "../../APIRequest/AdminAPIRequest";
 import { useSelector } from "react-redux";
-import { ErrorToast, getBase64, IsEmail, IsEmpty, IsMobile } from "../../helper/FormHelper";
+import { ErrorToast, getBase64, IsEmpty, IsMobile } from "../../helper/FormHelper";
 import { useNavigate } from "react-router-dom";
 
+const DEFAULT_PHOTO = "/defaultPhoto.png";
+
 const Profile = () => {
-    const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
 
-    const emailRef = useRef(null);
-    const firstNameRef = useRef(null);
-    const lastNameRef = useRef(null);
-    const mobileRef = useRef(null);
-    const passwordRef = useRef(null);
-    const userImgRef = useRef(null);
-    const userImgView = useRef(null);
+  const [form, setForm] = useState({
+    email: "",
+    firstName: "",
+    lastName: "",
+    mobile: "",
+    photo: ""
+  });
 
-    useEffect(() => {
-        (async () => {
-            setLoading(true);
-            await GetProfileDetails();
-            setLoading(false);
-        })();
-    }, []);
+  const navigate = useNavigate();
+  const profile = useSelector((state) => state.profile.value);
 
-    const ProfileData = useSelector((state) => state.profile.value);
-    const navigate = useNavigate();
+  // load profile
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      await GetProfileDetails();
+      setLoading(false);
+    })();
+  }, []);
 
-    const PreviewImage = () => {
-        let ImgFile = userImgRef.current.files[0];
-        if (ImgFile) {
-            getBase64(ImgFile).then((base64Img) => {
-                userImgView.current.src = base64Img;
-            });
-        }
-    };
-
-    const UpdateMyProfile = async () => {
-        let email = emailRef.current.value;
-        let firstName = firstNameRef.current.value;
-        let lastName = lastNameRef.current.value;
-        let mobile = mobileRef.current.value;
-        let password = passwordRef.current.value;
-        let photo = userImgView.current.src;
-
-        if (!IsEmail(email)) {
-            ErrorToast("Valid Email Address Required !");
-        } else if (IsEmpty(firstName)) {
-            ErrorToast("First Name Required !");
-        } else if (IsEmpty(lastName)) {
-            ErrorToast("Last Name Required !");
-        } else if (!IsMobile(mobile)) {
-            ErrorToast("Valid Mobile Required !");
-        } else if (IsEmpty(password)) {
-            ErrorToast("Password Required !");
-        } else {
-            let result = await ProfileUpdateRequest(email, firstName, lastName, mobile, password, photo);
-            if (result === true) {
-                navigate("/");
-            }
-        }
-    };
-
-    if (loading) {
-        return (
-            <div className="d-flex justify-content-center align-items-center" style={{ height: "70vh" }}>
-                <div className="spinner-border text-primary" role="status">
-                    <span className="visually-hidden">Loading...</span>
-                </div>
-            </div>
-        );
+  // sync redux → local form
+  useEffect(() => {
+    if (profile?.email) {
+      setForm({
+        email: profile.email || "",
+        firstName: profile.firstName || "",
+        lastName: profile.lastName || "",
+        mobile: profile.mobile || "",
+        photo: profile.photo || ""
+      });
     }
+  }, [profile]);
 
+  // preview image
+  const PreviewImage = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const base64 = await getBase64(file);
+    setForm((prev) => ({ ...prev, photo: base64 }));
+  };
+
+  // update profile
+  const UpdateMyProfile = async () => {
+    const { firstName, lastName, mobile, photo } = form;
+
+    if (IsEmpty(firstName)) {
+      ErrorToast("First Name Required !");
+    } else if (IsEmpty(lastName)) {
+      ErrorToast("Last Name Required !");
+    } else if (!IsMobile(mobile)) {
+      ErrorToast("Valid Mobile Required !");
+    } else {
+      const result = await ProfileUpdateRequest(
+        firstName,
+        lastName,
+        mobile,
+        photo
+      );
+
+      if (result) navigate("/dashboard");
+    }
+  };
+
+  if (loading) {
     return (
-        <div className="container">
-            <div className="row d-flex justify-content-center">
-                <div className="col-md-12">
-                    <div className="card">
-                        <div className="card-body">
-                            <div className="container-fluid">
-                                <img
-                                    ref={userImgView}
-                                    className="icon-nav-img-lg"
-                                    src={ProfileData?.photo}
-                                    alt="Profile"
-                                />
-                                <hr />
-                                <div className="row">
-                                    <div className="col-4 p-2">
-                                        <label>Profile Picture</label>
-                                        <input
-                                            onChange={PreviewImage}
-                                            ref={userImgRef}
-                                            className="form-control animated fadeInUp"
-                                            type="file"
-                                        />
-                                    </div>
-                                    <div className="col-4 p-2">
-                                        <label>Email Address</label>
-                                        <input
-                                            defaultValue={ProfileData?.email}
-                                            readOnly={true}
-                                            ref={emailRef}
-                                            className="form-control animated fadeInUp"
-                                            type="email"
-                                        />
-                                    </div>
-                                    <div className="col-4 p-2">
-                                        <label>First Name</label>
-                                        <input
-                                            defaultValue={ProfileData?.firstName}
-                                            ref={firstNameRef}
-                                            className="form-control animated fadeInUp"
-                                            type="text"
-                                        />
-                                    </div>
-                                    <div className="col-4 p-2">
-                                        <label>Last Name</label>
-                                        <input
-                                            defaultValue={ProfileData?.lastName}
-                                            ref={lastNameRef}
-                                            className="form-control animated fadeInUp"
-                                            type="text"
-                                        />
-                                    </div>
-                                    <div className="col-4 p-2">
-                                        <label>Mobile</label>
-                                        <input
-                                            defaultValue={ProfileData?.mobile}
-                                            ref={mobileRef}
-                                            className="form-control animated fadeInUp"
-                                            type="tel"
-                                        />
-                                    </div>
-                                    <div className="col-4 p-2">
-                                        <label>Password</label>
-                                        <input
-                                            defaultValue={ProfileData?.password}
-                                            ref={passwordRef}
-                                            className="form-control animated fadeInUp"
-                                            type="password"
-                                        />
-                                    </div>
-                                    <div className="col-4 p-2">
-                                        <button
-                                            onClick={UpdateMyProfile}
-                                            className="w-100 btn btn-success"
-                                        >
-                                            Update
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+      <div className="d-flex justify-content-center align-items-center" style={{ height: "70vh" }}>
+        <div className="spinner-border text-primary" />
+      </div>
     );
+  }
+
+  return (
+    <div className="container">
+      <div className="row justify-content-center">
+        <div className="col-md-12">
+          <div className="card">
+            <div className="card-body">
+
+              <img
+                src={
+                  form.photo?.startsWith("data:image")
+                    ? form.photo
+                    : DEFAULT_PHOTO
+                }
+                className="icon-nav-img-lg mb-3"
+                alt="Profile"
+              />
+
+              <hr />
+
+              <div className="row">
+
+                <div className="col-md-4 p-2">
+                  <label>Profile Picture</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={PreviewImage}
+                    className="form-control"
+                  />
+                </div>
+
+                <div className="col-md-4 p-2">
+                  <label>Email Address</label>
+                  <input value={form.email} readOnly className="form-control" />
+                </div>
+
+                <div className="col-md-4 p-2">
+                  <label>First Name</label>
+                  <input
+                    value={form.firstName}
+                    onChange={(e) => setForm({ ...form, firstName: e.target.value })}
+                    className="form-control"
+                  />
+                </div>
+
+                <div className="col-md-4 p-2">
+                  <label>Last Name</label>
+                  <input
+                    value={form.lastName}
+                    onChange={(e) => setForm({ ...form, lastName: e.target.value })}
+                    className="form-control"
+                  />
+                </div>
+
+                <div className="col-md-4 p-2">
+                  <label>Mobile</label>
+                  <input
+                    value={form.mobile}
+                    onChange={(e) => setForm({ ...form, mobile: e.target.value })}
+                    className="form-control"
+                  />
+                </div>
+
+                <div className="col-md-4 p-2 d-flex align-items-end">
+                  <button onClick={UpdateMyProfile} className="btn btn-success w-100">
+                    Update Profile
+                  </button>
+                </div>
+
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 };
+
 export default Profile;

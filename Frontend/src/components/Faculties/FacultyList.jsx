@@ -1,178 +1,109 @@
-// src/components/Faculties/FacultyList.jsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { useSelector } from "react-redux";
 import { FacultyListRequest, DeleteFacultyRequest } from "../../APIRequest/FacultyAPIRequest";
 import { Link } from "react-router-dom";
 import { AiOutlineDelete, AiOutlineEdit } from "react-icons/ai";
-import ReactPaginate from "react-paginate";
 import moment from "moment";
 import { DeleteAlert } from "../../helper/DeleteAlert";
 
-const FacultyList = ({ refreshFlag }) => {
-  const [searchKeyword, setSearchKeyword] = useState("0");
-  const [perPage, setPerPage] = useState(20);
-  const [pageNo, setPageNo] = useState(1);
+const FacultyList = () => {
 
   const DataList = useSelector((state) => state.faculty.List || []);
-  const Total = useSelector((state) => state.faculty.ListTotal || 0);
 
-  // Fetch list whenever dependencies change
+  // ================= LOAD FACULTIES =================
   useEffect(() => {
-    const fetchData = async () => {
-      await FacultyListRequest(pageNo, perPage, searchKeyword || "0");
-    };
-    fetchData();
-  }, [pageNo, perPage, searchKeyword, refreshFlag]);
+    // Load all faculties (large perPage to avoid pagination)
+    FacultyListRequest(1, 1000, "0");
+  }, []);
 
-  // Pagination handler
-  const handlePageClick = async (event) => {
-    const selectedPage = event.selected + 1;
-    setPageNo(selectedPage);
-    await FacultyListRequest(selectedPage, perPage, searchKeyword || "0");
-  };
-
-  // Search button
-  const searchData = async () => {
-    setPageNo(1);
-    await FacultyListRequest(1, perPage, searchKeyword || "0");
-  };
-
-  // Per-page selection
-  const perPageOnChange = async (e) => {
-    const newPerPage = parseInt(e.target.value);
-    setPerPage(newPerPage);
-    setPageNo(1);
-    await FacultyListRequest(1, newPerPage, searchKeyword || "0");
-  };
-
-  // Search input
-  const searchKeywordOnChange = (e) => {
-    const value = e.target.value;
-    setSearchKeyword(value === "" ? "0" : value);
-  };
-
-  // Delete faculty
+  // ================= DELETE =================
   const DeleteItem = async (id) => {
-    const Result = await DeleteAlert();
-    if (Result.isConfirmed) {
-      const DeleteResult = await DeleteFacultyRequest(id);
-      if (DeleteResult) {
-        // Refresh list after deletion
-        await FacultyListRequest(1, perPage, searchKeyword || "0");
-      }
+    const confirm = await DeleteAlert();
+    if (!confirm.isConfirmed) return;
+
+    const success = await DeleteFacultyRequest(id);
+    if (success) {
+      FacultyListRequest(1, 1000, "0");
     }
   };
 
+  // ================= UI =================
   return (
     <div className="container-fluid my-5">
       <div className="row">
         <div className="col-12">
+
           <div className="card">
             <div className="card-body">
-              <div className="row mb-3">
-                <div className="col-4">
-                  <h5>Faculty List</h5>
-                </div>
 
-                <div className="col-2">
-                  <input
-                    value={searchKeyword === "0" ? "" : searchKeyword}
-                    onChange={searchKeywordOnChange}
-                    placeholder="Search by name"
-                    className="form-control form-control-sm"
-                  />
-                </div>
+              <h5>Faculty List</h5>
+              <hr />
 
-                <div className="col-2">
-                  <select
-                    value={perPage}
-                    onChange={perPageOnChange}
-                    className="form-select form-select-sm form-control-sm"
-                  >
-                    <option value="20">20 Per Page</option>
-                    <option value="30">30 Per Page</option>
-                    <option value="50">50 Per Page</option>
-                    <option value="100">100 Per Page</option>
-                    <option value="200">200 Per Page</option>
-                  </select>
-                </div>
-
-                <div className="col-4">
-                  <button onClick={searchData} className="btn btn-success btn-sm">
-                    Search
-                  </button>
-                </div>
-              </div>
-
-              {/* Table */}
-              <div className="table-responsive table-section">
-                <table className="table table-striped table-bordered">
-                  <thead className="sticky-top bg-white">
+              <div className="table-responsive">
+                <table className="table table-bordered table-striped">
+                  <thead>
                     <tr>
-                      <td>No</td>
-                      <td>Faculty Name</td>
-                      <td>Created</td>
-                      <td>Action</td>
+                      <th>No</th>
+                      <th>Faculty Name</th>
+                      <th>Created</th>
+                      <th>Action</th>
                     </tr>
                   </thead>
+
                   <tbody>
                     {DataList.length > 0 ? (
-                      DataList.map((item, i) => (
+                      DataList.map((item, index) => (
                         <tr key={item._id}>
-                          <td>{(pageNo - 1) * perPage + i + 1}</td>
-                          <td>{item.Name}</td>
-                          <td>{moment(item.CreatedDate).format("MMMM Do YYYY")}</td>
+                          <td>{index + 1}</td>
+
+                          <td>{item.name}</td>
+
+                          <td>
+                            {moment(item.createdAt).format("MMMM Do YYYY")}
+                          </td>
+
                           <td>
                             <Link
                               to={`/FacultyCreatePage?id=${item._id}`}
-                              className="btn text-info btn-outline-light p-2 mb-0 btn-sm"
+                              className="btn btn-sm btn-outline-primary me-2"
                             >
-                              <AiOutlineEdit size={15} />
+                              <AiOutlineEdit size={16} />
                             </Link>
+
                             <button
+                              disabled={DataList.length <= 1}
                               onClick={() => DeleteItem(item._id)}
-                              className="btn btn-outline-light text-danger p-2 mb-0 btn-sm ms-2"
+                              className="btn btn-sm btn-outline-danger"
+                              title={
+                                DataList.length <= 1
+                                  ? "At least one faculty must exist"
+                                  : "Delete Faculty"
+                              }
                             >
-                              <AiOutlineDelete size={15} />
+                              <AiOutlineDelete size={16} />
                             </button>
                           </td>
                         </tr>
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={4} className="text-center">
-                          No Data Found
+                        <td colSpan="4" className="text-center">
+                          No Faculty Found
                         </td>
                       </tr>
                     )}
                   </tbody>
+
                 </table>
               </div>
 
-              {/* Pagination */}
-              <div className="mt-4">
-                <ReactPaginate
-                  previousLabel="<"
-                  nextLabel=">"
-                  pageClassName="page-item"
-                  pageLinkClassName="page-link"
-                  previousClassName="page-item"
-                  previousLinkClassName="page-link"
-                  nextClassName="page-item"
-                  nextLinkClassName="page-link"
-                  breakLabel="..."
-                  breakClassName="page-item"
-                  breakLinkClassName="page-link"
-                  pageCount={Math.ceil(Total / perPage)}
-                  marginPagesDisplayed={2}
-                  pageRangeDisplayed={5}
-                  onPageChange={handlePageClick}
-                  containerClassName="pagination justify-content-center"
-                  activeClassName="active"
-                />
-              </div>
+              <p className="text-muted mt-3">
+                ⚠ At least one faculty must exist in the system.
+              </p>
+
             </div>
           </div>
+
         </div>
       </div>
     </div>

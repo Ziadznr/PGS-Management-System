@@ -1,19 +1,11 @@
-const DeleteService=async(Request, Model) => {
-    try {
-        let DeleteID = Request.params.id;
-        let UserEmail = Request.headers['email'];
-
-        let QueryObject={};
-        QueryObject['_id'] = DeleteID;
-        QueryObject['UserEmail'] = UserEmail;
-
-        let Delete = await Model.deleteOne(QueryObject);
-
-        return {status: 'success', data: Delete};
-    } catch (error) {
-        return {status: 'error', data: error.toString()};
-        
-    }
-}
+const DeleteService = async (Request, Model) => {
+  try {
+    const id = Request.params.id;
+    const data = await Model.deleteOne({ _id: id });
+    return { status: "success", data };
+  } catch (error) {
+    return { status: "fail", message: error.message };
+  }
+};
 
 module.exports = DeleteService;

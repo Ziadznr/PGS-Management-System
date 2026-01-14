@@ -1,17 +1,29 @@
-const CreateToken=require('../../utility/CreateToken')
+const CreateToken = require('../../utility/CreateToken');
 
-const AdminLoginService=async(Request,DataModel)=>{
-    try {
-        let data=await DataModel.aggregate([{$match:Request.body},{$project:{email:1,password:1}}])
-        if(data.length>0){
-            let token =await CreateToken(data[0]['email'])
-            return {status:"success",token:token,data:data[0]}
-        }else{
-            return {status:'unauthorized'}
-        }
-    } catch (error) {
-         return {status:"fail",data:error.toString()}
+const AdminLoginService = async (Request, DataModel) => {
+  try {
+    const data = await DataModel.findOne({
+      email: Request.body.email,
+      password: Request.body.password
+    }).lean();
+
+    if (!data) {
+      return { status: "unauthorized" };
     }
-}
 
-module.exports=AdminLoginService;
+    const token = await CreateToken(data);
+
+    delete data.password; // 🔒 never send password
+
+    return {
+      status: "success",
+      token,
+      data
+    };
+
+  } catch (error) {
+    return { status: "fail", data: error.toString() };
+  }
+};
+
+module.exports = AdminLoginService;

@@ -12,21 +12,21 @@ module.exports = (req, res, next) => {
         }
 
         jwt.verify(token, 'UserSecretKey123456789', (err, decoded) => {
-            if (err) {
-                return res.status(401).json({
-                    status: 'unauthorized',
-                    message: 'Invalid or expired token'
-                });
-            }
+  if (err) {
+    return res.status(401).json({
+      status: 'unauthorized',
+      message: 'Invalid or expired token'
+    });
+  }
 
-            // Attach user info to request
-            req.user = {
-                email: decoded.data.email,
-                role: decoded.data.role
-            };
+  req.user = {
+    id: decoded.id,
+    email: decoded.email,
+    role: decoded.role
+  };
 
-            next();
-        });
+  next();
+});
 
     } catch (error) {
         return res.status(401).json({

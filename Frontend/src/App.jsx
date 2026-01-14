@@ -1,149 +1,144 @@
-import React, { Fragment } from 'react';
-import { getToken } from "./helper/SessionHelper";
-import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
+import React, { useEffect } from "react";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
-import FullscreenLoader from "./components/MasterLayout/FullscreenLoader.jsx";
-import NotFoundPage from "./pages/NotFound/NotFoundPage";
 
-// ------------------ Landing Page ------------------
+// ✅ ADMIN TOKEN
+import { getAdminToken } from "./helper/SessionHelper";
+import { GetProfileDetails } from "./APIRequest/AdminAPIRequest";
+
+import FullscreenLoader from "./components/MasterLayout/FullscreenLoader";
+import NotFoundPage from "./pages/NotFound/NotFoundPage";
 import LandingPage from "./pages/LandingPage";
 
-// ------------------ User Pages ------------------
-import LoginPage from "./pages/Admin/LoginPage.jsx";
+// -------- ADMIN AUTH PAGES --------
+import LoginPage from "./pages/Admin/LoginPage";
 import RegistrationPage from "./pages/Admin/RegistrationPage";
 import SendOTPPage from "./pages/Admin/SendOTPPage";
 import VerifyOTPPage from "./pages/Admin/VerifyOTPPage";
 import CreatePasswordPage from "./pages/Admin/CreatePasswordPage";
 import ProfilePage from "./pages/Admin/ProfilePage";
 
-// ------------------ Chairman Pages ------------------
-import CustomerLoginPage from "./pages/Customers/CustomerLoginPage.jsx";
-import CustomerRegistrationPage from "./pages/Customers/CustomerRegistrationPage.jsx";
-import CustomerSendOTPPage from "./pages/Customers/CustomerSendOTPPage.jsx";
-import CustomerVerifyOTPPage from "./pages/Customers/CustomerVerifyOTPPage.jsx";
-import CustomerCreatePasswordPage from "./pages/Customers/CustomerCreatePasswordPage.jsx";
-import CustomerProfilePage from "./pages/Customers/CustomerProfilePage.jsx";
-
-// ------------------ Dashboard & Other Pages ------------------
+// -------- MAIN PAGES --------
 import DashboardPage from "./pages/Dashboard/DashboardPage";
-import BrandCreateUpdatePage from "./pages/Brand/BrandCreateUpdatePage";
-import BrandListPage from "./pages/Brand/BrandListPage";
-import CategoryCreateUpdatePage from "./pages/Category/CategoryCreateUpdatePage";
-import CategoryListPage from "./pages/Category/CategoryListPage";
-// import CustomerCreateUpdatePage from "./pages/Customer/CustomerCreateUpdatePage";
-import CustomerListPage from "./pages/Customer/CustomerListPage";
-import ExpenseTypeCreateUpdatePage from "./pages/ExpenseType/ExpenseTypeCreateUpdatePage";
-import ExpenseTypeListPage from "./pages/ExpenseType/ExpenseTypeListPage";
-import ExpenseCreateUpdatePage from "./pages/Expense/ExpenseCreateUpdatePage";
-import ExpenseListPage from "./pages/Expense/ExpenseListPage";
-import ProductCreateUpdatePage from "./pages/Product/ProductCreateUpdatePage";
-import ProductListPage from "./pages/Product/ProductListPage";
-import PurchaseCreateUpdatePage from "./pages/Purchase/PurchaseCreateUpdatePage";
-import PurchaseListPage from "./pages/Purchase/PurchaseListPage";
-import PurchaseReportPage from "./pages/Report/PurchaseReportPage";
-import ReturnReportPage from "./pages/Report/ReturnReportPage";
-import SaleReportPage from "./pages/Report/SaleReportPage";
-import ExpenseReportPage from "./pages/Report/ExpenseReportPage";
-import CustomerProductReportPage from "./pages/Report/CustomerProductReportPage.jsx";
-import ReturnCreateUpdatePage from "./pages/Return/ReturnCreateUpdatePage";
-import ReturnListPage from "./pages/Return/ReturnListPage";
-import SalesCreateUpdatePage from "./pages/Sales/SalesCreateUpdatePage";
-import SalesListPage from "./pages/Sales/SalesListPage";
-import SupplierCreateUpdatePage from "./pages/Supplier/SupplierCreateUpdatePage";
-import SupplierListPage from "./pages/Supplier/SupplierListPage";
 import DepartmentListPage from "./pages/Department/DepartmentListPage";
 import DepartmentCreateUpdatePage from "./pages/Department/DepartmentCreateUpdatePage";
-import FacultyOperationPage from './pages/Faculty/FacultyOperationPage';
-import SectionOperationPage from './pages/Section/SectionOperationPage.jsx';
-import CustomerDashboardPage from './pages/Customers/CustomerDashboardPage.jsx';
-import CustomerProductListPage from './pages/Customers/CustomerProductListPage.jsx';
-import CreateCustomerProductPage from './pages/Customer/CreateCustomerProductPage.jsx';
-import CustomerProductEntryListPage from './pages/Customer/CustomerProductEntryListPage.jsx';
-import IndividualProductEntryListPage from './pages/Customer/IndividualProductEntryListPage.jsx';
-import TakeFromCSPage from './pages/Customer/TakeFromCSPage.jsx';
+import SeasonRangeSetupPage from "./pages/Admission/SeasonRangeSetupPage";
+import DepartmentRangeListPage from "./pages/Admission/DepartmentRangeListPage";
+
+// Notice Page
+import NoticePage from "./pages/Notice/NoticePage";
+
+// ✅ ADMIN PROTECTED ROUTE
+const ProtectedRoute = ({ children }) => {
+  return getAdminToken() ? children : <Navigate to="/login" replace />;
+};
 
 const App = () => {
-  const token = getToken();
+
+  // ✅ AUTO LOAD PROFILE IF TOKEN EXISTS
+  useEffect(() => {
+    if (getAdminToken()) {
+      GetProfileDetails();
+    }
+  }, []);
 
   return (
-    <Fragment>
+    <>
       <BrowserRouter>
         <Routes>
-          {/* Default landing page */}
-          <Route path="/" element={token ? <Navigate to="/Dashboard" /> : <LandingPage />} />
 
-          {/* Authenticated routes */}
-          {token && (
-            <>
-              <Route path="/Dashboard" element={<DashboardPage />} />
-              <Route path="/Profile" element={<ProfilePage />} />
-              {/* Other protected routes */}
-              <Route path="/BrandCreateUpdatePage" element={<BrandCreateUpdatePage />} />
-              <Route path="/BrandListPage" element={<BrandListPage />} />
-              <Route path="/CategoryCreateUpdatePage" element={<CategoryCreateUpdatePage />} />
-              <Route path="/CategoryListPage" element={<CategoryListPage />} />
-              <Route path="/SectionOperationPage" element={<SectionOperationPage />} />
-              <Route path="/FacultyOperationPage" element={<FacultyOperationPage />} />
-              <Route path="/department-list" element={<DepartmentListPage />} />
-              <Route path="/DepartmentCreateUpdatePage" element={<DepartmentCreateUpdatePage />} />
-              {/* <Route path="/CustomerCreateUpdatePage" element={<CustomerCreateUpdatePage />} /> */}
-              <Route path="/CustomerListPage" element={<CustomerListPage />} />
-              <Route path="/CreateCustomerProductPage" element={<CreateCustomerProductPage />} />
-              <Route path="/CustomerProductEntryListPage" element={<CustomerProductEntryListPage />} />
-              <Route path="/ExpenseTypeCreateUpdatePage" element={<ExpenseTypeCreateUpdatePage />} />
-              <Route path="/ExpenseTypeListPage" element={<ExpenseTypeListPage />} />
-              <Route path="/ExpenseCreateUpdatePage" element={<ExpenseCreateUpdatePage />} />
-              <Route path="/ExpenseListPage" element={<ExpenseListPage />} />
-              <Route path="/ProductCreateUpdatePage" element={<ProductCreateUpdatePage />} />
-              <Route path="/ProductListPage" element={<ProductListPage />} />
-              <Route path="/PurchaseCreateUpdatePage" element={<PurchaseCreateUpdatePage />} />
-              <Route path="/PurchaseListPage" element={<PurchaseListPage />} />
-              <Route path="/ReturnCreateUpdatePage" element={<ReturnCreateUpdatePage />} />
-              <Route path="/ReturnListPage" element={<ReturnListPage />} />
-              <Route path="/SalesCreateUpdatePage" element={<SalesCreateUpdatePage />} />
-              <Route path="/SalesListPage" element={<SalesListPage />} />
-              <Route path="/SupplierCreateUpdatePage" element={<SupplierCreateUpdatePage />} />
-              <Route path="/SupplierListPage" element={<SupplierListPage />} />
-              <Route path="/PurchaseReportPage" element={<PurchaseReportPage />} />
-              <Route path="/ReturnReportPage" element={<ReturnReportPage />} />
-              <Route path="/SaleReportPage" element={<SaleReportPage />} />
-              <Route path="/ExpenseReportPage" element={<ExpenseReportPage />} />
-              <Route path="/CustomerProductReportPage" element={<CustomerProductReportPage />} />
+          {/* ---------- ROOT ---------- */}
+          <Route
+            path="/"
+            element={
+              getAdminToken()
+                ? <Navigate to="/dashboard" replace />
+                : <LandingPage />
+            }
+          />
 
-              <Route path="/customer-dashboard" element={<CustomerDashboardPage />} />
-              <Route path="/CustomerProductListPage" element={<CustomerProductListPage />} />
-              <Route path="/CustomerProfile" element={<CustomerProfilePage />} />
-              <Route path="/my-entries" element={<IndividualProductEntryListPage />} />
-              <Route path="/TakeFromUniversity" element={<TakeFromCSPage />} />
-            </>
-          )}
+          {/* ---------- PUBLIC ADMIN AUTH ---------- */}
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/registration" element={<RegistrationPage />} />
+          <Route path="/send-otp" element={<SendOTPPage />} />
+          <Route path="/verify-otp" element={<VerifyOTPPage />} />
+          <Route path="/create-password" element={<CreatePasswordPage />} />
 
-          {/* Public routes */}
-          {!token && (
-            <>
-              <Route path="/Start" element={<LandingPage />} />
-              <Route path="/Login" element={<LoginPage />} />
-              <Route path="/Registration" element={<RegistrationPage />} />
-              <Route path="/SendOTP" element={<SendOTPPage />} />
-              <Route path="/VerifyOTP" element={<VerifyOTPPage />} />
-              <Route path="/CreatePassword" element={<CreatePasswordPage />} />
-              <Route path="/CustomerLogin" element={<CustomerLoginPage />} />
-              <Route path="/CustomerRegistration" element={<CustomerRegistrationPage />} />
-              <Route path="/CustomerSendOTP" element={<CustomerSendOTPPage />} />
-              <Route path="/CustomerVerifyOTP" element={<CustomerVerifyOTPPage />} />
-              <Route path="/CustomerCreatePassword" element={<CustomerCreatePasswordPage />} />
-              
-            </>
-          )}
+          {/* ---------- PROTECTED ADMIN ROUTES ---------- */}
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <DashboardPage />
+              </ProtectedRoute>
+            }
+          />
 
-          {/* 404 fallback */}
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <ProfilePage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/department-list"
+            element={
+              <ProtectedRoute>
+                <DepartmentListPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/DepartmentCreateUpdatePage"
+            element={
+              <ProtectedRoute>
+                <DepartmentCreateUpdatePage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/season-range"
+            element={
+              <ProtectedRoute>
+                <SeasonRangeSetupPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/admission-seasons"
+            element={
+              <ProtectedRoute>
+                <DepartmentRangeListPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+  path="/notices"
+  element={
+    <ProtectedRoute>
+      <NoticePage />
+    </ProtectedRoute>
+  }
+/>
+
+
+          {/* ---------- NOT FOUND ---------- */}
           <Route path="*" element={<NotFoundPage />} />
+
         </Routes>
       </BrowserRouter>
 
+      {/* ---------- GLOBAL COMPONENTS ---------- */}
       <FullscreenLoader />
-      <Toaster position="top-center" reverseOrder={false} />
-    </Fragment>
+      <Toaster position="top-center" />
+    </>
   );
 };
 

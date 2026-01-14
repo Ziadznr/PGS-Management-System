@@ -1,194 +1,130 @@
-import React, { useEffect } from "react";
-import {
-  ExpensesSummary,
-  SaleSummary,
-  PurchaseSummary,
-} from "../../APIRequest/SummaryAPIRequest";
-import {
-  BarChart,
-  Bar,
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
-  Cell,
-} from "recharts";
-import { useSelector } from "react-redux";
-import { NumericFormat as CurrencyFormat } from "react-number-format";
+import React, { useEffect, useState } from "react";
+import { Card } from "react-bootstrap";
 import store from "../../redux/store/store";
 import { ShowLoader, HideLoader } from "../../redux/state-slice/settings-slice";
+import axios from "axios";
+import { BaseURL } from "../../helper/config";
+import { getToken } from "../../helper/SessionHelper";
 
-// ---------------- Helpers ----------------
-const getLast30Days = () => {
-  const dates = [];
-  for (let i = 29; i >= 0; i--) {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    dates.push(d.toISOString().split("T")[0]); // YYYY-MM-DD
-  }
-  return dates;
-};
+// ---------------- Axios Header ----------------
+const getAxiosHeader = () => ({
+  headers: { token: getToken() }
+});
 
-const mapToLast30Days = (data) => {
-  const last30Days = getLast30Days();
-  return last30Days.map((date) => {
-    const found = data.find((d) => d._id === date);
-    return { _id: date, TotalAmount: found ? found.TotalAmount : 0 };
-  });
-};
+const AdminDashboard = () => {
+  const [dean, setDean] = useState(null);
+  const [chairmanCount, setChairmanCount] = useState(0);
+  const [supervisorCount, setSupervisorCount] = useState(0);
+  const [deptEnrollments, setDeptEnrollments] = useState([]);
 
-// ---------------- Modern Colors ----------------
-const gradientColors = {
-  expense: ["#ff7f50", "#ff4500"], // orange gradient
-  sale: ["#1e90ff", "#00bfff"],    // blue gradient
-  purchase: ["#32cd32", "#228b22"], // green gradient
-};
-
-const Dashboard = () => {
   useEffect(() => {
-    const loadData = async () => {
+    const loadDashboardData = async () => {
       store.dispatch(ShowLoader());
       try {
-        await Promise.all([
-          ExpensesSummary(),
-          SaleSummary(),
-          PurchaseSummary(),
-        ]);
+        const [deanRes, chairmanRes, supervisorRes, enrollmentRes] =
+          await Promise.all([
+            axios.get(`${BaseURL}/admin/users/list/1/1/0/Dean`, getAxiosHeader()),
+            axios.get(`${BaseURL}/admin/users/list/1/1000/0/Chairman`, getAxiosHeader()),
+            axios.get(`${BaseURL}/admin/users/list/1/1000/0/Supervisor`, getAxiosHeader()),
+            axios.get(`${BaseURL}/admission/enrollment/summary`, getAxiosHeader())
+          ]);
+
+        setDean(deanRes.data?.data?.[0] || null);
+        setChairmanCount(chairmanRes.data?.data?.length || 0);
+        setSupervisorCount(supervisorRes.data?.data?.length || 0);
+        setDeptEnrollments(enrollmentRes.data?.data || []);
+
       } finally {
         store.dispatch(HideLoader());
       }
     };
-    loadData();
+
+    loadDashboardData();
   }, []);
 
-  // ---------------- Redux State ----------------
-  const ExpenseChart = useSelector((state) => state.dashboard.ExpenseChart);
-  const ExpenseTotal = useSelector((state) => state.dashboard.ExpenseTotal);
-
-  const SaleChart = useSelector((state) => state.dashboard.SaleChart);
-  const SaleTotal = useSelector((state) => state.dashboard.SaleTotal);
-
-  const PurchaseChart = useSelector((state) => state.dashboard.PurchaseChart);
-  const PurchaseTotal = useSelector((state) => state.dashboard.PurchaseTotal);
-
-  // ---------------- Render Functions ----------------
-  const renderCard = (title, total, color) => (
-    <div className="col-md-4 p-2" key={title}>
-      <div
-        className="card shadow-sm"
-        style={{ borderLeft: `5px solid ${color}`, borderRadius: "10px" }}
-      >
-        <div className="card-body">
-          <span className="h5">
-            <CurrencyFormat
-              value={total}
-              displayType={"text"}
-              thousandSeparator={true}
-              prefix={"৳ "}
-            />
-          </span>
-          <p className="text-muted">{title}</p>
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderBarChart = (title, data, colorKey) => {
-    const gradientId = `grad-${title.replace(/\s/g, "")}`;
-    const gradient = gradientColors[colorKey];
-
-    return (
-      <div className="col-md-6 p-2" key={title}>
-        <div className="card shadow-sm" style={{ borderRadius: "10px" }}>
-          <div className="card-body">
-            <span className="h6">{title}</span>
-            <ResponsiveContainer className="mt-4" width="100%" height={220}>
-              <BarChart
-                data={mapToLast30Days(data)}
-                margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-              >
-                <defs>
-                  <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={gradient[0]} stopOpacity={0.8} />
-                    <stop offset="100%" stopColor={gradient[1]} stopOpacity={0.8} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-                <XAxis dataKey="_id" tick={{ fontSize: 10 }} />
-                <YAxis />
-                <Tooltip />
-                <Bar
-                  dataKey="TotalAmount"
-                  fill={`url(#${gradientId})`}
-                  radius={[6, 6, 0, 0]}
-                  animationDuration={1500}
-                >
-                  {mapToLast30Days(data).map((entry, index) => (
-                    <Cell key={`cell-${index}`} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  const renderLineChart = (title, data, color) => (
-    <div className="col-md-6 p-2" key={title + "_line"}>
-      <div className="card shadow-sm" style={{ borderRadius: "10px" }}>
-        <div className="card-body">
-          <span className="h6">{title} Trend</span>
-          <ResponsiveContainer className="mt-4" width="100%" height={220}>
-            <LineChart
-              data={mapToLast30Days(data)}
-              margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-              <XAxis dataKey="_id" tick={{ fontSize: 10 }} />
-              <YAxis />
-              <Tooltip />
-              <Line
-                type="monotone"
-                dataKey="TotalAmount"
-                stroke={color}
-                strokeWidth={3}
-                dot={{ r: 5 }}
-                activeDot={{ r: 7 }}
-                animationDuration={1500}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-    </div>
-  );
-
   return (
-    <div className="container-fluid my-4">
+    <div className="container-fluid mt-4">
+
+      {/* ================= TOP CARDS ================= */}
       <div className="row">
-        {renderCard("Total Expense", ExpenseTotal, gradientColors.expense[0])}
-        {renderCard("Total Sale", SaleTotal, gradientColors.sale[0])}
-        {renderCard("Total Purchase", PurchaseTotal, gradientColors.purchase[0])}
+
+        {/* Dean */}
+        <div className="col-md-4 mb-3">
+          <Card className="shadow-sm">
+            <Card.Body>
+              <h6 className="text-muted">Dean (PGS)</h6>
+              {dean ? (
+                <>
+                  <h5>{dean.name}</h5>
+                  <p className="mb-0">{dean.email}</p>
+                </>
+              ) : (
+                <p>No Dean Assigned</p>
+              )}
+            </Card.Body>
+          </Card>
+        </div>
+
+        {/* Chairman Count */}
+        <div className="col-md-4 mb-3">
+          <Card className="shadow-sm">
+            <Card.Body>
+              <h6 className="text-muted">Total Chairmen</h6>
+              <h2>{chairmanCount}</h2>
+            </Card.Body>
+          </Card>
+        </div>
+
+        {/* Supervisor Count */}
+        <div className="col-md-4 mb-3">
+          <Card className="shadow-sm">
+            <Card.Body>
+              <h6 className="text-muted">Total Supervisors</h6>
+              <h2>{supervisorCount}</h2>
+            </Card.Body>
+          </Card>
+        </div>
       </div>
 
-      <div className="row">
-        {renderBarChart("Expense Last 30 Days", ExpenseChart, "expense")}
-        {renderLineChart("Expense", ExpenseChart, gradientColors.expense[1])}
+      {/* ================= DEPARTMENT ENROLLMENT ================= */}
+      <div className="row mt-4">
+        <div className="col-md-12">
+          <Card className="shadow-sm">
+            <Card.Body>
+              <h5 className="mb-3">Department-wise Final Enrollment</h5>
 
-        {renderBarChart("Sales Last 30 Days", SaleChart, "sale")}
-        {renderLineChart("Sales", SaleChart, gradientColors.sale[1])}
+              <table className="table table-bordered">
+                <thead>
+                  <tr>
+                    <th>Department</th>
+                    <th>Total Enrolled Students</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {deptEnrollments.length === 0 ? (
+                    <tr>
+                      <td colSpan="2" className="text-center">
+                        No enrollment data
+                      </td>
+                    </tr>
+                  ) : (
+                    deptEnrollments.map((row, index) => (
+                      <tr key={index}>
+                        <td>{row.departmentName}</td>
+                        <td>{row.totalEnrolled}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
 
-        {renderBarChart("Purchase Last 30 Days", PurchaseChart, "purchase")}
-        {renderLineChart("Purchase", PurchaseChart, gradientColors.purchase[1])}
+            </Card.Body>
+          </Card>
+        </div>
       </div>
+
     </div>
   );
 };
 
-export default Dashboard;
+export default AdminDashboard;

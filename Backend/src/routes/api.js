@@ -14,8 +14,10 @@ const RoleCheckMiddleware = require('../middlewares/RoleCheckMiddleware');
 // Admin
 const AdminController = require('../controllers/Admin/AdminController');
 
-// Academic
-const FacultyController = require('../controllers/Faculties/FacultyController');
+// Notice
+const NoticeController = require("../controllers/Notice/NoticeController");
+
+
 const DepartmentController = require('../controllers/Departments/DepartmentController');
 
 // Users
@@ -54,6 +56,8 @@ router.post("/admission/temporary-login", AdmissionController.TemporaryLogin);
 // -------- User Profile --------
 router.get("/users/profile", UserAuthMiddleware, UsersController.ProfileDetails);
 router.post("/users/profile/update", UserAuthMiddleware, UsersController.ProfileUpdate);
+
+
 
 // -------- SUPERVISOR PANEL --------
 router.get(
@@ -108,19 +112,13 @@ router.post(
 router.get("/admin/profile", AuthVerifyMiddleware, AdminController.ProfileDetails);
 router.post("/admin/profile/update", AuthVerifyMiddleware, AdminController.ProfileUpdate);
 
-// -------- Faculty --------
-router.post('/faculty', AuthVerifyMiddleware, FacultyController.CreateFaculty);
-router.get('/faculty/list/:pageNo/:perPage/:searchKeyword', AuthVerifyMiddleware, FacultyController.ListFaculties);
-router.delete('/faculty/:id', AuthVerifyMiddleware, FacultyController.DeleteFaculty);
-router.get('/faculty/dropdown', FacultyController.FacultyDropdown);
-
-// -------- Department --------
-router.post('/department', AuthVerifyMiddleware, DepartmentController.CreateDepartment);
-router.post('/department/:id', AuthVerifyMiddleware, DepartmentController.UpdateDepartment);
-router.get('/department/list/:pageNo/:perPage/:searchKeyword', AuthVerifyMiddleware, DepartmentController.ListDepartments);
-router.get('/department/:id', AuthVerifyMiddleware, DepartmentController.DepartmentDetailsByID);
-router.delete('/department/:id', AuthVerifyMiddleware, DepartmentController.DeleteDepartment);
-router.get('/department/dropdown/:facultyID?', DepartmentController.DepartmentDropdown);
+// Departments
+router.post('/CreateDepartment', AuthVerifyMiddleware,DepartmentController.CreateDepartment);
+router.post('/UpdateDepartment/:id', AuthVerifyMiddleware,DepartmentController.UpdateDepartment);
+router.get('/DepartmentList/:pageNo/:perPage/:searchKeyword', AuthVerifyMiddleware,DepartmentController.ListDepartments);
+router.get('/DepartmentDetailsByID/:id', AuthVerifyMiddleware,DepartmentController.DepartmentDetailsByID);
+router.delete('/DeleteDepartment/:id', AuthVerifyMiddleware,DepartmentController.DeleteDepartment);
+router.get('/DepartmentDropdown',  DepartmentController.DepartmentDropdown);
 
 // -------- Admission Admin Controls --------
 router.post(
@@ -129,11 +127,47 @@ router.post(
   AdmissionController.CreateAdmissionSeason
 );
 
+// Department Registration Ranges
 router.post(
-  "/admission/department-range/create",
+  "/admission/department-range/create-update",
   AuthVerifyMiddleware,
-  AdmissionController.SetDepartmentRegRange
+  AdmissionController.CreateUpdateDepartmentRange
 );
+
+// existing (single season)
+router.get(
+  "/admission/department-range/list/:admissionSeason",
+  AuthVerifyMiddleware,
+  AdmissionController.DepartmentRangeList
+);
+
+// 🔥 NEW (all seasons, SAME SERVICE)
+router.get(
+  "/admission/department-range/list",
+  AuthVerifyMiddleware,
+  AdmissionController.DepartmentRangeList
+);
+
+
+router.delete(
+  "/admission/department-range/delete/:id",
+  AuthVerifyMiddleware,
+  AdmissionController.DeleteDepartmentRange
+);
+
+router.get(
+  "/admission/season/list",
+  AuthVerifyMiddleware,
+  AdmissionController.AdmissionSeasonList
+);
+
+router.post(
+  "/admission/season/lock/:seasonId",
+  AuthVerifyMiddleware,
+  AdmissionController.ToggleSeasonLock
+);
+
+
 
 // 🔒 FINAL ENROLLMENT (ADMIN ONLY)
 router.post(
@@ -173,5 +207,16 @@ router.post(
   upload.array("attachments"),
   AdminSideUsersController.SendEmailToUser
 );
+
+// ADMIN Notice
+router.post("/notice/create", AuthVerifyMiddleware, NoticeController.Create);
+router.post("/notice/update/:id", AuthVerifyMiddleware, NoticeController.Update);
+router.post("/notice/pin/:id", AuthVerifyMiddleware, NoticeController.TogglePin);
+router.post("/notice/lock/:id", AuthVerifyMiddleware, NoticeController.ToggleLock);
+router.delete("/notice/delete/:id", AuthVerifyMiddleware, NoticeController.Delete);
+router.get("/notice/admin/list", AuthVerifyMiddleware, NoticeController.AdminList);
+
+// PUBLIC Notice
+router.get("/notice/latest", NoticeController.PublicList);
 
 module.exports = router;

@@ -1,26 +1,19 @@
-const mongoose=require('mongoose');
+const mongoose = require("mongoose");
 
-const DetailsByIDService=async(Request,DataModel)=>{
-    try {
-        
-        let DetailsID=Request.params.id;
-        let UserEmail=Request.headers['email'];
+const DetailsByIDService = async (Request, DataModel) => {
+  try {
+    const id = Request.params.id;
 
-        const ObjectId=mongoose.Types.ObjectId;
-
-        let QueryObject={};
-        QueryObject['_id']=ObjectId(DetailsID);
-        QueryObject['UserEmail']=UserEmail;
-
-
-        let data=await DataModel.aggregate([
-            {$match:QueryObject}
-        ])
-
-        return {status:'success', data:data}
-    } catch (error) {
-        return {status:'fail',data:error.toString()}
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return { status: "fail", message: "Invalid ID" };
     }
-}
 
-module.exports=DetailsByIDService;
+    const data = await DataModel.find({ _id: id });
+    return { status: "success", data };
+
+  } catch (error) {
+    return { status: "fail", message: error.message };
+  }
+};
+
+module.exports = DetailsByIDService;

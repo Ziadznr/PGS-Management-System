@@ -4,7 +4,7 @@ const FacultyDropdownService = async () => {
     try {
         const data = await FacultyModel.find(
             {},
-            { _id: 1, Name: 1 }
+            { _id: 1, name: 1 }
         ).lean();
 
         return { status: "success", data };

@@ -1,15 +1,38 @@
-const jwt=require('jsonwebtoken');
-module.exports=(req,res,next)=>{
-    let Token=req.headers['token'];
-    jwt.verify(Token,'SecretKey123456789',function (err,decoded) {
-        if (err) {
-            console.log(Token)
-            res.status(401).json({status:'unauthorized'})
-        } else {
-            let email=decoded['data'];
-            console.log(email)
-            req.headers.email=email
-            next();
-        }
-    })
-}
+const jwt = require("jsonwebtoken");
+
+module.exports = (req, res, next) => {
+  try {
+    const token = req.headers.token;
+
+    if (!token) {
+      return res.status(401).json({
+        status: "fail",
+        message: "Admin token missing"
+      });
+    }
+
+    jwt.verify(token, "SecretKey123456789", (err, decoded) => {
+      if (err) {
+        return res.status(401).json({
+          status: "fail",
+          message: "Invalid or expired admin token"
+        });
+      }
+
+      // ✅ STANDARDIZED USER OBJECT
+      req.user = {
+        id: decoded.id,
+        email: decoded.email,
+        role: decoded.role
+      };
+
+      next();
+    });
+
+  } catch (error) {
+    return res.status(401).json({
+      status: "fail",
+      message: "Admin authentication failed"
+    });
+  }
+};

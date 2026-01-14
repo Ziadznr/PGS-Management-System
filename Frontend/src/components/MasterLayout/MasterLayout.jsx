@@ -76,10 +76,10 @@ const MasterLayout = (props) => {
       subMenu: [],
     },
     {
-      title: "Faculty",
+      title: "Notice Management",
       icon: <BsPeople className="side-bar-item-icon" />,
-      url: "/FacultyOperationPage",
-      subMenu: [{ title: "Faculty List", icon: <BsCircle size={16} />, url: "/FacultyOperationPage" }],
+      url: "/notices",
+      subMenu: [{ title: "Notice", icon: <BsCircle size={16} />, url: "/notices" }],
     },
     {
       title: "Department",
@@ -88,6 +88,15 @@ const MasterLayout = (props) => {
       subMenu: [
         { title: "Department List", icon: <BsCircle size={16} />, url: "/department-list" },
         { title: "Add Department", icon: <BsCircle size={16} />, url: "/DepartmentCreateUpdatePage" },
+      ],
+    },
+     {
+      title: "Season",
+      icon: <BsPeople className="side-bar-item-icon" />,
+      url: "/admission-seasons",
+      subMenu: [
+        { title: "Admission-Season", icon: <BsCircle size={16} />, url: "/admission-seasons" },
+        { title: "Range SetUp", icon: <BsCircle size={16} />, url: "/season-range" },
       ],
     },
     {
