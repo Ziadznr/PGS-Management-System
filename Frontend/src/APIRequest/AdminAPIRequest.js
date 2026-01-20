@@ -220,3 +220,20 @@ export async function RecoverResetPassRequest(email, OTP, password) {
     return false;
   }
 }
+
+
+export async function SupervisorDropdownRequest(departmentId) {
+  try {
+    const res = await axios.get(
+      `${BaseURL}/users/supervisors/${departmentId}`
+    );
+
+    if (res.data?.status === "success") {
+      return res.data.data;
+    }
+
+    return [];
+  } catch {
+    return [];
+  }
+}

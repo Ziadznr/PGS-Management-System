@@ -1,31 +1,39 @@
-const express = require('express');
+const express = require("express");
 const multer = require("multer");
 const router = express.Router();
 
 const upload = multer({ dest: "uploads/" });
 
 // ================= MIDDLEWARE =================
-const AuthVerifyMiddleware = require('../middlewares/AuthVerifyMiddleware'); // ADMIN
-const UserAuthMiddleware = require('../middlewares/UserAuthMiddleware');     // USERS
-const RoleCheckMiddleware = require('../middlewares/RoleCheckMiddleware');
+const AuthVerifyMiddleware = require("../middlewares/AuthVerifyMiddleware"); // ADMIN
+const UserAuthMiddleware = require("../middlewares/UserAuthMiddleware");     // USERS
+const RoleCheckMiddleware = require("../middlewares/RoleCheckMiddleware");
 
 // ================= CONTROLLERS =================
 
 // Admin
-const AdminController = require('../controllers/Admin/AdminController');
-
-// Notice
-const NoticeController = require("../controllers/Notice/NoticeController");
-
-
-const DepartmentController = require('../controllers/Departments/DepartmentController');
+const AdminController =
+  require("../controllers/Admin/AdminController");
 
 // Users
-const UsersController = require('../controllers/Users/UsersCreateUpdateController');
-const AdminSideUsersController = require('../controllers/Users/AdminSideUsersController');
+const UsersController =
+  require("../controllers/Users/UsersCreateUpdateController");
+const AdminSideUsersController =
+  require("../controllers/Users/AdminSideUsersController");
+
+// Departments
+const DepartmentController =
+  require("../controllers/Departments/DepartmentController");
 
 // Admission
-const AdmissionController = require('../controllers/Admission/AdmissionController');
+const AdmissionController =
+  require("../controllers/Admission/AdmissionController");
+  const DepartmentLastSemesterCourseController =
+  require("../controllers/Admission/DepartmentLastSemesterCourseController");
+
+// Notice
+const NoticeController =
+  require("../controllers/Notice/NoticeController");
 
 // =================================================
 // ================= PUBLIC ROUTES =================
@@ -39,27 +47,40 @@ router.get("/admin/recover/verify-otp/:email/:otp", AdminController.RecoverVerif
 router.post("/admin/recover/reset-password", AdminController.RecoverResetPass);
 
 // -------- User Auth --------
-router.post("/users/register", UsersController.Registration);
+router.post("/users/student-register", UsersController.StudentRegistration);
 router.post("/users/login", UsersController.Login);
 router.get("/users/recover/verify-email/:email", UsersController.RecoverVerifyEmail);
 router.post("/users/recover/verify-otp", UsersController.RecoverVerifyOTP);
 router.post("/users/recover/reset-password", UsersController.RecoverResetPass);
 
-// -------- Admission (Public) --------
+// -------- Admission (PUBLIC – no login) --------
 router.post("/admission/apply", AdmissionController.ApplyForAdmission);
 router.post("/admission/temporary-login", AdmissionController.TemporaryLogin);
+
+// -------- Public Notice --------
+router.get("/notice/public/list", NoticeController.PublicList);
+router.get("/notice/public/latest", NoticeController.PublicLatest);
 
 // =================================================
 // ============== USER PROTECTED ROUTES =============
 // =================================================
 
 // -------- User Profile --------
-router.get("/users/profile", UserAuthMiddleware, UsersController.ProfileDetails);
-router.post("/users/profile/update", UserAuthMiddleware, UsersController.ProfileUpdate);
+router.get(
+  "/users/profile",
+  UserAuthMiddleware,
+  UsersController.ProfileDetails
+);
 
+router.post(
+  "/users/profile/update",
+  UserAuthMiddleware,
+  UsersController.ProfileUpdate
+);
 
-
-// -------- SUPERVISOR PANEL --------
+// =================================================
+// ============== SUPERVISOR PANEL =================
+// =================================================
 router.get(
   "/admission/supervisor/applications",
   UserAuthMiddleware,
@@ -74,7 +95,9 @@ router.post(
   AdmissionController.SupervisorDecision
 );
 
-// -------- CHAIRMAN PANEL --------
+// =================================================
+// ============== CHAIRMAN PANEL ===================
+// =================================================
 router.get(
   "/admission/chairman/applications",
   UserAuthMiddleware,
@@ -89,7 +112,36 @@ router.post(
   AdmissionController.ChairmanDecision
 );
 
-// -------- DEAN PANEL --------
+
+// Chairman creates / updates department last semester courses
+router.post(
+  "/admission/department-last-semester-courses",
+  UserAuthMiddleware,
+  RoleCheckMiddleware(["Chairman"]),
+  DepartmentLastSemesterCourseController.SetDepartmentLastSemesterCourses
+);
+
+// List (for update UI)
+router.get(
+  "/admission/department-last-semester-courses/chairman",
+  UserAuthMiddleware,
+  RoleCheckMiddleware(["Chairman"]),
+  DepartmentLastSemesterCourseController.DepartmentCourseList
+);
+
+/* =================================================
+   PUBLIC (STUDENT APPLICATION)
+================================================= */
+
+// Get last semester courses by department
+router.get(
+  "/admission/department-last-semester-courses/:departmentId",
+  DepartmentLastSemesterCourseController.GetDepartmentLastSemesterCourses
+);
+
+// =================================================
+// ============== DEAN PANEL =======================
+// =================================================
 router.get(
   "/admission/dean/applications",
   UserAuthMiddleware,
@@ -105,54 +157,76 @@ router.post(
 );
 
 // =================================================
-// ============== ADMIN PROTECTED ROUTES =============
+// ============== FINAL ENROLLMENT =================
+// =================================================
+// 🔓 Uses temporary login (NOT admin-only)
+router.post(
+  "/admission/finalize-enrollment",
+  AdmissionController.FinalizeEnrollment
+);
+
+// =================================================
+// ============== ADMIN PROTECTED ROUTES ============
 // =================================================
 
 // -------- Admin Profile --------
-router.get("/admin/profile", AuthVerifyMiddleware, AdminController.ProfileDetails);
-router.post("/admin/profile/update", AuthVerifyMiddleware, AdminController.ProfileUpdate);
+router.get(
+  "/admin/profile",
+  AuthVerifyMiddleware,
+  AdminController.ProfileDetails
+);
 
-// Departments
-router.post('/CreateDepartment', AuthVerifyMiddleware,DepartmentController.CreateDepartment);
-router.post('/UpdateDepartment/:id', AuthVerifyMiddleware,DepartmentController.UpdateDepartment);
-router.get('/DepartmentList/:pageNo/:perPage/:searchKeyword', AuthVerifyMiddleware,DepartmentController.ListDepartments);
-router.get('/DepartmentDetailsByID/:id', AuthVerifyMiddleware,DepartmentController.DepartmentDetailsByID);
-router.delete('/DeleteDepartment/:id', AuthVerifyMiddleware,DepartmentController.DeleteDepartment);
-router.get('/DepartmentDropdown',  DepartmentController.DepartmentDropdown);
+router.post(
+  "/admin/profile/update",
+  AuthVerifyMiddleware,
+  AdminController.ProfileUpdate
+);
 
-// -------- Admission Admin Controls --------
+// -------- Departments --------
+router.post(
+  "/CreateDepartment",
+  AuthVerifyMiddleware,
+  DepartmentController.CreateDepartment
+);
+
+router.post(
+  "/UpdateDepartment/:id",
+  AuthVerifyMiddleware,
+  DepartmentController.UpdateDepartment
+);
+
+router.get(
+  "/DepartmentList/:pageNo/:perPage/:searchKeyword",
+  AuthVerifyMiddleware,
+  DepartmentController.ListDepartments
+);
+
+router.get(
+  "/DepartmentDetailsByID/:id",
+  AuthVerifyMiddleware,
+  DepartmentController.DepartmentDetailsByID
+);
+
+router.delete(
+  "/dDeleteDepartment/:id",
+  AuthVerifyMiddleware,
+  DepartmentController.DeleteDepartment
+);
+
+router.get(
+  "/DepartmentDropdown",
+  DepartmentController.DepartmentDropdown
+);
+
+// =================================================
+// ============== ADMISSION ADMIN ==================
+// =================================================
+
+// Admission season
 router.post(
   "/admission/season/create",
   AuthVerifyMiddleware,
   AdmissionController.CreateAdmissionSeason
-);
-
-// Department Registration Ranges
-router.post(
-  "/admission/department-range/create-update",
-  AuthVerifyMiddleware,
-  AdmissionController.CreateUpdateDepartmentRange
-);
-
-// existing (single season)
-router.get(
-  "/admission/department-range/list/:admissionSeason",
-  AuthVerifyMiddleware,
-  AdmissionController.DepartmentRangeList
-);
-
-// 🔥 NEW (all seasons, SAME SERVICE)
-router.get(
-  "/admission/department-range/list",
-  AuthVerifyMiddleware,
-  AdmissionController.DepartmentRangeList
-);
-
-
-router.delete(
-  "/admission/department-range/delete/:id",
-  AuthVerifyMiddleware,
-  AdmissionController.DeleteDepartmentRange
 );
 
 router.get(
@@ -167,16 +241,40 @@ router.post(
   AdmissionController.ToggleSeasonLock
 );
 
-
-
-// 🔒 FINAL ENROLLMENT (ADMIN ONLY)
+// Department registration range
 router.post(
-  "/admission/finalize-enrollment",
+  "/admission/department-range/create-update",
   AuthVerifyMiddleware,
-  AdmissionController.FinalizeEnrollment
+  AdmissionController.CreateUpdateDepartmentRange
 );
 
-// -------- USERS (ADMIN SIDE) --------
+router.get(
+  "/admission/department-range/list/:admissionSeason",
+  AuthVerifyMiddleware,
+  AdmissionController.DepartmentRangeList
+);
+
+router.get(
+  "/admission/department-range/list",
+  AuthVerifyMiddleware,
+  AdmissionController.DepartmentRangeList
+);
+
+router.delete(
+  "/admission/department-range/delete/:id",
+  AuthVerifyMiddleware,
+  AdmissionController.DeleteDepartmentRange
+);
+
+// =================================================
+// ============== ADMIN USER MANAGEMENT =============
+// =================================================
+router.post(
+  "/admin/users/create",
+  AuthVerifyMiddleware,
+  AdminSideUsersController.AdminCreateUser
+);
+
 router.get(
   "/admin/users/list/:pageNo/:perPage/:searchKeyword/:role",
   AuthVerifyMiddleware,
@@ -208,15 +306,58 @@ router.post(
   AdminSideUsersController.SendEmailToUser
 );
 
-// ADMIN Notice
-router.post("/notice/create", AuthVerifyMiddleware, NoticeController.Create);
-router.post("/notice/update/:id", AuthVerifyMiddleware, NoticeController.Update);
-router.post("/notice/pin/:id", AuthVerifyMiddleware, NoticeController.TogglePin);
-router.post("/notice/lock/:id", AuthVerifyMiddleware, NoticeController.ToggleLock);
-router.delete("/notice/delete/:id", AuthVerifyMiddleware, NoticeController.Delete);
-router.get("/notice/admin/list", AuthVerifyMiddleware, NoticeController.AdminList);
+router.get(
+  "/users/supervisors/:departmentId",
+  UsersController.SupervisorDropdown
+);
 
-// PUBLIC Notice
-router.get("/notice/latest", NoticeController.PublicList);
+
+// =================================================
+// ============== ADMIN NOTICE ======================
+// =================================================
+router.post(
+  "/notice/create",
+  AuthVerifyMiddleware,
+  NoticeController.Create
+);
+
+router.post(
+  "/notice/update/:id",
+  AuthVerifyMiddleware,
+  NoticeController.Update
+);
+
+router.post(
+  "/notice/pin/:id",
+  AuthVerifyMiddleware,
+  NoticeController.TogglePin
+);
+
+router.post(
+  "/notice/lock/:id",
+  AuthVerifyMiddleware,
+  NoticeController.ToggleLock
+);
+
+router.delete(
+  "/notice/delete/:id",
+  AuthVerifyMiddleware,
+  NoticeController.Delete
+);
+
+router.get(
+  "/notice/admin/list",
+  AuthVerifyMiddleware,
+  NoticeController.AdminList
+);
+
+// -------- PUBLIC ADMISSION SEASONS --------
+router.get(
+  "/admission/season/public",
+  AdmissionController.PublicAdmissionSeasons
+);
+
+
+
 
 module.exports = router;

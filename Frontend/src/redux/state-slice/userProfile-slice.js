@@ -40,23 +40,22 @@ export const userProfileSlice = createSlice({
 
         // LOGIN / PROFILE LOAD
         SetUserProfile: (state, action) => {
-            const { token, user } = action.payload;
+  const { token, user } = action.payload;
 
-            state.isAuthenticated = true;
-            state.token = token;
+  state.isAuthenticated = !!token;
+  state.token = token;
 
-            state.user = {
-                id: user._id || user.id || null,
-                name:
-                    user.name ||
-                    `${user.firstName || ""} ${user.lastName || ""}`.trim(),
-                email: user.email || "",
-                role: user.role || "",
-                faculty: user.faculty || null,
-                department: user.department || null,
-                photo: user.photo || "defaultPhoto.png"
-            };
-        },
+  state.user = {
+    id: user?._id || user?.id || null,
+    name: user?.name || "",
+    email: user?.email || "",
+    role: user?.role || "",
+    faculty: user?.faculty || null,
+    department: user?.department || null,
+    photo: user?.photo || "defaultPhoto.png"
+  };
+}
+,
 
         // LOGOUT
         ClearUserProfile: () => ({

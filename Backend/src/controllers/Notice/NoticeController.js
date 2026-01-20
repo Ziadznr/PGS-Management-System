@@ -20,3 +20,6 @@ exports.AdminList = async (req, res) =>
 
 exports.PublicList = async (req, res) =>
   res.status(200).json(await NoticeService.PublicList());
+
+exports.PublicLatest = async (req, res) =>
+  res.status(200).json(await NoticeService.PublicLatest());

@@ -1,20 +1,17 @@
 // Import services (PGS Users)
-const UserCreateService = require('../../services/users/UserCreateService');
+const StudentRegisterService = require('../../services/users/StudentRegisterService');
 const UserLoginService = require('../../services/users/UserLoginService');
 const UserUpdateService = require('../../services/users/UserUpdateService');
 const UserDetailsService = require('../../services/users/UserDetailsService');
 const UserVerifyEmailService = require('../../services/users/UserVerifyEmailService');
 const UserVerifyOtpService = require('../../services/users/UserVerifyOtpService');
 const UserResetPassService = require('../../services/users/UserResetPassService');
+const SupervisorDropdownService =require("../../services/users/SupervisorDropdownService");
 
 // ------------------ Registration ------------------
-exports.Registration = async (req, res) => {
-    try {
-        const result = await UserCreateService(req);
-        res.status(200).json(result);
-    } catch (error) {
-        res.status(500).json({ status: 'fail', data: error.toString() });
-    }
+exports.StudentRegistration = async (req, res) => {
+  const result = await StudentRegisterService(req);
+  res.status(200).json(result);
 };
 
 // ------------------ Login ------------------
@@ -77,4 +74,11 @@ exports.RecoverResetPass = async (req, res) => {
     } catch (error) {
         res.status(500).json({ status: 'fail', data: error.toString() });
     }
+};
+
+
+exports.SupervisorDropdown = async (req, res) => {
+  res.status(200).json(
+    await SupervisorDropdownService(req)
+  );
 };

@@ -9,52 +9,55 @@ import {
 import { BaseURL } from "../helper/config";
 import { DeleteAlert } from "../helper/DeleteAlert";
 
-// =================================================
-// ================= AXIOS HEADERS =================
-// =================================================
+/* =================================================
+   AXIOS HEADERS
+================================================= */
 
-const userHeader = () => ({
-  headers: { token: getToken() }
-});
+const userHeader = () => {
+  const token = getToken();
+  if (!token) throw new Error("User token missing");
+  return { headers: { token } };
+};
+
 
 const adminHeader = () => ({
   headers: { token: getAdminToken() }
 });
 
-// =================================================
-// ================= STUDENT =======================
-// =================================================
+/* =================================================
+   STUDENT (PUBLIC)
+================================================= */
 
-// 🔹 Student applies for admission (PUBLIC)
-export async function ApplyForAdmissionRequest(formData) {
+// 🔹 Apply for admission
+export async function ApplyForAdmissionRequest(payload) {
   try {
     store.dispatch(ShowLoader());
 
     const res = await axios.post(
       `${BaseURL}/admission/apply`,
-      formData
+      payload
     );
 
     store.dispatch(HideLoader());
 
-    if (res.status === 200 && res.data?.status === "success") {
-      SuccessToast("Application Submitted Successfully");
-      return true;
+    if (res.data?.status === "success") {
+      SuccessToast("Application submitted successfully");
+      return res.data.data;
     }
 
-    ErrorToast(res.data?.data || "Application Failed");
+    ErrorToast(res.data?.data || "Application failed");
     return false;
 
   } catch {
     store.dispatch(HideLoader());
-    ErrorToast("Server Error");
+    ErrorToast("Server error");
     return false;
   }
 }
 
-// =================================================
-// ================= SUPERVISOR ====================
-// =================================================
+/* =================================================
+   SUPERVISOR
+================================================= */
 
 export async function SupervisorApplications() {
   try {
@@ -66,12 +69,11 @@ export async function SupervisorApplications() {
     );
 
     store.dispatch(HideLoader());
-
     return res.data?.status === "success" ? res.data.data : [];
 
   } catch {
     store.dispatch(HideLoader());
-    ErrorToast("Failed to load applications");
+    ErrorToast("Failed to load supervisor applications");
     return [];
   }
 }
@@ -89,23 +91,23 @@ export async function SupervisorDecision(applicationId, decision, remarks) {
     store.dispatch(HideLoader());
 
     if (res.data?.status === "success") {
-      SuccessToast("Decision Submitted");
+      SuccessToast("Decision submitted");
       return true;
     }
 
-    ErrorToast("Action failed");
+    ErrorToast(res.data?.data || "Action failed");
     return false;
 
   } catch {
     store.dispatch(HideLoader());
-    ErrorToast("Server Error");
+    ErrorToast("Server error");
     return false;
   }
 }
 
-// =================================================
-// ================= CHAIRMAN ======================
-// =================================================
+/* =================================================
+   CHAIRMAN
+================================================= */
 
 export async function ChairmanApplications() {
   try {
@@ -117,46 +119,45 @@ export async function ChairmanApplications() {
     );
 
     store.dispatch(HideLoader());
-
     return res.data?.status === "success" ? res.data.data : [];
 
   } catch {
     store.dispatch(HideLoader());
-    ErrorToast("Failed to load applications");
+    ErrorToast("Failed to load chairman applications");
     return [];
   }
 }
 
-export async function ChairmanDecision(applicationId, decision, remarks) {
+export async function ChairmanDecision() {
   try {
     store.dispatch(ShowLoader());
 
     const res = await axios.post(
       `${BaseURL}/admission/chairman/decision`,
-      { applicationId, decision, remarks },
+      {},
       userHeader()
     );
 
     store.dispatch(HideLoader());
 
     if (res.data?.status === "success") {
-      SuccessToast("Decision Submitted");
+      SuccessToast("Chairman ranking completed");
       return true;
     }
 
-    ErrorToast("Action failed");
+    ErrorToast(res.data?.data || "Action failed");
     return false;
 
   } catch {
     store.dispatch(HideLoader());
-    ErrorToast("Server Error");
+    ErrorToast("Server error");
     return false;
   }
 }
 
-// =================================================
-// ================= DEAN ==========================
-// =================================================
+/* =================================================
+   DEAN
+================================================= */
 
 export async function DeanApplications() {
   try {
@@ -168,12 +169,11 @@ export async function DeanApplications() {
     );
 
     store.dispatch(HideLoader());
-
     return res.data?.status === "success" ? res.data.data : [];
 
   } catch {
     store.dispatch(HideLoader());
-    ErrorToast("Failed to load applications");
+    ErrorToast("Failed to load dean applications");
     return [];
   }
 }
@@ -191,19 +191,81 @@ export async function DeanDecision(applicationId, decision, remarks) {
     store.dispatch(HideLoader());
 
     if (res.data?.status === "success") {
-      SuccessToast("Final Approval Done");
-      return res.data.data;
+      SuccessToast("Dean decision completed");
+      return res.data.data; // contains temp login if approved
     }
 
-    ErrorToast("Action failed");
+    ErrorToast(res.data?.data || "Action failed");
     return false;
 
   } catch {
     store.dispatch(HideLoader());
-    ErrorToast("Server Error");
+    ErrorToast("Server error");
     return false;
   }
 }
+
+/* =================================================
+   TEMP LOGIN (NO TOKEN)
+================================================= */
+
+export async function TemporaryLoginRequest(tempLoginId, password) {
+  try {
+    store.dispatch(ShowLoader());
+
+    const res = await axios.post(
+      `${BaseURL}/admission/temporary-login`,
+      { tempLoginId, password }
+    );
+
+    store.dispatch(HideLoader());
+
+    if (res.data?.status === "success") {
+      SuccessToast("Temporary login successful");
+      return res.data.data;
+    }
+
+    ErrorToast(res.data?.data || "Temporary login failed");
+    return false;
+
+  } catch {
+    store.dispatch(HideLoader());
+    ErrorToast("Server error");
+    return false;
+  }
+}
+
+/* =================================================
+   FINAL ENROLLMENT
+================================================= */
+
+export async function FinalizeEnrollmentRequest(applicationId, password) {
+  try {
+    store.dispatch(ShowLoader());
+
+    const res = await axios.post(
+      `${BaseURL}/admission/finalize-enrollment`,
+      { applicationId, password },
+      adminHeader()
+    );
+
+    store.dispatch(HideLoader());
+
+    if (res.data?.status === "success") {
+      SuccessToast("Enrollment completed");
+      return res.data.data;
+    }
+
+    ErrorToast(res.data?.data || "Enrollment failed");
+    return false;
+
+  } catch {
+    store.dispatch(HideLoader());
+    ErrorToast("Server error");
+    return false;
+  }
+}
+
 
 // =================================================
 // ================= ADMIN =========================
@@ -363,3 +425,81 @@ export async function DeleteDepartmentRangeRequest(id) {
     return false;
   }
 }
+
+export async function PublicAdmissionSeasonListRequest() {
+  try {
+    const res = await axios.get(
+      `${BaseURL}/admission/season/public`
+    );
+
+    return res.data?.status === "success"
+      ? res.data.data
+      : [];
+
+  } catch (e) {
+    console.error("PublicAdmissionSeasonList error:", e);
+    return [];
+  }
+}
+
+export async function SetDepartmentLastSemesterCoursesRequest(courses) {
+  try {
+    const res = await axios.post(
+      `${BaseURL}/admission/department-last-semester-courses`,
+      { courses },
+      userHeader() // chairman token
+    );
+
+    if (res.data?.status === "success") {
+      SuccessToast("Courses saved successfully");
+      return true;
+    }
+
+    ErrorToast(res.data?.data || "Failed to save courses");
+    return false;
+
+  } catch (e) {
+    console.error(e);
+    ErrorToast("Server error");
+    return false;
+  }
+}
+
+
+// Load existing courses (for list / edit)
+export async function GetChairmanDepartmentLastSemesterCoursesRequest() {
+  try {
+    const res = await axios.get(
+      `${BaseURL}/admission/department-last-semester-courses/chairman`,
+      userHeader()
+    );
+
+    return res.data?.status === "success"
+      ? res.data.data
+      : null;
+
+  } catch (e) {
+    console.error(e);
+    return null;
+  }
+}
+
+
+export async function GetDepartmentLastSemesterCoursesRequest(departmentId) {
+  try {
+    const res = await axios.get(
+      `${BaseURL}/admission/department-last-semester-courses/${departmentId}`
+    );
+
+    return res.data?.status === "success"
+      ? res.data.data
+      : [];
+
+  } catch (e) {
+    console.error(e);
+    return [];
+  }
+}
+
+
+

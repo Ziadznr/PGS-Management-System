@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   AdminUsersListRequest,
   AdminDeleteUserRequest,
@@ -11,7 +11,7 @@ import { ErrorToast, SuccessToast } from "../../helper/FormHelper";
 import "../../assets/css/EmailModal.css";
 
 const AdminUsersList = () => {
-  const [searchKeyword, setSearchKeyword] = useState("0");
+  const [searchKeyword, setSearchKeyword] = useState("");
   const [role, setRole] = useState("All");
   const [perPage, setPerPage] = useState(20);
   const [pageNo, setPageNo] = useState(1);
@@ -28,8 +28,10 @@ const AdminUsersList = () => {
   const [emailSending, setEmailSending] = useState(false);
   const [attachments, setAttachments] = useState([]);
 
+  const searchTimeout = useRef(null);
+
   // ---------------- FETCH USERS ----------------
-  const fetchUsers = async (page = 1) => {
+  const fetchUsers = async (page = 1, keyword = searchKeyword) => {
     try {
       setLoading(true);
       setPageNo(page);
@@ -37,7 +39,7 @@ const AdminUsersList = () => {
       const result = await AdminUsersListRequest(
         page,
         perPage,
-        searchKeyword,
+        keyword || "0",
         role
       );
 
@@ -45,16 +47,28 @@ const AdminUsersList = () => {
       setTotalCount(result?.Total?.[0]?.count || 0);
 
     } catch (error) {
-      console.error("fetchUsers error:", error);
+      console.error(error);
       ErrorToast("Failed to load users");
     } finally {
       setLoading(false);
     }
   };
 
+  // Initial & filter change load
   useEffect(() => {
     fetchUsers(1);
-  }, [perPage, role, searchKeyword]);
+  }, [perPage, role]);
+
+  // 🔍 Debounced search
+  useEffect(() => {
+    clearTimeout(searchTimeout.current);
+
+    searchTimeout.current = setTimeout(() => {
+      fetchUsers(1, searchKeyword);
+    }, 500);
+
+    return () => clearTimeout(searchTimeout.current);
+  }, [searchKeyword]);
 
   const handlePageClick = (event) => {
     fetchUsers(event.selected + 1);
@@ -68,16 +82,22 @@ const AdminUsersList = () => {
     const result = await AdminDeleteUserRequest(id);
     if (result) {
       SuccessToast("User deleted");
-      fetchUsers(pageNo);
+
+      const newPage =
+        users.length === 1 && pageNo > 1 ? pageNo - 1 : pageNo;
+
+      fetchUsers(newPage);
     }
   };
 
   // ---------------- SEND EMAIL ----------------
   const SendEmail = async () => {
-    if (!emailSubject || !emailMessage) {
+    if (!emailSubject.trim() || !emailMessage.trim()) {
       ErrorToast("Subject & message required");
       return;
     }
+
+    if (emailSending) return;
 
     setEmailSending(true);
 
@@ -92,11 +112,16 @@ const AdminUsersList = () => {
 
     if (result) {
       SuccessToast("Email sent");
-      setShowEmailModal(false);
-      setEmailSubject("");
-      setEmailMessage("");
-      setAttachments([]);
+      closeEmailModal();
     }
+  };
+
+  const closeEmailModal = () => {
+    setShowEmailModal(false);
+    setSelectedUserId(null);
+    setEmailSubject("");
+    setEmailMessage("");
+    setAttachments([]);
   };
 
   return (
@@ -112,10 +137,8 @@ const AdminUsersList = () => {
           <input
             className="form-control form-control-sm"
             placeholder="Search name/email"
-            value={searchKeyword === "0" ? "" : searchKeyword}
-            onChange={(e) =>
-              setSearchKeyword(e.target.value || "0")
-            }
+            value={searchKeyword}
+            onChange={(e) => setSearchKeyword(e.target.value)}
           />
         </div>
 
@@ -129,6 +152,7 @@ const AdminUsersList = () => {
             <option value="Dean">Dean</option>
             <option value="Chairman">Chairman</option>
             <option value="Supervisor">Supervisor</option>
+            <option value="Student">Student</option>
           </select>
         </div>
 
@@ -154,7 +178,6 @@ const AdminUsersList = () => {
               <th>Name</th>
               <th>Email</th>
               <th>Role</th>
-              <th>Faculty</th>
               <th>Department</th>
               <th>Delete</th>
               <th>Mail</th>
@@ -166,15 +189,14 @@ const AdminUsersList = () => {
               <tr>
                 <td colSpan={8} className="text-center">Loading...</td>
               </tr>
-            ) : users.length > 0 ? (
+            ) : users.length ? (
               users.map((u, i) => (
                 <tr key={u._id}>
                   <td>{i + 1 + (pageNo - 1) * perPage}</td>
                   <td>{u.name}</td>
                   <td>{u.email}</td>
                   <td>{u.role}</td>
-                  <td>{u.facultyName || "-"}</td>
-                  <td>{u.departmentName || "-"}</td>
+                  <td>{u.DepartmentName|| "-"}</td>
 
                   <td>
                     <button
@@ -251,7 +273,7 @@ const AdminUsersList = () => {
             <div className="text-end">
               <button
                 className="btn btn-secondary btn-sm me-2"
-                onClick={() => setShowEmailModal(false)}
+                onClick={closeEmailModal}
               >
                 Cancel
               </button>
@@ -267,6 +289,7 @@ const AdminUsersList = () => {
           </div>
         </div>
       )}
+
     </div>
   );
 };

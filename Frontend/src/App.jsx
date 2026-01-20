@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 
 // ✅ ADMIN TOKEN
-import { getAdminToken } from "./helper/SessionHelper";
+import { getAdminToken,getToken  } from "./helper/SessionHelper";
 import { GetProfileDetails } from "./APIRequest/AdminAPIRequest";
 
 import FullscreenLoader from "./components/MasterLayout/FullscreenLoader";
@@ -18,6 +18,18 @@ import VerifyOTPPage from "./pages/Admin/VerifyOTPPage";
 import CreatePasswordPage from "./pages/Admin/CreatePasswordPage";
 import ProfilePage from "./pages/Admin/ProfilePage";
 
+// -------- Users AUTH PAGES --------
+import UserLoginPage from "./pages/Users/UserLoginPage";
+import UserRegistrationPage from "./pages/Users/UserRegistrationPage";
+import UserSendOTPPage from "./pages/Users/UserSendOTPPage";
+import UserVerifyOTPPage from "./pages/Users/UserVerifyOTPPage";
+import UserCreatePasswordPage from "./pages/Users/UserCreatePasswordPage";
+import UserProfilePage from "./pages/Users/UserProfilePage";
+import UserDashboardPage from "./pages/Users/UserDashboardPage";
+
+import AdminCreateUserPage from "./pages/Users/AdminCreateUserPage";
+import AdminUsersListPage from "./pages/Users/AdminUsersListPage";
+
 // -------- MAIN PAGES --------
 import DashboardPage from "./pages/Dashboard/DashboardPage";
 import DepartmentListPage from "./pages/Department/DepartmentListPage";
@@ -27,10 +39,20 @@ import DepartmentRangeListPage from "./pages/Admission/DepartmentRangeListPage";
 
 // Notice Page
 import NoticePage from "./pages/Notice/NoticePage";
+import PublicNoticeListPage from "./pages/Notice/PublicNoticeListPage";
+
+// Application
+import ApplyAdmissionPage from "./pages/Admission/ApplyAdmissionPage";
+import DepartmentLastSemesterCoursesPage from "./pages/Admission/DepartmentLastSemesterCoursesPage";
 
 // ✅ ADMIN PROTECTED ROUTE
 const ProtectedRoute = ({ children }) => {
   return getAdminToken() ? children : <Navigate to="/login" replace />;
+};
+
+// USER PROTECTED ROUTE
+const UserProtectedRoute = ({ children }) => {
+  return getToken() ? children : <Navigate to="/users/login" replace />;
 };
 
 const App = () => {
@@ -63,6 +85,21 @@ const App = () => {
           <Route path="/send-otp" element={<SendOTPPage />} />
           <Route path="/verify-otp" element={<VerifyOTPPage />} />
           <Route path="/create-password" element={<CreatePasswordPage />} />
+          <Route path="/notices" element={<PublicNoticeListPage />} />
+
+          
+
+          {/* ---------- PUBLIC Users AUTH ---------- */}
+          <Route path="/users/login" element={<UserLoginPage />} />
+          <Route path="/users/registration" element={<UserRegistrationPage />} />
+          <Route path="/users/send-otp" element={<UserSendOTPPage />} />
+          <Route path="/users/verify-otp" element={<UserVerifyOTPPage />} />
+          <Route path="/users/create-password" element={<UserCreatePasswordPage />} />
+
+
+          <Route path="/ApplyAdmissionPage" element={<ApplyAdmissionPage />} />
+    
+
 
           {/* ---------- PROTECTED ADMIN ROUTES ---------- */}
           <Route
@@ -120,13 +157,42 @@ const App = () => {
           />
 
           <Route
-  path="/notices"
+  path="/admin/notices"
   element={
     <ProtectedRoute>
       <NoticePage />
     </ProtectedRoute>
   }
 />
+<Route path="/AdminCreateUserPage" element={<ProtectedRoute><AdminCreateUserPage /></ProtectedRoute>} />
+<Route path="/AdminUsersListPage" element={<ProtectedRoute><AdminUsersListPage /></ProtectedRoute>} />
+
+<Route
+  path="/users/dashboard"
+  element={
+    <UserProtectedRoute>
+      <UserDashboardPage />
+    </UserProtectedRoute>
+  }
+/>
+<Route
+  path="/users/profile"
+  element={
+    <UserProtectedRoute>
+      <UserProfilePage />
+    </UserProtectedRoute>
+  }
+/>
+
+<Route
+  path="/DepartmentLastSemesterCoursesPage"
+  element={
+    <UserProtectedRoute>
+      <DepartmentLastSemesterCoursesPage />
+    </UserProtectedRoute>
+  }
+/>
+
 
 
           {/* ---------- NOT FOUND ---------- */}

@@ -78,8 +78,8 @@ const MasterLayout = (props) => {
     {
       title: "Notice Management",
       icon: <BsPeople className="side-bar-item-icon" />,
-      url: "/notices",
-      subMenu: [{ title: "Notice", icon: <BsCircle size={16} />, url: "/notices" }],
+      url: "/admin/notices",
+      subMenu: [{ title: "Notice", icon: <BsCircle size={16} />, url: "/admin/notices" }],
     },
     {
       title: "Department",
@@ -102,10 +102,10 @@ const MasterLayout = (props) => {
     {
       title: "User",
       icon: <BsPeople className="side-bar-item-icon" />,
-      url: "/Customer",
+      url: "/User",
       subMenu: [
-        { title: "New User", icon: <BsCircle size={16} />, url: "/CustomerCreateUpdatePage" },
-        { title: "Users List", icon: <BsCircle size={16} />, url: "/CustomerListPage" },
+        { title: "New User", icon: <BsCircle size={16} />, url: "/AdminCreateUserPage" },
+        { title: "Users List", icon: <BsCircle size={16} />, url: "/AdminUsersListPage" },
       ],
     },
    

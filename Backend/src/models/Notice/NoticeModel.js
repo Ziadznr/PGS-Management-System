@@ -10,6 +10,10 @@ const NoticeSchema = new mongoose.Schema(
     isPinned: { type: Boolean, default: false },
     isLocked: { type: Boolean, default: false },
     isActive: { type: Boolean, default: true },
+     isPublic: {
+      type: Boolean,
+      default: false
+    },
 
     expireAt: Date,
 

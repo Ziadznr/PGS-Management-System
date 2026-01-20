@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const ListService = async (
   req,
@@ -12,18 +12,16 @@ const ListService = async (
     const searchKeyword = req.params.searchKeyword || "0";
     const skipRow = (pageNo - 1) * perPage;
 
-    if (pageNo < 1) pageNo = 1;
-    if (perPage < 1) perPage = 20;
+    let matchStage = {
+      ...MatchQuery,
+      isActive: true // 🔥 ONLY ACTIVE USERS
+    };
 
-    let matchStage = { ...MatchQuery };
-
-    // ---------------- Role-based filtering ----------------
-    // Student sees only own data
+    // ---------------- ROLE BASED FILTER ----------------
     if (req.user.role === "Student") {
       matchStage.email = req.user.email;
     }
 
-    // Chairman & Supervisor see users from their department
     if (
       ["Chairman", "Supervisor"].includes(req.user.role) &&
       req.user.department
@@ -31,9 +29,7 @@ const ListService = async (
       matchStage.department = new mongoose.Types.ObjectId(req.user.department);
     }
 
-    // Dean sees everything (no extra filter)
-
-    // ---------------- Search filter ----------------
+    // ---------------- SEARCH ----------------
     if (searchKeyword !== "0" && SearchArray.length > 0) {
       matchStage.$or = SearchArray;
     }
@@ -41,7 +37,6 @@ const ListService = async (
     const data = await DataModel.aggregate([
       { $match: matchStage },
 
-      // ---------------- Department Lookup ----------------
       {
         $lookup: {
           from: "departments",
@@ -52,7 +47,6 @@ const ListService = async (
       },
       { $unwind: { path: "$DepartmentData", preserveNullAndEmptyArrays: true } },
 
-      // ---------------- Faculty Lookup (via Department) ----------------
       {
         $lookup: {
           from: "faculties",
@@ -63,7 +57,6 @@ const ListService = async (
       },
       { $unwind: { path: "$FacultyData", preserveNullAndEmptyArrays: true } },
 
-      // ---------------- Pagination ----------------
       {
         $facet: {
           Total: [{ $count: "count" }],

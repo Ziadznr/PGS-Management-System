@@ -1,27 +1,4 @@
-const NoticeModel =require("../../models/Notice/NoticeModel");
-
-module.exports = async (req, NoticeModel) => {
-  if (!req.user || req.user.role !== "admin") {
-    return { status: "fail", data: "Unauthorized admin" };
-  }
-
-  const { title, description, expireAt, attachment } = req.body;
-
-  if (!title || !description) {
-    return { status: "fail", data: "All fields required" };
-  }
-
-  const notice = await NoticeModel.create({
-    title,
-    description,
-    expireAt,
-    attachment,
-    createdBy: req.user.id
-  });
-
-  return { status: "success", data: notice };
-};
-
+const NoticeModel = require("../../models/Notice/NoticeModel");
 
 // =================================================
 // CREATE NOTICE
@@ -32,7 +9,13 @@ exports.Create = async (req) => {
       return { status: "fail", data: "Unauthorized admin" };
     }
 
-    const { title, description, attachment, expireAt } = req.body;
+    const {
+      title,
+      description,
+      attachment,
+      expireAt,
+      isPublic   // ✅ READ IT
+    } = req.body;
 
     if (!title || !description) {
       return { status: "fail", data: "All fields required" };
@@ -43,6 +26,7 @@ exports.Create = async (req) => {
       description,
       attachment,
       expireAt,
+      isPublic: Boolean(isPublic), // ✅ FIX
       createdBy: req.user.id
     });
 
@@ -52,6 +36,7 @@ exports.Create = async (req) => {
     return { status: "fail", data: error.message };
   }
 };
+
 
 // =================================================
 // UPDATE NOTICE
@@ -70,9 +55,7 @@ exports.Update = async (req) => {
     }
 
     await NoticeModel.updateOne({ _id: id }, req.body);
-
     return { status: "success", data: "Notice updated" };
-
   } catch (error) {
     return { status: "fail", data: error.message };
   }
@@ -83,11 +66,8 @@ exports.Update = async (req) => {
 // =================================================
 exports.Delete = async (req) => {
   try {
-    const { id } = req.params;
-
-    await NoticeModel.findByIdAndDelete(id);
+    await NoticeModel.findByIdAndDelete(req.params.id);
     return { status: "success", data: "Notice deleted" };
-
   } catch (error) {
     return { status: "fail", data: error.message };
   }
@@ -108,7 +88,6 @@ exports.TogglePin = async (req) => {
       status: "success",
       data: notice.isPinned ? "Notice pinned" : "Notice unpinned"
     };
-
   } catch (error) {
     return { status: "fail", data: error.message };
   }
@@ -129,48 +108,63 @@ exports.ToggleLock = async (req) => {
       status: "success",
       data: notice.isLocked ? "Notice locked" : "Notice unlocked"
     };
-
   } catch (error) {
     return { status: "fail", data: error.message };
   }
 };
 
 // =================================================
-// ADMIN LIST (ALL)
+// ADMIN LIST
 // =================================================
 exports.AdminList = async () => {
   try {
-    const data = await NoticeModel.find()
-      .sort({ createdAt: -1 })
-      .lean();
-
+    const data = await NoticeModel.find().sort({ createdAt: -1 }).lean();
     return { status: "success", data };
-
   } catch (error) {
     return { status: "fail", data: error.message };
   }
 };
 
 // =================================================
-// PUBLIC LIST (LANDING PAGE)
+// PUBLIC LIST
 // =================================================
 exports.PublicList = async () => {
   try {
     const now = new Date();
 
     const data = await NoticeModel.find({
+      isPublic: true,
       isActive: true,
-      $or: [
-        { expireAt: null },
-        { expireAt: { $gte: now } }
-      ]
+      $or: [{ expireAt: null }, { expireAt: { $gte: now } }]
     })
       .sort({ isPinned: -1, createdAt: -1 })
       .lean();
 
     return { status: "success", data };
-
   } catch (error) {
     return { status: "fail", data: error.message };
   }
 };
+
+
+// =================================================
+// PUBLIC LATEST (for landing slider)
+// =================================================
+exports.PublicLatest = async () => {
+  try {
+    const now = new Date();
+
+    const data = await NoticeModel.findOne({
+      isPublic: true,
+      isActive: true,
+      $or: [{ expireAt: null }, { expireAt: { $gte: now } }]
+    })
+      .sort({ isPinned: -1, createdAt: -1 })
+      .lean();
+
+    return { status: "success", data };
+  } catch (error) {
+    return { status: "fail", data: error.message };
+  }
+};
+

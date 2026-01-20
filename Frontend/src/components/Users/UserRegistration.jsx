@@ -9,9 +9,11 @@ import {
 
 import {
   UserRegisterRequest,
-  FacultyDropdownRequest,
   DepartmentDropdownRequest
 } from "../../APIRequest/UserAPIRequest";
+
+// 🔒 FIXED FACULTY (PGS)
+const PGS_FACULTY_ID = "PUT_PGS_FACULTY_OBJECT_ID_HERE";
 
 const UserRegistration = () => {
 
@@ -19,38 +21,29 @@ const UserRegistration = () => {
   const phoneRef = useRef();
   const emailRef = useRef();
   const passwordRef = useRef();
-  const facultyRef = useRef();
   const departmentRef = useRef();
 
   const navigate = useNavigate();
 
   const [role, setRole] = useState("");
-  const [faculties, setFaculties] = useState([]);
   const [departments, setDepartments] = useState([]);
 
-  // ================= LOAD FACULTIES =================
-  useEffect(() => {
-    FacultyDropdownRequest().then(setFaculties);
-  }, []);
-
   // ================= LOAD DEPARTMENTS =================
-  const handleFacultyChange = async (facultyID) => {
-    if (!facultyID) {
+  useEffect(() => {
+    if (role && role !== "Dean") {
+      DepartmentDropdownRequest().then(setDepartments);
+    } else {
       setDepartments([]);
-      return;
     }
-    const deps = await DepartmentDropdownRequest(facultyID);
-    setDepartments(deps);
-  };
+  }, [role]);
 
   // ================= REGISTER =================
   const onRegister = async () => {
 
-    const name = nameRef.current.value;
-    const phone = phoneRef.current.value;
-    const email = emailRef.current.value;
-    const password = passwordRef.current.value;
-    const faculty = facultyRef.current?.value || null;
+    const name = nameRef.current.value.trim();
+    const phone = phoneRef.current.value.trim();
+    const email = emailRef.current.value.trim();
+    const password = passwordRef.current.value.trim();
     const department = departmentRef.current?.value || null;
 
     // -------- Validation --------
@@ -60,8 +53,10 @@ const UserRegistration = () => {
     if (IsEmpty(password)) return ErrorToast("Password required");
     if (IsEmpty(role)) return ErrorToast("Role required");
 
-    if (!faculty) return ErrorToast("Faculty required");
-    if (!department) return ErrorToast("Department required");
+    // ❌ Department not needed for Dean
+    if (role !== "Dean" && !department) {
+      return ErrorToast("Department required");
+    }
 
     // -------- Payload --------
     const payload = {
@@ -70,8 +65,8 @@ const UserRegistration = () => {
       email,
       password,
       role,
-      faculty,
-      department
+      faculty: PGS_FACULTY_ID, // ✅ AUTO PGS
+      department: role === "Dean" ? null : department
     };
 
     const result = await UserRegisterRequest(payload);
@@ -85,51 +80,68 @@ const UserRegistration = () => {
       <div className="row mt-3">
         <div className="col-md-6 offset-md-3">
 
-          <input ref={nameRef} className="form-control mt-3" placeholder="Full Name" />
-          <input ref={phoneRef} className="form-control mt-3" placeholder="Mobile Number" />
-          <input ref={emailRef} className="form-control mt-3" placeholder="Email Address" />
-          <input ref={passwordRef} className="form-control mt-3" type="password" placeholder="Password" />
+          <input
+            ref={nameRef}
+            className="form-control mt-3"
+            placeholder="Full Name"
+          />
 
-          {/* ROLE */}
+          <input
+            ref={phoneRef}
+            className="form-control mt-3"
+            placeholder="Mobile Number"
+          />
+
+          <input
+            ref={emailRef}
+            className="form-control mt-3"
+            placeholder="Email Address"
+          />
+
+          <input
+            ref={passwordRef}
+            className="form-control mt-3"
+            type="password"
+            placeholder="Password"
+          />
+
+          {/* ================= ROLE ================= */}
           <select
             className="form-control mt-3"
             value={role}
-            onChange={(e) => {
-              setRole(e.target.value);
-              setDepartments([]);
-            }}
+            onChange={(e) => setRole(e.target.value)}
           >
             <option value="">Select Role</option>
             <option value="Student">Student</option>
             <option value="Supervisor">Supervisor</option>
             <option value="Chairman">Chairman</option>
+            <option value="Dean">Dean</option>
           </select>
 
-          {/* FACULTY */}
-          {role && (
+          {/* ================= DEPARTMENT ================= */}
+          {role && role !== "Dean" && (
             <select
-              ref={facultyRef}
+              ref={departmentRef}
               className="form-control mt-3"
-              onChange={(e) => handleFacultyChange(e.target.value)}
             >
-              <option value="">Select Faculty</option>
-              {faculties.map(f => (
-                <option key={f._id} value={f._id}>{f.Name}</option>
-              ))}
-            </select>
-          )}
-
-          {/* DEPARTMENT */}
-          {role && (
-            <select ref={departmentRef} className="form-control mt-3">
               <option value="">Select Department</option>
               {departments.map(d => (
-                <option key={d._id} value={d._id}>{d.Name}</option>
+                <option key={d._id} value={d._id}>
+                  {d.name}
+                </option>
               ))}
             </select>
           )}
 
-          <button onClick={onRegister} className="btn btn-success mt-4 w-100">
+          {/* ================= FACULTY (HIDDEN / FIXED) ================= */}
+          <div className="form-control mt-3 bg-light">
+            Faculty: <strong>PGS</strong>
+          </div>
+
+          <button
+            onClick={onRegister}
+            className="btn btn-success mt-4 w-100"
+          >
             Register
           </button>
 

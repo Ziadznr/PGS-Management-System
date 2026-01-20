@@ -1,6 +1,6 @@
 class SessionHelper {
 
-  // ================= USER TOKEN =================
+  /* ================= USER TOKEN ================= */
   setToken(token) {
     localStorage.setItem("token", token);
   }
@@ -13,7 +13,7 @@ class SessionHelper {
     localStorage.removeItem("token");
   }
 
-  // ================= ADMIN TOKEN =================
+  /* ================= ADMIN TOKEN ================= */
   setAdminToken(token) {
     localStorage.setItem("adminToken", token);
   }
@@ -26,22 +26,18 @@ class SessionHelper {
     localStorage.removeItem("adminToken");
   }
 
-  // ================= USER DETAILS =================
-  setUserDetails(UserDetails) {
-    localStorage.setItem("UserDetails", JSON.stringify(UserDetails));
+  /* ================= USER DETAILS ================= */
+  setUserDetails(data) {
+    localStorage.setItem("UserDetails", JSON.stringify(data));
   }
 
   getUserDetails() {
-    const userDetails = localStorage.getItem("UserDetails");
-
-    if (!userDetails || userDetails === "undefined") {
-      return null;
-    }
+    const data = localStorage.getItem("UserDetails");
+    if (!data || data === "undefined") return null;
 
     try {
-      return JSON.parse(userDetails);
-    } catch (error) {
-      console.error("Failed to parse UserDetails:", error);
+      return JSON.parse(data);
+    } catch {
       return null;
     }
   }
@@ -50,7 +46,22 @@ class SessionHelper {
     localStorage.removeItem("UserDetails");
   }
 
-  // ================= EMAIL / OTP =================
+  /* ================= TEMP ENROLLMENT ================= */
+  setTempEnrollment(data) {
+    localStorage.setItem("TempEnrollment", JSON.stringify(data));
+  }
+
+  getTempEnrollment() {
+    const data = localStorage.getItem("TempEnrollment");
+    if (!data) return null;
+    return JSON.parse(data);
+  }
+
+  clearTempEnrollment() {
+    localStorage.removeItem("TempEnrollment");
+  }
+
+  /* ================= EMAIL / OTP ================= */
   setEmail(email) {
     localStorage.setItem("Email", email);
   }
@@ -71,14 +82,9 @@ class SessionHelper {
     localStorage.removeItem("OTP");
   }
 
-  // ================= LOGOUT / CLEAR =================
+  /* ================= LOGOUT ================= */
   removeSessions() {
-    localStorage.removeItem("token");
-    localStorage.removeItem("adminToken");
-    localStorage.removeItem("UserDetails");
-    localStorage.removeItem("Email");
-    localStorage.removeItem("OTP");
-
+    localStorage.clear();
     window.location.href = "/";
   }
 }
@@ -86,28 +92,27 @@ class SessionHelper {
 const sessionHelper = new SessionHelper();
 
 export const {
-  // user
   setToken,
   getToken,
   removeToken,
 
-  // admin
   setAdminToken,
   getAdminToken,
   removeAdminToken,
 
-  // user details
   setUserDetails,
   getUserDetails,
   removeUserDetails,
 
-  // email / otp
+  setTempEnrollment,
+  getTempEnrollment,
+  clearTempEnrollment,
+
   setEmail,
   getEmail,
   setOTP,
   getOTP,
   removeOTP,
 
-  // logout
   removeSessions
 } = sessionHelper;

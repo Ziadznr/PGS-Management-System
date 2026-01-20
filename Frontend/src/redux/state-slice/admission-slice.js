@@ -1,20 +1,35 @@
 import { createSlice } from "@reduxjs/toolkit";
 
 const initialState = {
-  // 🔹 Admission Seasons
+  // ================= ADMISSION SEASONS =================
   seasons: [],
   selectedSeason: null,
 
-  // 🔹 Applications by role
+  // ================= APPLICATION LISTS =================
   supervisorApplications: [],
-  chairmanApplications: [],
+
+  chairmanApplications: {
+    selected: [],
+    waiting: []
+  },
+
   deanApplications: [],
 
-  // 🔹 Enrollment / temp access info
-  tempLoginInfo: null,
+  // ================= TEMP LOGIN / ENROLLMENT =================
+  tempLoginInfo: null,          // { applicationId, email, deadline }
+  enrollmentResult: null,       // { studentId, registrationNumber }
 
-  // 🔹 UI helpers
-  isSubmitting: false
+  // ================= UI / STATUS =================
+  loading: {
+    apply: false,
+    supervisorDecision: false,
+    chairmanDecision: false,
+    deanDecision: false,
+    tempLogin: false,
+    enrollment: false
+  },
+
+  error: null
 };
 
 const admissionSlice = createSlice({
@@ -31,15 +46,25 @@ const admissionSlice = createSlice({
       state.selectedSeason = action.payload;
     },
 
-    // ================= APPLICATION LISTS =================
+    // ================= SUPERVISOR =================
     SetSupervisorApplications(state, action) {
       state.supervisorApplications = action.payload;
     },
 
-    SetChairmanApplications(state, action) {
-      state.chairmanApplications = action.payload;
+    // ================= CHAIRMAN =================
+    SetChairmanSelectedApplications(state, action) {
+      state.chairmanApplications.selected = action.payload;
     },
 
+    SetChairmanWaitingApplications(state, action) {
+      state.chairmanApplications.waiting = action.payload;
+    },
+
+    ClearChairmanApplications(state) {
+      state.chairmanApplications = { selected: [], waiting: [] };
+    },
+
+    // ================= DEAN =================
     SetDeanApplications(state, action) {
       state.deanApplications = action.payload;
     },
@@ -53,11 +78,31 @@ const admissionSlice = createSlice({
       state.tempLoginInfo = null;
     },
 
-    // ================= UI =================
-    SetAdmissionSubmitting(state, action) {
-      state.isSubmitting = action.payload;
+    // ================= ENROLLMENT =================
+    SetEnrollmentResult(state, action) {
+      state.enrollmentResult = action.payload;
     },
 
+    ClearEnrollmentResult(state) {
+      state.enrollmentResult = null;
+    },
+
+    // ================= LOADING =================
+    SetAdmissionLoading(state, action) {
+      const { key, value } = action.payload;
+      state.loading[key] = value;
+    },
+
+    // ================= ERROR =================
+    SetAdmissionError(state, action) {
+      state.error = action.payload;
+    },
+
+    ClearAdmissionError(state) {
+      state.error = null;
+    },
+
+    // ================= RESET =================
     ClearAdmissionState() {
       return initialState;
     }
@@ -67,12 +112,26 @@ const admissionSlice = createSlice({
 export const {
   SetAdmissionSeasons,
   SetSelectedSeason,
+
   SetSupervisorApplications,
-  SetChairmanApplications,
+
+  SetChairmanSelectedApplications,
+  SetChairmanWaitingApplications,
+  ClearChairmanApplications,
+
   SetDeanApplications,
+
   SetTempLoginInfo,
   ClearTempLoginInfo,
-  SetAdmissionSubmitting,
+
+  SetEnrollmentResult,
+  ClearEnrollmentResult,
+
+  SetAdmissionLoading,
+
+  SetAdmissionError,
+  ClearAdmissionError,
+
   ClearAdmissionState
 } = admissionSlice.actions;
 

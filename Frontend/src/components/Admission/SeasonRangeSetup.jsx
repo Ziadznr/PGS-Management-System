@@ -182,8 +182,8 @@ const SeasonRangeSetup = () => {
                 }
               >
                 <option value="">Select</option>
-                <option value="Winter">Winter</option>
-                <option value="Summer">Summer</option>
+                <option value="January-June">January-June</option>
+                <option value="July-December">July-December</option>
               </select>
             </div>
 

@@ -6,37 +6,47 @@ const TemporaryLoginService = async (req) => {
   try {
     const { tempLoginId, password } = req.body;
 
-    // 1️⃣ Find application by temp login
+    if (!tempLoginId || !password) {
+      return { status: "fail", data: "Login ID and password required" };
+    }
+
+    // ================= 1️⃣ FIND APPLICATION =================
     const application = await AdmissionApplicationModel.findOne({
-      "temporaryLogin.tempId": tempLoginId
+      "temporaryLogin.tempId": tempLoginId,
+      applicationStatus: "DeanAccepted"
     });
 
     if (!application) {
-      return { status: "fail", data: "Invalid temporary login ID" };
+      return { status: "fail", data: "Invalid temporary login" };
     }
 
-    // 2️⃣ Check expiry
-    if (!application.temporaryLogin.expiresAt ||
-        application.temporaryLogin.expiresAt < new Date()) {
-      return { status: "fail", data: "Temporary access expired" };
+    const { expiresAt, isUsed, password: hashedPassword } =
+      application.temporaryLogin;
+
+    // ================= 2️⃣ EXPIRY =================
+    if (!expiresAt || expiresAt < new Date()) {
+      application.applicationStatus = "ChairmanWaiting";
+      application.temporaryLogin = undefined;
+      await application.save();
+
+      return {
+        status: "fail",
+        data: "Temporary login expired. Seat forfeited."
+      };
     }
 
-    // 3️⃣ Check already used
-    if (application.temporaryLogin.isUsed) {
-      return { status: "fail", data: "Temporary access already used" };
+    // ================= 3️⃣ USED =================
+    if (isUsed) {
+      return { status: "fail", data: "Temporary login already used" };
     }
 
-    // 4️⃣ Verify password
-    const match = await bcrypt.compare(
-      password,
-      application.temporaryLogin.tempPassword
-    );
-
+    // ================= 4️⃣ VERIFY =================
+    const match = await bcrypt.compare(password, hashedPassword);
     if (!match) {
       return { status: "fail", data: "Invalid credentials" };
     }
 
-    // 5️⃣ Mark temp login as used
+    // ================= 5️⃣ MARK USED =================
     application.temporaryLogin.isUsed = true;
     await application.save();
 
@@ -44,13 +54,18 @@ const TemporaryLoginService = async (req) => {
       status: "success",
       data: {
         applicationId: application._id,
+        applicantName: application.applicantName,
+        program: application.program,
         department: application.department,
-        email: application.email
+        supervisor: application.supervisor,
+        email: application.email,
+        enrollmentDeadline: expiresAt
       }
     };
 
   } catch (error) {
-    return { status: "fail", data: error.toString() };
+    console.error("TemporaryLoginService Error:", error);
+    return { status: "fail", data: error.message };
   }
 };
 

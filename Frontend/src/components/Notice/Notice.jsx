@@ -12,10 +12,12 @@ import { IsEmpty, ErrorToast } from "../../helper/FormHelper";
 
 const Notice = () => {
   const [notices, setNotices] = useState([]);
+
   const [form, setForm] = useState({
     title: "",
     description: "",
-    expireAt: ""
+    expireAt: "",
+    isPublic: true // ✅ DEFAULT PUBLIC
   });
 
   // ================= LOAD NOTICES =================
@@ -37,13 +39,23 @@ const Notice = () => {
 
     const success = await CreateNoticeRequest(form);
     if (success) {
-      setForm({ title: "", description: "", expireAt: "" });
+      setForm({
+        title: "",
+        description: "",
+        expireAt: "",
+        isPublic: true
+      });
       loadNotices();
     }
   };
 
   // ================= EDIT NOTICE =================
   const editNotice = async (notice) => {
+    if (notice.isLocked) {
+      ErrorToast("This notice is locked");
+      return;
+    }
+
     const { value } = await Swal.fire({
       title: "Edit Notice",
       html: `
@@ -53,6 +65,7 @@ const Notice = () => {
           value="${notice.expireAt?.substring(0, 10) || ""}">
       `,
       showCancelButton: true,
+      confirmButtonText: "Update",
       preConfirm: () => ({
         title: document.getElementById("title").value,
         description: document.getElementById("desc").value,
@@ -66,18 +79,28 @@ const Notice = () => {
     if (success) loadNotices();
   };
 
+  // ================= DELETE NOTICE =================
+  const deleteNotice = async (notice) => {
+    if (notice.isLocked) {
+      ErrorToast("Locked notice cannot be deleted");
+      return;
+    }
+    const success = await DeleteNoticeRequest(notice._id);
+    if (success) loadNotices();
+  };
+
   // ================= UI =================
   return (
     <div className="container-fluid my-4">
 
-      {/* CREATE NOTICE */}
+      {/* ================= CREATE NOTICE ================= */}
       <div className="card mb-4">
         <div className="card-body">
           <h5>Create Notice</h5>
           <hr />
 
-          <div className="row">
-            <div className="col-md-4">
+          <div className="row g-2">
+            <div className="col-md-3">
               <input
                 className="form-control"
                 placeholder="Notice title"
@@ -88,7 +111,7 @@ const Notice = () => {
               />
             </div>
 
-            <div className="col-md-5">
+            <div className="col-md-4">
               <textarea
                 className="form-control"
                 placeholder="Notice description"
@@ -110,7 +133,23 @@ const Notice = () => {
               />
             </div>
 
-            <div className="col-md-1 d-flex align-items-end">
+            <div className="col-md-2 d-flex align-items-center">
+              <div className="form-check">
+                <input
+                  type="checkbox"
+                  className="form-check-input"
+                  checked={form.isPublic}
+                  onChange={(e) =>
+                    setForm({ ...form, isPublic: e.target.checked })
+                  }
+                />
+                <label className="form-check-label">
+                  Public
+                </label>
+              </div>
+            </div>
+
+            <div className="col-md-1">
               <button className="btn btn-success w-100" onClick={createNotice}>
                 Add
               </button>
@@ -119,12 +158,12 @@ const Notice = () => {
         </div>
       </div>
 
-      {/* NOTICE LIST */}
+      {/* ================= NOTICE LIST ================= */}
       <div className="card">
         <div className="card-body">
           <h5>All Notices</h5>
 
-          <table className="table table-bordered mt-3">
+          <table className="table table-bordered mt-3 align-middle">
             <thead>
               <tr>
                 <th>#</th>
@@ -141,22 +180,33 @@ const Notice = () => {
                   <tr key={n._id}>
                     <td>{i + 1}</td>
                     <td>{n.title}</td>
+
                     <td>
-                      {n.isLocked && (
-                        <span className="badge bg-danger me-1">Locked</span>
+                      {n.isPublic ? (
+                        <span className="badge bg-success me-1">Public</span>
+                      ) : (
+                        <span className="badge bg-secondary me-1">Private</span>
                       )}
+
                       {n.isPinned && (
-                        <span className="badge bg-primary">Pinned</span>
+                        <span className="badge bg-primary me-1">Pinned</span>
+                      )}
+
+                      {n.isLocked && (
+                        <span className="badge bg-danger">Locked</span>
                       )}
                     </td>
+
                     <td>
                       {n.expireAt
                         ? new Date(n.expireAt).toLocaleDateString()
                         : "-"}
                     </td>
+
                     <td>
                       <button
                         className="btn btn-sm btn-warning me-1"
+                        disabled={n.isLocked}
                         onClick={() => editNotice(n)}
                       >
                         Edit
@@ -164,21 +214,26 @@ const Notice = () => {
 
                       <button
                         className="btn btn-sm btn-secondary me-1"
-                        onClick={() => ToggleNoticePinRequest(n._id).then(loadNotices)}
+                        onClick={() =>
+                          ToggleNoticePinRequest(n._id).then(loadNotices)
+                        }
                       >
                         {n.isPinned ? "Unpin" : "Pin"}
                       </button>
 
                       <button
                         className="btn btn-sm btn-dark me-1"
-                        onClick={() => ToggleNoticeLockRequest(n._id).then(loadNotices)}
+                        onClick={() =>
+                          ToggleNoticeLockRequest(n._id).then(loadNotices)
+                        }
                       >
                         {n.isLocked ? "Unlock" : "Lock"}
                       </button>
 
                       <button
                         className="btn btn-sm btn-danger"
-                        onClick={() => DeleteNoticeRequest(n._id).then(loadNotices)}
+                        disabled={n.isLocked}
+                        onClick={() => deleteNotice(n)}
                       >
                         Delete
                       </button>

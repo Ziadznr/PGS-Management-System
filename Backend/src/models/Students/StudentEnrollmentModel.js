@@ -1,64 +1,69 @@
 const mongoose = require("mongoose");
 
-const StudentEnrollmentSchema = new mongoose.Schema({
+const StudentEnrollmentSchema = new mongoose.Schema(
+  {
+    // ================= APPLICATION LINK =================
     application: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "admission_applications",
-        required: true
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "admission_applications",
+      required: true,
+      unique: true   // 🔒 one enrollment per application
     },
 
+    // ================= CREATED USER =================
     user: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "users"
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "users",
+      required: true
     },
 
+    // ================= ACADEMIC CONTEXT =================
     admissionSeason: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "admission_seasons",
-        required: true
-    },
-
-    faculty: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "faculties",
-        required: true
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "admission_seasons",
+      required: true
     },
 
     department: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "departments",
-        required: true
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "departments",
+      required: true
     },
 
+    supervisor: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "users",
+      required: true
+    },
+
+    // ================= IDENTIFIERS =================
     registrationNumber: {
-        type: Number,
-        unique: true,
-        sparse: true
+      type: Number,
+      required: true,
+      unique: true
     },
 
     studentId: {
-        type: String,
-        unique: true,
-        sparse: true
+      type: String,
+      required: true,
+      unique: true
     },
 
+    // ================= STATUS =================
     enrollmentStatus: {
-        type: String,
-        enum: ["Pending", "Completed"],
-        default: "Pending"
+      type: String,
+      enum: ["Completed", "Cancelled"],
+      default: "Completed"
     },
 
     enrolledAt: {
-        type: Date
+      type: Date,
+      default: Date.now
     }
-}, { versionKey: false });
-
-// 🔒 One enrollment per application
-StudentEnrollmentSchema.index(
-    { application: 1 },
-    { unique: true }
+  },
+  { versionKey: false }
 );
 
 module.exports =
-    mongoose.models.student_enrollments ||
-    mongoose.model("student_enrollments", StudentEnrollmentSchema);
+  mongoose.models.student_enrollments ||
+  mongoose.model("student_enrollments", StudentEnrollmentSchema);

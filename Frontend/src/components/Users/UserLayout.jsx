@@ -10,7 +10,7 @@ import { removeSessions } from "../../helper/SessionHelper";
 
 // Redux
 import { useSelector, useDispatch } from "react-redux";
-import { ClearUserProfile } from "../../redux/state-slice/user-profile-slice";
+import { ClearUserProfile } from "../../redux/state-slice/userProfile-slice";
 
 const UserLayout = ({ children }) => {
 
@@ -80,6 +80,13 @@ const UserLayout = ({ children }) => {
         icon: <BsGraphUp />,
         subMenu: [
           { title: "Applications", icon: <BsCircle />, url: "/admission/chairman/applications" }
+        ]
+      },
+      {
+        title: "Courses",
+        icon: <BsGraphUp />,
+        subMenu: [
+          { title: "Create", icon: <BsCircle />, url: "/DepartmentLastSemesterCoursesPage" }
         ]
       }
     ],

@@ -15,31 +15,39 @@ const DepartmentRangeList = () => {
     loadAllRanges();
   }, []);
 
+  /* ================= LOAD & GROUP DATA ================= */
   const loadAllRanges = async () => {
     const data = await GetAllDepartmentRangesRequest();
 
     const grouped = data.reduce((acc, item) => {
-      const sid = item.admissionSeason._id;
-      if (!acc[sid]) {
-        acc[sid] = {
+      // 🔒 PROTECT AGAINST BROKEN DATA
+      if (!item?.admissionSeason || !item?.department) return acc;
+
+      const seasonId = item.admissionSeason._id;
+
+      if (!acc[seasonId]) {
+        acc[seasonId] = {
           season: item.admissionSeason,
           ranges: []
         };
       }
-      acc[sid].ranges.push(item);
+
+      acc[seasonId].ranges.push(item);
       return acc;
     }, {});
 
     setGroupedData(grouped);
   };
 
+  /* ================= UI HELPERS ================= */
   const toggleSeasonView = (id) =>
-    setCollapsed(p => ({ ...p, [id]: !p[id] }));
+    setCollapsed(prev => ({ ...prev, [id]: !prev[id] }));
 
+  /* ================= LOCK / UNLOCK ================= */
   const toggleLock = async (seasonId) => {
     const confirm = await Swal.fire({
       title: "Toggle Lock?",
-      text: "This will enable/disable editing for this season",
+      text: "This will enable or disable editing for this season",
       icon: "warning",
       showCancelButton: true,
       confirmButtonText: "Yes"
@@ -51,23 +59,31 @@ const DepartmentRangeList = () => {
     if (success) loadAllRanges();
   };
 
+  /* ================= UPDATE RANGE ================= */
   const updateRange = async (range) => {
+    if (!range?.admissionSeason || !range?.department) {
+      Swal.fire("Error", "Invalid range data", "error");
+      return;
+    }
+
     const { value } = await Swal.fire({
-      title: "Update Range",
+      title: "Update Registration Range",
       html: `
-        <input id="start" class="swal2-input" value="${range.startRegNo}">
-        <input id="end" class="swal2-input" value="${range.endRegNo}">
+        <input id="start" class="swal2-input" placeholder="Start Reg No" value="${range.startRegNo}">
+        <input id="end" class="swal2-input" placeholder="End Reg No" value="${range.endRegNo}">
       `,
+      showCancelButton: true,
       preConfirm: () => {
         const start = Number(document.getElementById("start").value);
         const end = Number(document.getElementById("end").value);
+
         if (!start || !end || start >= end) {
-          Swal.showValidationMessage("Invalid range");
+          Swal.showValidationMessage("Invalid registration range");
           return false;
         }
+
         return { startRegNo: start, endRegNo: end };
-      },
-      showCancelButton: true
+      }
     });
 
     if (!value) return;
@@ -82,13 +98,21 @@ const DepartmentRangeList = () => {
     loadAllRanges();
   };
 
+  /* ================= DELETE RANGE ================= */
   const deleteRange = async (id) => {
     const ok = await DeleteDepartmentRangeRequest(id);
     if (ok) loadAllRanges();
   };
 
+  /* ================= RENDER ================= */
   return (
     <div className="container-fluid my-4">
+
+      {Object.values(groupedData).length === 0 && (
+        <div className="alert alert-info text-center">
+          No department registration ranges found
+        </div>
+      )}
 
       {Object.values(groupedData).map(({ season, ranges }) => (
         <div key={season._id} className="card mb-4">
@@ -100,7 +124,7 @@ const DepartmentRangeList = () => {
                 {season.seasonName} ({season.academicYear})
               </h5>
               {season.isLocked && (
-                <span className="badge bg-danger">LOCKED</span>
+                <span className="badge bg-danger ms-2">LOCKED</span>
               )}
             </div>
 
@@ -126,8 +150,8 @@ const DepartmentRangeList = () => {
           {/* BODY */}
           {!collapsed[season._id] && (
             <div className="card-body">
-              <table className="table table-bordered">
-                <thead>
+              <table className="table table-bordered table-hover">
+                <thead className="table-light">
                   <tr>
                     <th>No</th>
                     <th>Department</th>
@@ -142,7 +166,7 @@ const DepartmentRangeList = () => {
                   {ranges.map((r, i) => (
                     <tr key={r._id}>
                       <td>{i + 1}</td>
-                      <td>{r.department.name}</td>
+                      <td>{r.department?.name || "N/A"}</td>
                       <td>{r.startRegNo}</td>
                       <td>{r.endRegNo}</td>
                       <td>{r.currentRegNo}</td>
@@ -171,7 +195,6 @@ const DepartmentRangeList = () => {
 
         </div>
       ))}
-
     </div>
   );
 };

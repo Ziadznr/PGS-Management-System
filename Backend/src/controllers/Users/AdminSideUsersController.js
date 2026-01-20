@@ -7,6 +7,25 @@ const DropDownService = require("../../services/users/DropdownService");
 const DetailsByIDService = require("../../services/common/DetailsByIDService");
 const DeleteService = require("../../services/common/DeleteService");
 const SendEmailUtility = require("../../utility/SendEmailUtility");
+const AdminCreateUserService = require("../../services/users/AdminCreateUserService");
+
+// ------------------ ADMIN CREATE USER ------------------
+exports.AdminCreateUser = async (req, res) => {
+  try {
+    const result = await AdminCreateUserService(req);
+
+    // service already returns proper status + message
+    return res.status(200).json(result);
+
+  } catch (error) {
+    console.error("AdminCreateUser Error:", error);
+    return res.status(500).json({
+      status: "fail",
+      data: error.toString()
+    });
+  }
+};
+
 
 // ------------------ List Users (Admin) ------------------
 exports.UsersList = async (req, res) => {
@@ -71,28 +90,26 @@ exports.DeleteUser = async (req, res) => {
   try {
     const deleteID = req.params.id;
 
-    const deletedUser = await UsersModel.findByIdAndDelete(deleteID);
+    const result = await UsersModel.findByIdAndUpdate(
+      deleteID,
+      { isActive: false, deactivatedAt: new Date() },
+      { new: true }
+    );
 
-    if (!deletedUser) {
-      return res.status(404).json({
-        status: "fail",
-        data: "User not found"
-      });
+    if (!result) {
+      return res.status(404).json({ status: "fail", data: "User not found" });
     }
 
     return res.status(200).json({
       status: "success",
-      data: "User deleted successfully"
+      data: "User deactivated successfully"
     });
 
   } catch (error) {
-    console.error("DeleteUser Error:", error);
-    return res.status(500).json({
-      status: "fail",
-      data: error.toString()
-    });
+    return res.status(500).json({ status: "fail", data: error.toString() });
   }
 };
+
 
 // ------------------ Send Email to User ------------------
 exports.SendEmailToUser = async (req, res) => {

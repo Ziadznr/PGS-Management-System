@@ -18,7 +18,7 @@ const SendOTP = () => {
     try {
       const result = await RecoverVerifyEmailRequest(email);
       if (result === true) {
-        navigate("/VerifyOTP");
+        navigate("/verify-otp");
       } else {
         ErrorToast("Email verification failed. Please try again.");
       }

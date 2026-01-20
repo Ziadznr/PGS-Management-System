@@ -1,36 +1,53 @@
-const bcrypt = require('bcryptjs');
-const UsersModel = require('../../models/Users/UsersModel');
+const bcrypt = require("bcryptjs");
+const UsersModel = require("../../models/Users/UsersModel");
 
-const UserUpdateService = async (Request) => {
-    try {
-        // Email from UserAuthMiddleware (JWT)
-        const email = Request.user.email;
-        const updateData = { ...Request.body };
+const UserUpdateService = async (req) => {
+  try {
+    const email = req.user.email;
+    const updateData = { ...req.body };
 
-        // ❌ Prevent role & department change by user
-        delete updateData.role;
-        delete updateData.department;
+    // ================= BLOCK FORBIDDEN FIELDS =================
+    delete updateData.role;
+    delete updateData.department;
+    delete updateData._id;
+    delete updateData.createdAt;
+    delete updateData.createdBy;
+    delete updateData.isActive;
+    delete updateData.tenure;
 
-        // ❌ Prevent system field updates
-        delete updateData._id;
-        delete updateData.createdAt;
+    // ================= PASSWORD CHANGE =================
+    if (updateData.password) {
+      if (updateData.password.length < 6) {
+        return {
+          status: "fail",
+          data: "Password must be at least 6 characters"
+        };
+      }
 
-        // 🔐 Hash password if user wants to change it
-        if (updateData.password) {
-            const salt = await bcrypt.genSalt(10);
-            updateData.password = await bcrypt.hash(updateData.password, salt);
-        }
+      const salt = await bcrypt.genSalt(10);
+      updateData.password = await bcrypt.hash(updateData.password, salt);
 
-        const result = await UsersModel.updateOne(
-            { email: email },
-            updateData
-        );
-
-        return { status: 'success', data: result };
-
-    } catch (error) {
-        return { status: 'fail', data: error.toString() };
+      // 🔥 VERY IMPORTANT
+      updateData.isFirstLogin = false;
     }
+
+    const result = await UsersModel.updateOne(
+      { email },
+      { $set: updateData }
+    );
+
+    return {
+      status: "success",
+      data: "Profile updated successfully"
+    };
+
+  } catch (error) {
+    console.error("UserUpdateService Error:", error);
+    return {
+      status: "fail",
+      data: error.toString()
+    };
+  }
 };
 
 module.exports = UserUpdateService;

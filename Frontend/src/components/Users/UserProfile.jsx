@@ -1,88 +1,78 @@
 import React, { useEffect, useState } from "react";
-import { useSelector, useDispatch } from "react-redux";
+import { useSelector } from "react-redux";
 import {
   UserProfileRequest,
-  UserUpdateRequest,
-  FacultyDropdownRequest,
-  DepartmentDropdownRequest
+  UserUpdateRequest
 } from "../../APIRequest/UserAPIRequest";
 import {
   ErrorToast,
   SuccessToast,
   IsEmail,
   IsMobile,
-  IsEmpty,
-  getBase64
+  IsEmpty
 } from "../../helper/FormHelper";
 
 const UserProfile = () => {
-  const dispatch = useDispatch();
-
   const { user } = useSelector((state) => state.userProfile);
-
-  const [faculties, setFaculties] = useState([]);
-  const [departments, setDepartments] = useState([]);
-  const [preview, setPreview] = useState(null);
 
   const [form, setForm] = useState({
     name: "",
     email: "",
     phone: "",
     role: "",
-    faculty: "",
     department: "",
-    photo: ""
+    photo: "",
+    isFirstLogin: false
   });
+
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   // ================= LOAD PROFILE =================
   useEffect(() => {
     const init = async () => {
       const profile = await UserProfileRequest();
       if (!profile) return;
-
       setForm(profile);
-      setPreview(profile.photo || null);
-
-      const facs = await FacultyDropdownRequest();
-      setFaculties(facs);
     };
     init();
   }, []);
 
-  // ================= LOAD DEPARTMENTS =================
-  useEffect(() => {
-    if (form.faculty) {
-      DepartmentDropdownRequest(form.faculty).then(setDepartments);
-    }
-  }, [form.faculty]);
-
-  // ================= HANDLE INPUT =================
   const handleChange = (name, value) => {
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  // ================= PHOTO =================
-  const handlePhotoChange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const base64 = await getBase64(file);
-    setPreview(base64);
-    handleChange("photo", base64);
-  };
-
   // ================= UPDATE =================
   const handleUpdate = async () => {
+
+    // 🔐 FORCE PASSWORD CHANGE
+    if (form.isFirstLogin) {
+      if (IsEmpty(newPassword) || IsEmpty(confirmPassword)) {
+        return ErrorToast("Password fields required");
+      }
+      if (newPassword !== confirmPassword) {
+        return ErrorToast("Passwords do not match");
+      }
+
+      const result = await UserUpdateRequest({
+        password: newPassword,
+        isFirstLogin: false
+      });
+
+      if (result) {
+        SuccessToast("Password updated. Please login again.");
+        window.location.href = "/users/login";
+      }
+      return;
+    }
+
+    // NORMAL PROFILE UPDATE
     if (IsEmpty(form.name)) return ErrorToast("Name Required");
     if (!IsMobile(form.phone)) return ErrorToast("Valid Mobile Required");
     if (!IsEmail(form.email)) return ErrorToast("Valid Email Required");
 
     const result = await UserUpdateRequest(form);
-    if (result) {
-      SuccessToast("Profile Updated");
-      const refreshed = await UserProfileRequest();
-      setForm(refreshed);
-      setPreview(refreshed.photo || null);
-    }
+    if (result) SuccessToast("Profile Updated");
   };
 
   if (!user?.email) {
@@ -91,32 +81,19 @@ const UserProfile = () => {
 
   return (
     <div className="container mt-4">
-      <h2 className="mb-4 text-center">My Profile</h2>
+      <h2 className="mb-4 text-center">
+        {form.isFirstLogin ? "Change Password" : "My Profile"}
+      </h2>
 
       <div className="row">
         <div className="col-md-6 offset-md-3">
-
-          {/* PHOTO */}
-          <div className="text-center mb-3">
-            <img
-              src={preview || "/default-avatar.png"}
-              alt="Profile"
-              className="rounded-circle"
-              style={{ width: 120, height: 120, objectFit: "cover" }}
-            />
-            <input
-              type="file"
-              accept="image/*"
-              className="form-control mt-2"
-              onChange={handlePhotoChange}
-            />
-          </div>
 
           {/* NAME */}
           <input
             className="form-control mb-3"
             placeholder="Full Name"
             value={form.name}
+            disabled={form.isFirstLogin}
             onChange={(e) => handleChange("name", e.target.value)}
           />
 
@@ -125,50 +102,59 @@ const UserProfile = () => {
             className="form-control mb-3"
             placeholder="Phone"
             value={form.phone || ""}
+            disabled={form.isFirstLogin}
             onChange={(e) => handleChange("phone", e.target.value)}
           />
 
-          {/* EMAIL (READ ONLY) */}
+          {/* EMAIL */}
           <input
             className="form-control mb-3"
             value={form.email}
             readOnly
           />
 
-          {/* ROLE (READ ONLY) */}
+          {/* ROLE */}
           <input
             className="form-control mb-3"
             value={form.role}
             readOnly
           />
 
-          {/* FACULTY */}
-          {form.faculty && (
-            <select className="form-control mb-3" disabled>
-              {faculties.map((f) => (
-                <option key={f._id} value={f._id} selected={f._id === form.faculty}>
-                  {f.Name}
-                </option>
-              ))}
-            </select>
-          )}
-
           {/* DEPARTMENT */}
           {form.department && (
-            <select className="form-control mb-3" disabled>
-              {departments.map((d) => (
-                <option key={d._id} value={d._id} selected={d._id === form.department}>
-                  {d.Name}
-                </option>
-              ))}
-            </select>
+            <input
+              className="form-control mb-3"
+              value={form.department?.Name || "Assigned Department"}
+              readOnly
+            />
+          )}
+
+          {/* 🔐 PASSWORD CHANGE */}
+          {form.isFirstLogin && (
+            <>
+              <input
+                type="password"
+                className="form-control mb-3"
+                placeholder="New Password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+              />
+
+              <input
+                type="password"
+                className="form-control mb-3"
+                placeholder="Confirm Password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+              />
+            </>
           )}
 
           <button
             onClick={handleUpdate}
             className="btn btn-success w-100 mt-3"
           >
-            Update Profile
+            {form.isFirstLogin ? "Update Password" : "Update Profile"}
           </button>
 
         </div>

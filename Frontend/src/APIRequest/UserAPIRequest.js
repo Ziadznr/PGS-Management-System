@@ -4,6 +4,7 @@ import axios from "axios";
 import { ErrorToast, SuccessToast } from "../helper/FormHelper";
 import {
   getToken,
+  getAdminToken,
   removeSessions,
   setOTP,
   setEmail,
@@ -26,28 +27,69 @@ export const getAxiosHeader = () => {
   return { headers: { token } };
 };
 
-/* ================= USER REGISTRATION ================= */
+export const getAdminAxiosHeader = () => {
+  const token = getAdminToken();
+  if (!token) removeSessions();
+  return { headers: { token } };
+};
 
-export async function UserRegisterRequest(formData) {
+
+export async function AdminCreateUserRequest(payload) {
   try {
     store.dispatch(ShowLoader());
-    const res = await axios.post(`${BaseURL}/users/register`, formData);
+
+    const res = await axios.post(
+      `${BaseURL}/admin/users/create`,
+      payload,
+      getAdminAxiosHeader()
+    );
+
     store.dispatch(HideLoader());
 
-    if (res.status === 200 && res.data?.status === "success") {
-      SuccessToast("Registration Successful");
+    if (res.data?.status === "success") {
+      SuccessToast("User created & email sent");
       return true;
     }
 
-    ErrorToast(res.data?.data || "Registration Failed");
+    ErrorToast(res.data?.data || "Failed to create user");
     return false;
 
   } catch {
     store.dispatch(HideLoader());
-    ErrorToast("Something Went Wrong");
+    ErrorToast("Server error");
     return false;
   }
 }
+
+
+/* ================= USER REGISTRATION ================= */
+
+export async function StudentRegisterRequest(formData) {
+  try {
+    store.dispatch(ShowLoader());
+
+    const res = await axios.post(
+      `${BaseURL}/users/student-register`,
+      formData
+    );
+
+    store.dispatch(HideLoader());
+
+    if (res.data?.status === "success") {
+      SuccessToast("Registration successful. Please login.");
+      return true;
+    }
+
+    ErrorToast(res.data?.data || "Registration failed");
+    return false;
+
+  } catch {
+    store.dispatch(HideLoader());
+    ErrorToast("Something went wrong");
+    return false;
+  }
+}
+
 
 /* ================= USER LOGIN ================= */
 
@@ -62,7 +104,7 @@ export async function UserLoginRequest(email, password) {
 
     store.dispatch(HideLoader());
 
-    if (res.status === 200 && res.data?.status === "success") {
+    if (res.data?.status === "success") {
       const { token, data } = res.data;
 
       setToken(token);
@@ -71,35 +113,29 @@ export async function UserLoginRequest(email, password) {
       store.dispatch(
         SetUserProfile({
           token,
-          user: {
-            id: data._id,
-            name: data.name,
-            email: data.email,
-            role: data.role,
-            faculty: data.faculty,
-            department: data.department,
-            photo: data.photo || "defaultPhoto.png"
-          }
+          user: data
         })
       );
 
-      SuccessToast("Login Successful");
+      SuccessToast("Login successful");
 
       return {
         success: true,
-        role: data.role
+        role: data.role,
+        isFirstLogin: data.isFirstLogin
       };
     }
 
-    ErrorToast("Invalid Email or Password");
+    ErrorToast(res.data?.data || "Invalid credentials");
     return { success: false };
 
   } catch {
     store.dispatch(HideLoader());
-    ErrorToast("Login Failed");
+    ErrorToast("Login failed");
     return { success: false };
   }
 }
+
 
 /* ================= USER PROFILE ================= */
 
@@ -149,12 +185,7 @@ export async function UserUpdateRequest(userData) {
     store.dispatch(HideLoader());
 
     if (res.status === 200 && res.data?.status === "success") {
-      store.dispatch(
-        SetUserProfile({
-          token: getToken(),
-          user: res.data.data
-        })
-      );
+      await UserProfileRequest(); // ✅ FIX
       SuccessToast("Profile Updated");
       return true;
     }
@@ -168,6 +199,7 @@ export async function UserUpdateRequest(userData) {
     return false;
   }
 }
+
 
 /* ================= PASSWORD RECOVERY ================= */
 
@@ -262,22 +294,28 @@ export async function AdminUsersListRequest(
     store.dispatch(ShowLoader());
 
     const URL = `${BaseURL}/admin/users/list/${pageNo}/${perPage}/${searchKeyword || "0"}/${role}`;
-    const res = await axios.get(URL, getAxiosHeader());
+
+    const res = await axios.get(
+      URL,
+      getAdminAxiosHeader() // ✅ ADMIN TOKEN ONLY
+    );
 
     store.dispatch(HideLoader());
 
-    if (res.status === 200 && res.data?.status === "success") {
-      return res.data.data;
+    if (res.data?.status === "success") {
+      // backend returns [{ Total, Rows }]
+      return res.data.data[0];
     }
 
-    return [];
+    return { Rows: [], Total: [{ count: 0 }] };
 
-  } catch {
+  } catch (err) {
     store.dispatch(HideLoader());
     ErrorToast("Failed to load users");
-    return [];
+    return { Rows: [], Total: [{ count: 0 }] };
   }
 }
+
 
 export async function AdminDeleteUserRequest(userId) {
   try {
@@ -285,7 +323,7 @@ export async function AdminDeleteUserRequest(userId) {
 
     const res = await axios.delete(
       `${BaseURL}/admin/users/delete/${userId}`,
-      getAxiosHeader()
+      getAdminAxiosHeader()
     );
 
     store.dispatch(HideLoader());
@@ -328,7 +366,7 @@ export async function AdminSendEmailRequest(
       formData,
       {
         headers: {
-          ...getAxiosHeader().headers,
+          ...getAdminAxiosHeader().headers,
           "Content-Type": "multipart/form-data"
         }
       }
@@ -395,7 +433,7 @@ export async function SupervisorDropdownRequest(departmentID) {
   try {
     const res = await axios.get(
       `${BaseURL}/users/supervisors/${departmentID}`,
-      getAxiosHeader()
+      // getAxiosHeader()
     );
 
     if (res.status === 200 && res.data?.status === "success") {

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { StudentApplicationStatus } from "../../APIRequest/AdmissionAPIRequest";
+// import { StudentApplicationStatus } from "../../APIRequest/AdmissionAPIRequest";
 
 const StudentDashboard = () => {
   const [application, setApplication] = useState(null);

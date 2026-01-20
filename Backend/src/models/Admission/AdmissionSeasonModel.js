@@ -4,12 +4,12 @@ const AdmissionSeasonSchema = new mongoose.Schema({
 
     seasonName: {
         type: String,
-        enum: ["Winter", "Summer"],
+        enum: ["January-June", "July–December "],
         required: true
     },
 
     academicYear: {
-        type: String, // "2026-2027"
+        type: String, // "2026"
         required: true
     },
 

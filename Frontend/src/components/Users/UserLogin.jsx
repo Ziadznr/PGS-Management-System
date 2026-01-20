@@ -12,50 +12,37 @@ const UserLogin = () => {
   const navigate = useNavigate();
 
   // ---------------- Submit Login ----------------
-  const SubmitLogin = async () => {
-    const trimmedEmail = email.trim();
-    const trimmedPassword = password.trim();
+// UserLogin.jsx
+const SubmitLogin = async () => {
+  const trimmedEmail = email.trim();
+  const trimmedPassword = password.trim();
 
-    if (!IsEmail(trimmedEmail)) {
-      ErrorToast("Invalid Email Address");
-      return;
-    }
+  if (!IsEmail(trimmedEmail)) {
+    ErrorToast("Invalid Email Address");
+    return;
+  }
 
-    if (IsEmpty(trimmedPassword)) {
-      ErrorToast("Password Required");
-      return;
-    }
+  if (IsEmpty(trimmedPassword)) {
+    ErrorToast("Password Required");
+    return;
+  }
 
-    setLoading(true);
-    const result = await UserLoginRequest(trimmedEmail, trimmedPassword);
-    setLoading(false);
+  setLoading(true);
+  const result = await UserLoginRequest(trimmedEmail, trimmedPassword);
+  setLoading(false);
 
-    if (result?.success) {
-      // 🔁 Redirect based on role
-      switch (result.role) {
-        case "Student":
-          navigate("/users/dashboard");
-          break;
-
-        case "Supervisor":
-          navigate("/admission/supervisor/applications");
-          break;
-
-        case "Chairman":
-          navigate("/admission/chairman/applications");
-          break;
-
-        case "Dean":
-          navigate("/admission/dean/applications");
-          break;
-
-        default:
-          navigate("/users/dashboard");
-      }
+  if (result?.success) {
+    // 🔐 FORCE PASSWORD CHANGE
+    if (result.isFirstLogin) {
+      navigate("/users/profile");
     } else {
-      setPassword("");
+      navigate("/users/dashboard");
     }
-  };
+  } else {
+    setPassword("");
+  }
+};
+
 
   return (
     <div className="container">
@@ -95,7 +82,7 @@ const UserLogin = () => {
               </button>
 
               <div className="float-end mt-3">
-                <Link className="h6 me-3" to="/users/register">
+                <Link className="h6 me-3" to="/users/registration">
                   Sign Up
                 </Link>
                 |

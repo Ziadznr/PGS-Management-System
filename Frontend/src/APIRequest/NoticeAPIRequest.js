@@ -183,11 +183,25 @@ export async function GetAdminNoticeListRequest() {
 // =================================================
 // PUBLIC NOTICE LIST (LANDING PAGE)
 // =================================================
-export async function GetPublicNoticeListRequest() {
+
+// 🔄 Latest notice (slider)
+export async function GetLatestNoticeRequest() {
   try {
-    const res = await axios.get(`${BaseURL}/notice/latest`);
+    const res = await axios.get(`${BaseURL}/notice/public/latest`);
+    return res.data?.status === "success" ? res.data.data : null;
+  } catch {
+    return null;
+  }
+}
+
+// 📂 All public notices
+export async function GetPublicNoticesRequest() {
+  try {
+    const res = await axios.get(`${BaseURL}/notice/public/list`);
     return res.data?.status === "success" ? res.data.data : [];
   } catch {
     return [];
   }
 }
+
+
