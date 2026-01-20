@@ -30,6 +30,8 @@ const AdmissionController =
   require("../controllers/Admission/AdmissionController");
   const DepartmentLastSemesterCourseController =
   require("../controllers/Admission/DepartmentLastSemesterCourseController");
+    const AdmissionDocumentController =
+  require("../controllers/Admission/AdmissionDocumentController");
 
 // Notice
 const NoticeController =
@@ -60,6 +62,11 @@ router.post("/admission/temporary-login", AdmissionController.TemporaryLogin);
 // -------- Public Notice --------
 router.get("/notice/public/list", NoticeController.PublicList);
 router.get("/notice/public/latest", NoticeController.PublicLatest);
+
+const PaymentController =
+  require("../controllers/Admission/PaymentController");
+const InitiatePaymentService =
+  require("../services/admission/InitiatePaymentService");
 
 // =================================================
 // ============== USER PROTECTED ROUTES =============
@@ -356,6 +363,36 @@ router.get(
   "/admission/season/public",
   AdmissionController.PublicAdmissionSeasons
 );
+
+
+/* INIT PAYMENT */
+router.post(
+  "/payment/initiate",
+  InitiatePaymentService
+);
+
+/* CALLBACKS */
+router.post(
+  "/payment/success/:tran_id",
+  PaymentController.Success
+);
+
+router.post(
+  "/payment/fail/:tran_id",
+  PaymentController.Fail
+);
+
+router.post(
+  "/payment/cancel/:tran_id",
+  PaymentController.Cancel
+);
+
+router.post(
+  "/admission/upload-documents",
+  upload.array("documents", 20),
+  AdmissionDocumentController
+);
+
 
 
 

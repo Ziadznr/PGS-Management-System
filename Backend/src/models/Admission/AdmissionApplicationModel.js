@@ -297,6 +297,46 @@ publications: {
     required: true
   },
 
+  /* ================= PAYMENT ================= */
+payment: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: "admission_payments",
+  required: true
+},
+
+// ================= DOCUMENTS =================
+documents: [
+  {
+    title: {
+      type: String,
+      required: true
+    },
+
+    fileUrl: {
+      type: String,
+      required: true
+    },
+
+    fileType: {
+      type: String,
+      enum: ["pdf", "jpg", "jpeg", "png"],
+      required: true
+    },
+
+    fileSizeKB: {
+      type: Number,
+      required: true
+    }
+  }
+],
+
+// total uploaded size (KB)
+totalDocumentSizeKB: {
+  type: Number,
+  max: 30720 // 30 MB
+}
+,
+
   /* ================= SELECTION LOGIC ================= */
   supervisorRank: {
     type: Number,

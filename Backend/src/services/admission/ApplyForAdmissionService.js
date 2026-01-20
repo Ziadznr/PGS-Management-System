@@ -4,6 +4,8 @@ const AdmissionApplicationModel =
   require("../../models/Admission/AdmissionApplicationModel");
 const AdmissionSeasonModel =
   require("../../models/Admission/AdmissionSeasonModel");
+  const AdmissionPaymentModel =
+  require("../../models/Admission/AdmissionPaymentModel");
 const SendEmailUtility = require("../../utility/SendEmailUtility");
 
 /* =================================================
@@ -215,6 +217,21 @@ const ApplyForAdmissionService = async (req) => {
       }
     }
 
+    // Payment Option
+    const payment = await AdmissionPaymentModel.findOne({
+  email: email.toLowerCase(),
+  admissionSeason,
+  status: "SUCCESS"
+});
+
+if (!payment) {
+  return {
+    status: "fail",
+    data: "Application fee not paid"
+  };
+}
+
+
     /* =================================================
        8️⃣ ADDRESS
     ================================================= */
@@ -267,6 +284,8 @@ const ApplyForAdmissionService = async (req) => {
       selectionRound: 1,
 
       declarationAccepted,
+
+      payment: payment._id,
 
       applicationNo,
       applicationStatus: "Submitted"
