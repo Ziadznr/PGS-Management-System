@@ -1,13 +1,25 @@
 const mongoose = require("mongoose");
 
 /* =========================================================
-   ACADEMIC RECORD (GENERAL – SSC / HSC / BSc / MS)
+   ACADEMIC RECORD SCHEMA (SSC / HSC / BSc / BBA / MS / MBA)
 ========================================================= */
 const AcademicRecordSchema = new mongoose.Schema({
   examLevel: {
     type: String,
     enum: ["SSC", "HSC", "BSc", "BBA", "MS", "MBA"],
-    required: true
+    required: true,
+    set: v => {
+      if (!v) return v;
+      const map = {
+        SSC: "SSC",
+        HSC: "HSC",
+        BSC: "BSc",
+        BBA: "BBA",
+        MS: "MS",
+        MBA: "MBA"
+      };
+      return map[v.toUpperCase()] || v;
+    }
   },
 
   institution: String,
@@ -19,27 +31,30 @@ const AcademicRecordSchema = new mongoose.Schema({
   },
 
   cgpaScale: {
-    type: Number, // 5 for SSC/HSC, 4 for BSc/MS/MBA
+    type: Number,
+    enum: [4, 5],
     required: true
   },
 
   isFinal: {
     type: Boolean,
-    default: false
+    default: true
   }
 }, { _id: false });
 
 /* =========================================================
-   PSTU LAST SEMESTER COURSE RESULT (POINT-9 SOURCE)
+   PSTU LAST SEMESTER COURSE RESULT
 ========================================================= */
 const PSTUCourseResultSchema = new mongoose.Schema({
   courseCode: {
     type: String,
+    uppercase: true,
     required: true
   },
 
   courseTitle: {
     type: String,
+    uppercase: true,
     required: true
   },
 
@@ -49,7 +64,9 @@ const PSTUCourseResultSchema = new mongoose.Schema({
   },
 
   gradePoint: {
-    type: Number, // 0.00 – 4.00
+    type: Number,
+    min: 0,
+    max: 4,
     required: true
   }
 }, { _id: false });
@@ -89,7 +106,6 @@ const ApprovalLogSchema = new mongoose.Schema({
 ========================================================= */
 const AdmissionApplicationSchema = new mongoose.Schema({
 
-  /* ================= PROGRAM INFO ================= */
   program: {
     type: String,
     enum: ["MBA", "MS", "PhD"],
@@ -119,7 +135,6 @@ const AdmissionApplicationSchema = new mongoose.Schema({
     required: true
   },
 
-  /* ================= PERSONAL INFO ================= */
   applicantName: {
     type: String,
     required: true
@@ -168,207 +183,70 @@ const AdmissionApplicationSchema = new mongoose.Schema({
   },
 
   /* ================= ACADEMIC ================= */
+  academicRecords: {
+    type: [AcademicRecordSchema],
+    required: true
+  },
 
-// ================= GENERAL ACADEMIC RECORDS =================
-// Used for:
-// SSC (out of 5)
-// HSC (out of 5)
-// BSc / BBA (out of 4)
-// MS / MBA (out of 4) → ONLY for PhD applicants
-
-academicRecords: [
-  {
-    examLevel: {
-      type: String,
-      enum: ["SSC", "HSC", "BSc", "BBA", "MS", "MBA"],
-      required: true,
-      uppercase: true
-    },
-
-    cgpa: {
-      type: Number,
-      required: true
-    },
-
-    cgpaScale: {
-      type: Number,
-      enum: [4, 5],
-      required: true
-    },
-
-    // true for final result only
-    isFinal: {
-      type: Boolean,
-      default: true
-    }
-  }
-],
-
-// ================= PSTU IDENTIFICATION =================
-isPSTUStudent: {
-  type: Boolean,
-  required: true,
-  default: false
-},
-
-// ================= PSTU LAST SEMESTER (POINT-9 SOURCE) =================
-// ⚠️ Filled ONLY when:
-// - isPSTUStudent = true
-// - Program = MS or MBA
-// ⚠️ Courses MUST match department courses created by Chairman
-
-pstuLastSemesterCourses: [
-  {
-    courseCode: {
-      type: String,
-      uppercase: true,
-      required: true
-    },
-
-    courseTitle: {
-      type: String,
-      uppercase: true,
-      required: true
-    },
-
-    creditHour: {
-      type: Number,
-      required: true
-    },
-
-    // grade point obtained by student (0.00 – 4.00)
-    gradePoint: {
-      type: Number,
-      min: 0,
-      max: 4,
-      required: true
-    }
-  }
-],
-
-// ================= AUTO CALCULATED CGPA =================
-// Calculated from pstuLastSemesterCourses
-// Formula:
-// Σ(creditHour × gradePoint) / Σ(creditHour)
-
-calculatedCGPA: {
-  type: Number,
-  default: null
-},
-
-// ================= FINAL POINT-9 SCORE =================
-// Calculated by Chairman based on:
-// - calculatedCGPA (PSTU MS/MBA)
-// - OR BSc/BBA CGPA (Non-PSTU MS/MBA)
-// - OR MS/MBA CGPA (PhD)
-
-academicQualificationPoints: {
-  type: Number,
-  default: 0
-},
-
-
-  /* ================= SERVICE ================= */
-  isInService: {
+  isPSTUStudent: {
     type: Boolean,
-    default: false
+    default: false,
+    required: true
   },
 
-  serviceInfo: {
-    position: String,
-    lengthOfService: String,
-    natureOfJob: String,
-    employer: String
+  pstuLastSemesterCourses: {
+    type: [PSTUCourseResultSchema],
+    default: []
   },
 
-  /* ================= OTHER ================= */
+  calculatedCGPA: {
+    type: Number,
+    default: null
+  },
+
+  academicQualificationPoints: {
+    type: Number,
+    default: 0
+  },
+
   numberOfPublications: {
     type: Number,
     default: 0
   },
-publications: {
-  type: [String], // array of URLs
-  default: []
-}
-,
+
+  publications: {
+    type: [String],
+    default: []
+  },
 
   declarationAccepted: {
     type: Boolean,
     required: true
   },
 
-  /* ================= PAYMENT ================= */
-payment: {
-  type: mongoose.Schema.Types.ObjectId,
-  ref: "admission_payments",
-  required: true
-},
+  payment: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "admission_payments",
+    required: true
+  },
 
-// ================= DOCUMENTS =================
-documents: [
-  {
-    title: {
-      type: String,
-      required: true
-    },
-
-    fileUrl: {
-      type: String,
-      required: true
-    },
-
-    fileType: {
-      type: String,
-      enum: ["pdf", "jpg", "jpeg", "png"],
-      required: true
-    },
-
-    fileSizeKB: {
-      type: Number,
-      required: true
+  documents: [
+    {
+      title: String,
+      fileUrl: String,
+      fileType: {
+        type: String,
+        enum: ["pdf", "jpg", "jpeg", "png"]
+      },
+      fileSizeKB: Number
     }
-  }
-],
+  ],
 
-// total uploaded size (KB)
-totalDocumentSizeKB: {
-  type: Number,
-  max: 30720 // 30 MB
-}
-,
-
-  /* ================= SELECTION LOGIC ================= */
-  supervisorRank: {
+  totalDocumentSizeKB: {
     type: Number,
-    default: null
+    max: 30720
   },
 
-  isWithinSupervisorQuota: {
-    type: Boolean,
-    default: false
-  },
-
-  selectionRound: {
-    type: Number,
-    default: 1
-  },
-
-  /* ================= TEMPORARY LOGIN ================= */
-  temporaryLogin: {
-    tempId: {
-      type: String,
-      unique: true,
-      sparse: true
-    },
-    password: String,
-    expiresAt: Date,
-    isUsed: {
-      type: Boolean,
-      default: false
-    }
-  },
-
-  /* ================= STATUS ================= */
   applicationNo: {
     type: String,
     unique: true
@@ -391,15 +269,6 @@ totalDocumentSizeKB: {
 
   approvalLog: [ApprovalLogSchema],
 
-  finalDecisionAt: Date,
-
-  enrolledStudent: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "users"
-  },
-
-  remarks: String,
-
   createdAt: {
     type: Date,
     default: Date.now
@@ -407,9 +276,6 @@ totalDocumentSizeKB: {
 
 }, { versionKey: false });
 
-/* =========================================================
-   CONSTRAINTS
-========================================================= */
 AdmissionApplicationSchema.index(
   { admissionSeason: 1, email: 1 },
   { unique: true }

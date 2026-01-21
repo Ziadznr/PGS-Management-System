@@ -393,7 +393,11 @@ router.post(
   AdmissionDocumentController
 );
 
-
+router.get(
+  "/admission/application/pdf/:applicationNo",
+  UserAuthMiddleware,
+  AdmissionController.DownloadPDF
+);
 
 
 

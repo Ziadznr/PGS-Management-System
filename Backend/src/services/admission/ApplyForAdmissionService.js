@@ -4,9 +4,10 @@ const AdmissionApplicationModel =
   require("../../models/Admission/AdmissionApplicationModel");
 const AdmissionSeasonModel =
   require("../../models/Admission/AdmissionSeasonModel");
-  const AdmissionPaymentModel =
+const AdmissionPaymentModel =
   require("../../models/Admission/AdmissionPaymentModel");
 const SendEmailUtility = require("../../utility/SendEmailUtility");
+const GenerateAdmissionPDF = require("../../utility/GenerateAdmissionPDF");
 
 /* =================================================
    HELPER: CALCULATE CGPA FROM COURSES
@@ -38,27 +39,21 @@ const ApplyForAdmissionService = async (req) => {
     const {
       program,
       admissionSeason,
-
       department,
       supervisor,
-
       applicantName,
       email,
       mobile,
       permanentAddress,
       presentAddress,
-
       academicRecords,
       isPSTUStudent,
       pstuBScInfo,
       pstuLastSemesterCourses,
-
       isInService,
       serviceInfo,
-
       numberOfPublications,
       publications,
-
       declarationAccepted
     } = req.body;
 
@@ -170,21 +165,14 @@ const ApplyForAdmissionService = async (req) => {
     let calculatedCGPA = null;
 
     if (isPSTUStudent && ["MS", "MBA"].includes(program)) {
-      if (
-        !pstuBScInfo ||
-        !pstuBScInfo.registrationNo ||
-        !pstuBScInfo.session
-      ) {
+      if (!pstuBScInfo?.registrationNo || !pstuBScInfo?.session) {
         return {
           status: "fail",
           data: "PSTU registration number and session required"
         };
       }
 
-      if (
-        !Array.isArray(pstuLastSemesterCourses) ||
-        pstuLastSemesterCourses.length === 0
-      ) {
+      if (!Array.isArray(pstuLastSemesterCourses) || !pstuLastSemesterCourses.length) {
         return {
           status: "fail",
           data: "Last semester course results required"
@@ -202,13 +190,12 @@ const ApplyForAdmissionService = async (req) => {
     }
 
     /* =================================================
-       7️⃣ PUBLICATIONS VALIDATION
+       7️⃣ PUBLICATIONS
     ================================================= */
     if (numberOfPublications > 0) {
       if (
         !Array.isArray(publications) ||
-        publications.length !== numberOfPublications ||
-        publications.some(p => !p)
+        publications.length !== numberOfPublications
       ) {
         return {
           status: "fail",
@@ -217,23 +204,24 @@ const ApplyForAdmissionService = async (req) => {
       }
     }
 
-    // Payment Option
+    /* =================================================
+       8️⃣ PAYMENT CHECK
+    ================================================= */
     const payment = await AdmissionPaymentModel.findOne({
-  email: email.toLowerCase(),
-  admissionSeason,
-  status: "SUCCESS"
-});
+      email: email.toLowerCase(),
+      admissionSeason,
+      status: "SUCCESS"
+    });
 
-if (!payment) {
-  return {
-    status: "fail",
-    data: "Application fee not paid"
-  };
-}
-
+    if (!payment) {
+      return {
+        status: "fail",
+        data: "Application fee not paid"
+      };
+    }
 
     /* =================================================
-       8️⃣ ADDRESS
+       9️⃣ ADDRESS
     ================================================= */
     const finalPresentAddress =
       JSON.stringify(permanentAddress) === JSON.stringify(presentAddress)
@@ -241,75 +229,77 @@ if (!payment) {
         : presentAddress;
 
     /* =================================================
-       9️⃣ APPLICATION NO
+       🔟 APPLICATION NO
     ================================================= */
     const applicationNo =
-      `PGS-${season.academicYear}-${Math.floor(
-        100000 + Math.random() * 900000
-      )}`;
+      `PGS-${season.academicYear}-${Math.floor(100000 + Math.random() * 900000)}`;
 
     /* =================================================
-       🔟 SAVE APPLICATION
+       1️⃣1️⃣ SAVE APPLICATION
     ================================================= */
     const application = await AdmissionApplicationModel.create({
       program,
       admissionSeason,
       academicYear: season.academicYear,
-
       department,
       supervisor,
-
       applicantName,
       email: email.toLowerCase(),
       mobile,
-
       permanentAddress,
       presentAddress: finalPresentAddress,
-
       academicRecords,
       isPSTUStudent,
       pstuBScInfo,
       pstuLastSemesterCourses,
       calculatedCGPA,
-
       isInService,
       serviceInfo,
-
       numberOfPublications,
       publications,
-
-      academicQualificationPoints: 0,
-      supervisorRank: null,
-      isWithinSupervisorQuota: false,
-      selectionRound: 1,
-
       declarationAccepted,
-
       payment: payment._id,
-
       applicationNo,
       applicationStatus: "Submitted"
     });
 
     /* =================================================
-       🔔 EMAIL
+       1️⃣2️⃣ POPULATE FOR PDF & EMAIL
     ================================================= */
+    const populatedApplication =
+      await AdmissionApplicationModel.findById(application._id)
+        .populate("department", "name")
+        .populate("supervisor", "name email")
+        .populate("payment");
+
+    /* =================================================
+       🔔 EMAIL + PDF
+    ================================================= */
+    const pdfPath = await GenerateAdmissionPDF(populatedApplication);
+
     await SendEmailUtility(
-      application.email,
+      populatedApplication.email,
       `
-Dear ${application.applicantName},
+Dear ${populatedApplication.applicantName},
 
 Your admission application has been submitted successfully.
 
-Application No : ${application.applicationNo}
+Application No : ${populatedApplication.applicationNo}
+Payment Transaction ID : ${populatedApplication.payment.transactionId}
 Program        : ${program}
-Department     : ${dept.name}
-Supervisor     : ${sup.name}
+Department     : ${populatedApplication.department.name}
+Supervisor     : ${populatedApplication.supervisor.name}
 
 Regards,
 PGS Admission Office
       `,
-      "PGS Admission Application Submitted"
+      "PGS Admission Application Submitted",
+      [
+        {
+          filename: `${populatedApplication.applicationNo}.pdf`,
+          path: pdfPath
+        }
+      ]
     );
 
     return {

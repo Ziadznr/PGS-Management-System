@@ -44,6 +44,7 @@ import PublicNoticeListPage from "./pages/Notice/PublicNoticeListPage";
 // Application
 import ApplyAdmissionPage from "./pages/Admission/ApplyAdmissionPage";
 import DepartmentLastSemesterCoursesPage from "./pages/Admission/DepartmentLastSemesterCoursesPage";
+import ApplicationSuccessPage from "./pages/Admission/ApplicationSuccessPage";
 
 // ✅ ADMIN PROTECTED ROUTE
 const ProtectedRoute = ({ children }) => {
@@ -98,6 +99,8 @@ const App = () => {
 
 
           <Route path="/ApplyAdmissionPage" element={<ApplyAdmissionPage />} />
+          <Route path="/application-success" element={<ApplicationSuccessPage />}/>
+
     
 
 

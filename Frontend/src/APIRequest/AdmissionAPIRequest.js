@@ -32,26 +32,24 @@ const adminHeader = () => ({
 export async function ApplyForAdmissionRequest(payload) {
   try {
     store.dispatch(ShowLoader());
-
-    const res = await axios.post(
-      `${BaseURL}/admission/apply`,
-      payload
-    );
-
+    const res = await axios.post(`${BaseURL}/admission/apply`, payload);
     store.dispatch(HideLoader());
 
     if (res.data?.status === "success") {
-      SuccessToast("Application submitted successfully");
-      return res.data.data;
+      // SuccessToast is already here, no need to add it to the page
+      return res.data; // Return the whole res.data so the page can see .status
     }
 
+    // This catches the "Already applied" or "Payment failed" messages from your backend service
     ErrorToast(res.data?.data || "Application failed");
-    return false;
+    return res.data; 
 
-  } catch {
+  } catch (e) {
     store.dispatch(HideLoader());
-    ErrorToast("Server error");
-    return false;
+    // Catch actual server crashes
+    const errorMsg = e.response?.data?.data || "Server error";
+    ErrorToast(errorMsg);
+    return { status: "fail", data: errorMsg };
   }
 }
 

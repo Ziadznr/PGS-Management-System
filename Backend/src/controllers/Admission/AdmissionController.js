@@ -45,14 +45,23 @@ const DeanPanelListService =
 exports.ApplyForAdmission = async (req, res) => {
   try {
     const result = await ApplyForAdmissionService(req);
+
+    // 🔥 THIS LINE IS THE KEY
+    if (result.status === "fail") {
+      return res.status(400).json(result);
+    }
+
     return res.status(200).json(result);
+
   } catch (error) {
+    console.error("ApplyForAdmission Controller Error:", error);
     return res.status(500).json({
       status: "fail",
-      data: error.message
+      data: "Internal server error"
     });
   }
 };
+
 
 // 🔓 Temporary login (after Dean approval)
 exports.TemporaryLogin = async (req, res) => {
@@ -287,3 +296,11 @@ exports.DeanPanelList = async (req, res) => {
 exports.PublicAdmissionSeasons = async (req, res) =>
   res.status(200).json(await PublicAdmissionSeasonService());
 
+exports.DownloadPDF = (req, res) => {
+  const filePath = path.join(
+    __dirname,
+    `../../storage/pdfs/${req.params.applicationNo}.pdf`
+  );
+
+  res.download(filePath);
+};
