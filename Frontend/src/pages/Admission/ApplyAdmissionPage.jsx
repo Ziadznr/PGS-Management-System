@@ -224,84 +224,104 @@ const submit = async () => {
 };
 
 
-
-  /* ================= UI ================= */
-return (
-  <div className="container mt-4 mb-5">
-    <h2 className="text-center mb-4">
-      Postgraduate Admission Application
-    </h2>
-
-    {/* IF NOT SUCCESS: Show the entire form and action buttons
-       IF SUCCESS: Hide everything and show only the success confirmation
-    */}
-    {!isSuccess ? (
-      <>
-        <ProgramSelector formData={formData} setFormData={setFormData} />
-        <SeasonSelector formData={formData} setFormData={setFormData} seasons={seasons} />
-        <DepartmentSupervisorSelector
-          formData={formData}
-          setFormData={setFormData}
-          departments={departments}
-          supervisors={supervisors}
-        />
-        <PersonalInfoForm formData={formData} setFormData={setFormData} />
-        <AddressForm formData={formData} setFormData={setFormData} />
-        <AcademicInfoForm formData={formData} setFormData={setFormData} />
-        <ServiceInfoForm formData={formData} setFormData={setFormData} />
-        <PublicationsForm formData={formData} setFormData={setFormData} />
-        <DocumentsUploadForm formData={formData} setFormData={setFormData} />
-        <Declaration formData={formData} setFormData={setFormData} />
-
-        {!isPaid ? (
-          <button
-            className="btn btn-warning w-100 mt-4"
-            onClick={initiatePayment}
-            disabled={paymentLoading}
-          >
-            {paymentLoading ? "Redirecting..." : "Pay Application Fee (৳100)"}
-          </button>
-        ) : (
-          <div className="alert alert-info mt-3 text-center">
-            ✅ Application fee paid. You can now submit.
+/* ================= UI ================= */
+  return (
+    <div className="container mt-4 mb-5">
+      {/* Header with Top Right Button */}
+      <div className="position-relative d-flex align-items-center justify-content-center mb-5 pb-3 border-bottom">
+        
+        {/* Centered Title */}
+       <div className="text-center">
+          <h2 className="fw-bolder text-dark mb-1" style={{ 
+            letterSpacing: '0.5px', 
+            textTransform: 'uppercase',
+            fontSize: '1.75rem' 
+          }}>
+            Postgraduate Admission Application
+          </h2>
+          <div className="d-flex align-items-center justify-content-center">
+            
+            <p className="text-secondary fw-medium mb-0" style={{ fontSize: '0.9rem' }}>
+              Patuakhali Science and Technology University
+            </p>
           </div>
-        )}
-
-        <button
-          className="btn btn-success w-100 mt-3"
-          onClick={submit}
-          disabled={!isPaid || isSubmitting}
-        >
-          {isSubmitting ? "Submitting Application..." : "Submit Application"}
-        </button>
-      </>
-    ) : (
-      /* SUCCESS VIEW - This is all the user will see after submitting */
-      <div className="card border-0 shadow-lg p-5 mt-5 text-center">
-        <div className="card-body">
-          <div className="mb-4">
-            <i className="bi bi-check-circle-fill text-success" style={{ fontSize: "4rem" }}>✅</i>
-          </div>
-          <h2 className="fw-bold text-success">Submission Successful!</h2>
-          <p className="text-muted mb-4">
-            Your application has been received successfully. 
-            A confirmation email with your application PDF has been sent to <strong>{formData.email}</strong>.
-          </p>
-          <hr />
-          <button
-            className="btn btn-primary btn-lg w-100 mt-3"
-            onClick={() => {
-                // Navigate home and clear any remaining state
-                navigate("/", { replace: true });
-            }}
-          >
-            Return to Home Page
-          </button>
         </div>
+
+        {/* Top Right Button (Positioned Absolutely) */}
+        <button 
+          className="btn btn-outline-danger btn-sm position-absolute end-0 shadow-sm"
+          style={{ borderRadius: '20px', padding: '5px 15px' }}
+          onClick={() => navigate("/")}
+        >
+          <i className="bi bi-x-circle me-1"></i> Exit
+        </button>
       </div>
-    )}
-  </div>
-);
+
+      {/* IF NOT SUCCESS: Show the entire form and action buttons */}
+      {!isSuccess ? (
+        <>
+          <ProgramSelector formData={formData} setFormData={setFormData} />
+          <SeasonSelector formData={formData} setFormData={setFormData} seasons={seasons} />
+          <DepartmentSupervisorSelector
+            formData={formData}
+            setFormData={setFormData}
+            departments={departments}
+            supervisors={supervisors}
+          />
+          <PersonalInfoForm formData={formData} setFormData={setFormData} />
+          <AddressForm formData={formData} setFormData={setFormData} />
+          <AcademicInfoForm formData={formData} setFormData={setFormData} />
+          <ServiceInfoForm formData={formData} setFormData={setFormData} />
+          <PublicationsForm formData={formData} setFormData={setFormData} />
+          <DocumentsUploadForm formData={formData} setFormData={setFormData} />
+          <Declaration formData={formData} setFormData={setFormData} />
+
+          {!isPaid ? (
+            <button
+              className="btn btn-warning w-100 mt-4"
+              onClick={initiatePayment}
+              disabled={paymentLoading}
+            >
+              {paymentLoading ? "Redirecting..." : "Pay Application Fee (৳100)"}
+            </button>
+          ) : (
+            <div className="alert alert-info mt-3 text-center">
+              ✅ Application fee paid. You can now submit.
+            </div>
+          )}
+
+          <button
+            className="btn btn-success w-100 mt-3"
+            onClick={submit}
+            disabled={!isPaid || isSubmitting}
+          >
+            {isSubmitting ? "Submitting Application..." : "Submit Application"}
+          </button>
+        </>
+      ) : (
+        /* SUCCESS VIEW */
+        <div className="card border-0 shadow-lg p-5 mt-5 text-center">
+          <div className="card-body">
+            <div className="mb-4">
+              <i className="bi bi-check-circle-fill text-success" style={{ fontSize: "4rem" }}>✅</i>
+            </div>
+            <h2 className="fw-bold text-success">Submission Successful!</h2>
+            <p className="text-muted mb-4">
+              Your application has been received successfully. 
+              A confirmation email has been sent to <strong>{formData.email}</strong>.
+            </p>
+            <hr />
+            <button
+              className="btn btn-primary btn-lg w-100 mt-3"
+              onClick={() => navigate("/", { replace: true })}
+            >
+              Return to Home Page
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 };
 
 export default ApplyAdmissionPage;
