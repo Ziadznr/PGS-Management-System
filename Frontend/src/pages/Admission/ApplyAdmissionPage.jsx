@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+
 import ProgramSelector from "../../components/Admission/ProgramSelector";
 import SeasonSelector from "../../components/Admission/SeasonSelector";
 import DepartmentSupervisorSelector from "../../components/Admission/DepartmentSupervisorSelector";
 import PersonalInfoForm from "../../components/Admission/PersonalInfoForm";
 import AddressForm from "../../components/Admission/AddressForm";
 import AcademicInfoForm from "../../components/Admission/AcademicInfoForm";
+import AppliedSubjectGPAForm from "../../components/Admission/AppliedSubjectGPAForm";
 import ServiceInfoForm from "../../components/Admission/ServiceInfoForm";
 import PublicationsForm from "../../components/Admission/PublicationsForm";
 import DocumentsUploadForm from "../../components/Admission/DocumentsUploadForm";
@@ -19,31 +21,15 @@ import {
 import { DepartmentDropdownRequest } from "../../APIRequest/UserAPIRequest";
 import axios from "axios";
 import { BaseURL } from "../../helper/config";
-import { ErrorToast, SuccessToast } from "../../helper/FormHelper";
+import { ErrorToast } from "../../helper/FormHelper";
 
 const STORAGE_KEY = "PGS_ADMISSION_FORM";
+const MIN_CGPA = 2.75;
 
-
-
-
-const ApplyAdmissionPage = () => {
-
-  /* ================= STATE ================= */
-  const navigate = useNavigate();
-
-  const [seasons, setSeasons] = useState([]);
-  const [departments, setDepartments] = useState([]);
-  const [supervisors, setSupervisors] = useState([]);
-  const [isSuccess, setIsSuccess] = useState(false);
-  const [isPaid, setIsPaid] = useState(false);
-  const [paymentLoading, setPaymentLoading] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // 🔐 critical autosave guard
-  const [isFormLoaded, setIsFormLoaded] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
-
- const initialFormState = {
+/* =================================================
+   INITIAL FORM STATE
+================================================= */
+const initialFormState = {
   program: "",
   admissionSeason: "",
   academicYear: "",
@@ -79,9 +65,10 @@ const ApplyAdmissionPage = () => {
   },
 
   academicRecords: [],
-  isPSTUStudent: false,
-  pstuBScInfo: { registrationNo: "", session: "" },
-  pstuLastSemesterCourses: [],
+
+  appliedSubjectCourses: [],
+  calculatedCGPA: null,
+  isEligibleByCGPA: true, // 🔑 important
 
   isInService: false,
   serviceInfo: {},
@@ -95,7 +82,22 @@ const ApplyAdmissionPage = () => {
   paymentTransactionId: "",
   declarationAccepted: false
 };
-const [formData, setFormData] = useState(initialFormState);
+
+const ApplyAdmissionPage = () => {
+  const navigate = useNavigate();
+
+  const [formData, setFormData] = useState(initialFormState);
+  const [seasons, setSeasons] = useState([]);
+  const [departments, setDepartments] = useState([]);
+  const [supervisors, setSupervisors] = useState([]);
+
+  const [isPaid, setIsPaid] = useState(false);
+  const [paymentLoading, setPaymentLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+
+  const [isFormLoaded, setIsFormLoaded] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
 
   /* ================= LOAD SAVED FORM ================= */
   useEffect(() => {
@@ -110,7 +112,7 @@ const [formData, setFormData] = useState(initialFormState);
     setIsFormLoaded(true);
   }, []);
 
-  /* ================= AUTO SAVE (SAFE) ================= */
+  /* ================= AUTO SAVE ================= */
   useEffect(() => {
     if (!isFormLoaded || isSubmitted) return;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(formData));
@@ -122,15 +124,17 @@ const [formData, setFormData] = useState(initialFormState);
 
     if (params.get("paid") === "true") {
       setIsPaid(true);
-
       setFormData(prev => ({
         ...prev,
         paymentTransactionId:
           params.get("tran_id") || prev.paymentTransactionId
       }));
 
-      // ✅ clean URL
-      window.history.replaceState({}, document.title, window.location.pathname);
+      window.history.replaceState(
+        {},
+        document.title,
+        window.location.pathname
+      );
     }
   }, []);
 
@@ -144,7 +148,10 @@ const [formData, setFormData] = useState(initialFormState);
   useEffect(() => {
     const season = seasons.find(s => s._id === formData.admissionSeason);
     if (season) {
-      setFormData(prev => ({ ...prev, academicYear: season.academicYear }));
+      setFormData(prev => ({
+        ...prev,
+        academicYear: season.academicYear
+      }));
     }
   }, [formData.admissionSeason, seasons]);
 
@@ -160,7 +167,9 @@ const [formData, setFormData] = useState(initialFormState);
         const res = await axios.get(
           `${BaseURL}/users/supervisors/${formData.department}`
         );
-        setSupervisors(res.data?.status === "success" ? res.data.data : []);
+        setSupervisors(
+          res.data?.status === "success" ? res.data.data : []
+        );
       } catch {
         setSupervisors([]);
       }
@@ -170,8 +179,7 @@ const [formData, setFormData] = useState(initialFormState);
   /* ================= PAYMENT ================= */
   const initiatePayment = async () => {
     if (!formData.email || !formData.admissionSeason) {
-      ErrorToast("Email and admission season required before payment");
-      return;
+      return ErrorToast("Email and admission season required before payment");
     }
 
     try {
@@ -198,66 +206,59 @@ const [formData, setFormData] = useState(initialFormState);
   };
 
   /* ================= SUBMIT ================= */
-const submit = async () => {
-  if (!isPaid) return ErrorToast("Please complete payment first");
+  const submit = async () => {
+    if (!isPaid) return ErrorToast("Please complete payment first");
 
-  try {
-    setIsSubmitting(true);
-    
-    // The API helper already handles the Toast and the logic
-    const result = await ApplyForAdmissionRequest(formData);
-
-    // If result is not false, it means it was a success
-    if (result) {
-      setIsSubmitted(true); 
-      localStorage.removeItem(STORAGE_KEY);
-      setFormData(initialFormState);
-      setIsPaid(false);
-      setIsSuccess(true); // This will now trigger your "Go Home" button
-      window.scrollTo(0, 0); 
+    // 🔴 CGPA RULE ENFORCED HERE
+    if (
+      ["MS", "MBA", "LLM"].includes(formData.program) &&
+      formData.calculatedCGPA !== null &&
+      formData.calculatedCGPA < MIN_CGPA
+    ) {
+      return ErrorToast(
+        `Minimum required CGPA is ${MIN_CGPA}. You are not eligible to apply.`
+      );
     }
-  } catch (err) {
-    console.error("Submission Error:", err);
-  } finally {
-    setIsSubmitting(false);
-  }
-};
 
+    try {
+      setIsSubmitting(true);
 
-/* ================= UI ================= */
+      const result = await ApplyForAdmissionRequest(formData);
+
+      if (result) {
+        setIsSubmitted(true);
+        localStorage.removeItem(STORAGE_KEY);
+        setFormData(initialFormState);
+        setIsPaid(false);
+        setIsSuccess(true);
+        window.scrollTo(0, 0);
+      }
+    } catch (err) {
+      console.error("Submission Error:", err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  /* ================= UI ================= */
   return (
     <div className="container mt-4 mb-5">
-      {/* Header with Top Right Button */}
-      <div className="position-relative d-flex align-items-center justify-content-center mb-5 pb-3 border-bottom">
-        
-        {/* Centered Title */}
-       <div className="text-center">
-          <h2 className="fw-bolder text-dark mb-1" style={{ 
-            letterSpacing: '0.5px', 
-            textTransform: 'uppercase',
-            fontSize: '1.75rem' 
-          }}>
-            Postgraduate Admission Application
-          </h2>
-          <div className="d-flex align-items-center justify-content-center">
-            
-            <p className="text-secondary fw-medium mb-0" style={{ fontSize: '0.9rem' }}>
-              Patuakhali Science and Technology University
-            </p>
-          </div>
-        </div>
+      <div className="position-relative text-center mb-5 border-bottom pb-3">
+        <h2 className="fw-bolder text-dark">
+          Postgraduate Admission Application
+        </h2>
+        <p className="text-muted mb-0">
+          Patuakhali Science and Technology University
+        </p>
 
-        {/* Top Right Button (Positioned Absolutely) */}
-        <button 
-          className="btn btn-outline-danger btn-sm position-absolute end-0 shadow-sm"
-          style={{ borderRadius: '20px', padding: '5px 15px' }}
+        <button
+          className="btn btn-outline-danger btn-sm position-absolute end-0 top-0"
           onClick={() => navigate("/")}
         >
-          <i className="bi bi-x-circle me-1"></i> Exit
+          Exit
         </button>
       </div>
 
-      {/* IF NOT SUCCESS: Show the entire form and action buttons */}
       {!isSuccess ? (
         <>
           <ProgramSelector formData={formData} setFormData={setFormData} />
@@ -271,6 +272,7 @@ const submit = async () => {
           <PersonalInfoForm formData={formData} setFormData={setFormData} />
           <AddressForm formData={formData} setFormData={setFormData} />
           <AcademicInfoForm formData={formData} setFormData={setFormData} />
+          <AppliedSubjectGPAForm formData={formData} setFormData={setFormData} />
           <ServiceInfoForm formData={formData} setFormData={setFormData} />
           <PublicationsForm formData={formData} setFormData={setFormData} />
           <DocumentsUploadForm formData={formData} setFormData={setFormData} />
@@ -293,31 +295,27 @@ const submit = async () => {
           <button
             className="btn btn-success w-100 mt-3"
             onClick={submit}
-            disabled={!isPaid || isSubmitting}
+            disabled={
+              !isPaid ||
+              isSubmitting ||
+              formData.isEligibleByCGPA === false
+            }
           >
-            {isSubmitting ? "Submitting Application..." : "Submit Application"}
+            {isSubmitting ? "Submitting..." : "Submit Application"}
           </button>
         </>
       ) : (
-        /* SUCCESS VIEW */
-        <div className="card border-0 shadow-lg p-5 mt-5 text-center">
-          <div className="card-body">
-            <div className="mb-4">
-              <i className="bi bi-check-circle-fill text-success" style={{ fontSize: "4rem" }}>✅</i>
-            </div>
-            <h2 className="fw-bold text-success">Submission Successful!</h2>
-            <p className="text-muted mb-4">
-              Your application has been received successfully. 
-              A confirmation email has been sent to <strong>{formData.email}</strong>.
-            </p>
-            <hr />
-            <button
-              className="btn btn-primary btn-lg w-100 mt-3"
-              onClick={() => navigate("/", { replace: true })}
-            >
-              Return to Home Page
-            </button>
-          </div>
+        <div className="card shadow-lg p-5 text-center">
+          <h2 className="text-success fw-bold">Submission Successful!</h2>
+          <p className="text-muted">
+            A confirmation email with PDF has been sent to your email.
+          </p>
+          <button
+            className="btn btn-primary mt-3"
+            onClick={() => navigate("/", { replace: true })}
+          >
+            Return to Home
+          </button>
         </div>
       )}
     </div>

@@ -25,7 +25,11 @@ const DepartmentCreateUpdate = () => {
   const [ObjectID, setObjectID] = useState(0);
   const [loading, setLoading] = useState(false);
 
-  // ---------------- LOAD FOR EDIT (SAFE) ----------------
+  /* ================= SUBJECT STATE ================= */
+  const [subjects, setSubjects] = useState([]);
+  const [newSubject, setNewSubject] = useState("");
+
+  /* ================= LOAD FOR EDIT ================= */
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const id = params.get("id");
@@ -33,22 +37,72 @@ const DepartmentCreateUpdate = () => {
     const loadData = async () => {
       if (id && id !== "null" && id !== "undefined") {
         setObjectID(id);
-        await FillDepartmentFormRequest(id);
+
+        const data = await FillDepartmentFormRequest(id);
+
+        if (data?.offeredSubjects) {
+          setSubjects(data.offeredSubjects);
+        }
       } else {
         setObjectID(0);
         dispatch(ResetDepartmentFormValue());
+        setSubjects([]);
       }
     };
 
     loadData();
   }, [location.search, dispatch]);
 
-  // ---------------- INPUT ----------------
-  const handleInputChange = (value) => {
+  /* ================= INPUT ================= */
+  const handleDepartmentChange = (value) => {
     dispatch(OnChangeDepartmentInput({ Name: "Name", Value: value }));
   };
 
-  // ---------------- SAVE ----------------
+  /* ================= SUBJECT HANDLERS ================= */
+  const addSubject = () => {
+    if (IsEmpty(newSubject)) {
+      ErrorToast("Subject name required");
+      return;
+    }
+
+    if (
+      subjects.some(
+        (s) => s.name.toLowerCase() === newSubject.toLowerCase()
+      )
+    ) {
+      ErrorToast("Subject already exists");
+      return;
+    }
+
+    setSubjects([
+      ...subjects,
+      { name: newSubject.trim(), isActive: true }
+    ]);
+    setNewSubject("");
+  };
+
+  const toggleSubject = (index) => {
+    const updated = [...subjects];
+    updated[index].isActive = !updated[index].isActive;
+    setSubjects(updated);
+  };
+
+  const removeSubject = async (index) => {
+    const confirm = await Swal.fire({
+      title: "Remove Subject?",
+      text: "Existing admission data will NOT be affected.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Yes, Remove",
+    });
+
+    if (!confirm.isConfirmed) return;
+
+    const updated = subjects.filter((_, i) => i !== index);
+    setSubjects(updated);
+  };
+
+  /* ================= SAVE ================= */
   const SaveChange = async () => {
     if (IsEmpty(FormValue.Name)) {
       ErrorToast("Department Name Required!");
@@ -71,10 +125,12 @@ const DepartmentCreateUpdate = () => {
 
     setLoading(true);
 
-    const success = await CreateDepartmentRequest(
-      { name: FormValue.Name },
-      ObjectID
-    );
+    const payload = {
+      name: FormValue.Name,
+      offeredSubjects: subjects,
+    };
+
+    const success = await CreateDepartmentRequest(payload, ObjectID);
 
     setLoading(false);
 
@@ -88,17 +144,19 @@ const DepartmentCreateUpdate = () => {
     }
   };
 
-  // ---------------- UI ----------------
+  /* ================= UI ================= */
   return (
     <div className="container-fluid">
-      <div className="card">
+      <div className="card shadow-sm">
         <div className="card-body">
 
-          <h5>{ObjectID ? "Update Department" : "Create Department"}</h5>
+          <h5 className="fw-bold">
+            {ObjectID ? "Update Department" : "Create Department"}
+          </h5>
           <hr />
 
-          {/* STATIC FACULTY */}
-          <div className="mb-3">
+          {/* FACULTY (STATIC) */}
+          <div className="mb-3 col-4">
             <label className="form-label fw-bold">Faculty</label>
             <div className="form-control form-control-sm bg-light">
               PGS
@@ -107,18 +165,79 @@ const DepartmentCreateUpdate = () => {
 
           {/* DEPARTMENT NAME */}
           <div className="mb-3 col-4">
-            <label className="form-label">Department Name</label>
+            <label className="form-label fw-bold">Department Name</label>
             <input
               type="text"
               className="form-control form-control-sm"
               value={FormValue.Name || ""}
-              onChange={(e) => handleInputChange(e.target.value)}
+              onChange={(e) => handleDepartmentChange(e.target.value)}
             />
           </div>
 
+          {/* SUBJECT MANAGEMENT */}
+          <div className="mt-4">
+            <h6 className="fw-bold">Offered Subjects</h6>
+
+            <div className="d-flex gap-2 mb-3 col-6">
+              <input
+                type="text"
+                className="form-control form-control-sm"
+                placeholder="Enter subject name"
+                value={newSubject}
+                onChange={(e) => setNewSubject(e.target.value)}
+              />
+              <button
+                className="btn btn-sm btn-primary"
+                onClick={addSubject}
+              >
+                Add
+              </button>
+            </div>
+
+            {subjects.length === 0 && (
+              <p className="text-muted small">
+                No subjects added yet.
+              </p>
+            )}
+
+            {subjects.map((s, i) => (
+              <div
+                key={i}
+                className="d-flex align-items-center justify-content-between border rounded p-2 mb-2 col-6"
+              >
+                <span
+                  className={
+                    s.isActive ? "fw-medium" : "text-muted text-decoration-line-through"
+                  }
+                >
+                  {s.name}
+                </span>
+
+                <div className="d-flex gap-2">
+                  <button
+                    className={`btn btn-sm ${
+                      s.isActive ? "btn-warning" : "btn-success"
+                    }`}
+                    onClick={() => toggleSubject(i)}
+                  >
+                    {s.isActive ? "Deactivate" : "Activate"}
+                  </button>
+
+                  <button
+                    className="btn btn-sm btn-danger"
+                    onClick={() => removeSubject(i)}
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* SAVE */}
           <button
             onClick={SaveChange}
-            className="btn btn-sm btn-success"
+            className="btn btn-sm btn-success mt-4"
             disabled={loading}
           >
             {loading ? "Saving..." : "Save"}

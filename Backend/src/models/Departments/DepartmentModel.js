@@ -8,6 +8,19 @@ const DepartmentSchema = new mongoose.Schema(
       required: true,
       trim: true
     },
+
+    offeredSubjects: [
+      {
+        name: { type: String, required: true },
+        isActive: { type: Boolean, default: true }
+      }
+    ],
+
+    isActive: {
+      type: Boolean,
+      default: true
+    },
+
     createdAt: {
       type: Date,
       default: Date.now
@@ -16,7 +29,6 @@ const DepartmentSchema = new mongoose.Schema(
   { versionKey: false }
 );
 
-// OPTIONAL: enforce uniqueness properly
 DepartmentSchema.index({ name: 1 }, { unique: true });
 
 module.exports = mongoose.model("departments", DepartmentSchema);

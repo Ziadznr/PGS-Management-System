@@ -1,12 +1,13 @@
 const mongoose = require("mongoose");
 
 /* =========================================================
-   ACADEMIC RECORD SCHEMA (SSC / HSC / BSc / BBA / MS / MBA)
+   ACADEMIC RECORD SCHEMA
+   (SSC / HSC / BSc / BBA / LLB / MS / MBA / LLM)
 ========================================================= */
 const AcademicRecordSchema = new mongoose.Schema({
   examLevel: {
     type: String,
-    enum: ["SSC", "HSC", "BSc", "BBA", "MS", "MBA"],
+    enum: ["SSC", "HSC", "BSc", "BBA", "LLB", "MS", "MBA", "LLM"],
     required: true,
     set: v => {
       if (!v) return v;
@@ -15,15 +16,24 @@ const AcademicRecordSchema = new mongoose.Schema({
         HSC: "HSC",
         BSC: "BSc",
         BBA: "BBA",
+        LLB: "LLB",
         MS: "MS",
-        MBA: "MBA"
+        MBA: "MBA",
+        LLM: "LLM"
       };
       return map[v.toUpperCase()] || v;
     }
   },
 
-  institution: String,
-  passingYear: String,
+  institution: {
+    type: String,
+    required: true
+  },
+
+  passingYear: {
+    type: String,
+    required: true
+  },
 
   cgpa: {
     type: Number,
@@ -43,31 +53,38 @@ const AcademicRecordSchema = new mongoose.Schema({
 }, { _id: false });
 
 /* =========================================================
-   PSTU LAST SEMESTER COURSE RESULT
+   COURSE-WISE GPA (FOR MS / MBA / LLM)
+   → Used for auto GPA calculation
 ========================================================= */
-const PSTUCourseResultSchema = new mongoose.Schema({
+const AppliedSubjectCourseSchema = new mongoose.Schema({
   courseCode: {
     type: String,
-    uppercase: true,
-    required: true
+    required: true,
+    uppercase: true
   },
 
   courseTitle: {
     type: String,
-    uppercase: true,
     required: true
   },
 
   creditHour: {
     type: Number,
-    required: true
+    required: true,
+    min: 0.5
   },
 
   gradePoint: {
     type: Number,
+    required: true,
     min: 0,
-    max: 4,
-    required: true
+    max: 4
+  },
+
+  // auto-calculated (GP × CH)
+  gpXch: {
+    type: Number,
+    default: 0
   }
 }, { _id: false });
 
@@ -102,13 +119,14 @@ const ApprovalLogSchema = new mongoose.Schema({
 }, { _id: false });
 
 /* =========================================================
-   MAIN APPLICATION SCHEMA
+   MAIN ADMISSION APPLICATION SCHEMA
 ========================================================= */
 const AdmissionApplicationSchema = new mongoose.Schema({
 
+  /* ================= PROGRAM INFO ================= */
   program: {
     type: String,
-    enum: ["MBA", "MS", "PhD"],
+    enum: ["MBA", "MS", "LLM", "PhD"],
     required: true
   },
 
@@ -135,6 +153,7 @@ const AdmissionApplicationSchema = new mongoose.Schema({
     required: true
   },
 
+  /* ================= PERSONAL INFO ================= */
   applicantName: {
     type: String,
     required: true
@@ -188,65 +207,100 @@ const AdmissionApplicationSchema = new mongoose.Schema({
     required: true
   },
 
-  isPSTUStudent: {
-    type: Boolean,
-    default: false,
-    required: true
-  },
-
-  pstuLastSemesterCourses: {
-    type: [PSTUCourseResultSchema],
+  /* ================= COURSE-WISE GPA (MS / MBA / LLM) ================= */
+  appliedSubjectCourses: {
+    type: [AppliedSubjectCourseSchema],
     default: []
   },
 
+  totalCreditHourBachelor: {
+    type: Number,
+    default: null
+  },
+
+  totalCreditHourAppliedSubject: {
+    type: Number,
+    default: null
+  },
+
+  // auto-calculated GPA from appliedSubjectCourses
   calculatedCGPA: {
     type: Number,
     default: null
   },
 
+  // set by Chairman
   academicQualificationPoints: {
     type: Number,
     default: 0
   },
 
+  /* ================= SERVICE ================= */
+  isInService: {
+    type: Boolean,
+    default: false
+  },
+
+  serviceInfo: {
+    position: String,
+    lengthOfService: String,
+    natureOfJob: String,
+    employer: String
+  },
+
+  /* ================= PUBLICATIONS ================= */
   numberOfPublications: {
     type: Number,
     default: 0
   },
 
   publications: {
-    type: [String],
+    type: [String], // URLs
     default: []
   },
 
+  /* ================= DECLARATION ================= */
   declarationAccepted: {
     type: Boolean,
     required: true
   },
 
+  /* ================= PAYMENT ================= */
   payment: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "admission_payments",
     required: true
   },
 
+  /* ================= DOCUMENTS ================= */
   documents: [
     {
-      title: String,
-      fileUrl: String,
+      title: {
+        type: String,
+        required: true
+      },
+      fileUrl: {
+        type: String,
+        required: true
+      },
       fileType: {
         type: String,
-        enum: ["pdf", "jpg", "jpeg", "png"]
+        enum: ["pdf", "jpg", "jpeg", "png"],
+        required: true
       },
-      fileSizeKB: Number
+      fileSizeKB: {
+        type: Number,
+        required: true
+      }
     }
   ],
 
   totalDocumentSizeKB: {
     type: Number,
-    max: 30720
+    max: 30720 // 30 MB
   },
 
+  /* ================= STATUS & FLOW ================= */
   applicationNo: {
     type: String,
     unique: true
@@ -276,6 +330,9 @@ const AdmissionApplicationSchema = new mongoose.Schema({
 
 }, { versionKey: false });
 
+/* =========================================================
+   UNIQUE CONSTRAINT
+========================================================= */
 AdmissionApplicationSchema.index(
   { admissionSeason: 1, email: 1 },
   { unique: true }

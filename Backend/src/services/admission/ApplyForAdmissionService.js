@@ -6,11 +6,14 @@ const AdmissionSeasonModel =
   require("../../models/Admission/AdmissionSeasonModel");
 const AdmissionPaymentModel =
   require("../../models/Admission/AdmissionPaymentModel");
+
 const SendEmailUtility = require("../../utility/SendEmailUtility");
 const GenerateAdmissionPDF = require("../../utility/GenerateAdmissionPDF");
 
 /* =================================================
-   HELPER: CALCULATE CGPA FROM COURSES
+   HELPER: CALCULATE CGPA FROM COURSE-WISE GPA
+   Formula:
+   Σ (creditHour × gradePoint) / Σ creditHour
 ================================================= */
 const calculateCGPAFromCourses = (courses = []) => {
   let totalCredits = 0;
@@ -31,6 +34,7 @@ const calculateCGPAFromCourses = (courses = []) => {
   }
 
   if (totalCredits === 0) return null;
+
   return Number((totalPoints / totalCredits).toFixed(2));
 };
 
@@ -41,19 +45,22 @@ const ApplyForAdmissionService = async (req) => {
       admissionSeason,
       department,
       supervisor,
+
       applicantName,
       email,
       mobile,
       permanentAddress,
       presentAddress,
+
       academicRecords,
-      isPSTUStudent,
-      pstuBScInfo,
-      pstuLastSemesterCourses,
+      appliedSubjectCourses,
+
       isInService,
       serviceInfo,
+
       numberOfPublications,
       publications,
+
       declarationAccepted
     } = req.body;
 
@@ -75,16 +82,12 @@ const ApplyForAdmissionService = async (req) => {
       return { status: "fail", data: "Academic records are required" };
     }
 
-    if (typeof isPSTUStudent !== "boolean") {
-      return { status: "fail", data: "PSTU status is required" };
-    }
-
     if (!declarationAccepted) {
       return { status: "fail", data: "Declaration must be accepted" };
     }
 
     /* =================================================
-       2️⃣ ADMISSION SEASON
+       2️⃣ ADMISSION SEASON VALIDATION
     ================================================= */
     const season = await AdmissionSeasonModel.findOne({
       _id: admissionSeason,
@@ -97,7 +100,7 @@ const ApplyForAdmissionService = async (req) => {
     }
 
     /* =================================================
-       3️⃣ DUPLICATE CHECK
+       3️⃣ DUPLICATE APPLICATION CHECK
     ================================================= */
     const exists = await AdmissionApplicationModel.findOne({
       admissionSeason,
@@ -109,7 +112,7 @@ const ApplyForAdmissionService = async (req) => {
     }
 
     /* =================================================
-       4️⃣ DEPARTMENT & SUPERVISOR
+       4️⃣ DEPARTMENT & SUPERVISOR VALIDATION
     ================================================= */
     const dept = await DepartmentModel.findById(department);
     if (!dept) {
@@ -139,63 +142,63 @@ const ApplyForAdmissionService = async (req) => {
 
     if (program === "PhD") {
       const hasMS = academicRecords.some(
-        r => ["MS", "MBA"].includes(r.examLevel) && r.isFinal
+        r => ["MS", "MBA", "LLM"].includes(r.examLevel) && r.isFinal
       );
+
       if (!hasMS) {
         return {
           status: "fail",
-          data: "Final MS/MBA result is required for PhD"
+          data: "Final MS/MBA/LLM result is required for PhD"
         };
       }
     } else {
       const hasBachelor = academicRecords.some(
-        r => ["BSc", "BBA"].includes(r.examLevel) && r.isFinal
+        r => ["BSc", "BBA", "LLB"].includes(r.examLevel) && r.isFinal
       );
+
       if (!hasBachelor) {
         return {
           status: "fail",
-          data: "Final BSc/BBA result is required"
+          data: "Final Bachelor result is required"
         };
       }
     }
 
     /* =================================================
-       6️⃣ PSTU LOGIC (ONLY MS / MBA)
+       6️⃣ COURSE-WISE GPA CALCULATION (MS / MBA / LLM)
     ================================================= */
     let calculatedCGPA = null;
 
-    if (isPSTUStudent && ["MS", "MBA"].includes(program)) {
-      if (!pstuBScInfo?.registrationNo || !pstuBScInfo?.session) {
+    if (["MS", "MBA", "LLM"].includes(program)) {
+      if (
+        !Array.isArray(appliedSubjectCourses) ||
+        appliedSubjectCourses.length === 0
+      ) {
         return {
           status: "fail",
-          data: "PSTU registration number and session required"
+          data: "Course-wise GPA details are required"
         };
       }
 
-      if (!Array.isArray(pstuLastSemesterCourses) || !pstuLastSemesterCourses.length) {
-        return {
-          status: "fail",
-          data: "Last semester course results required"
-        };
-      }
-
-      calculatedCGPA = calculateCGPAFromCourses(pstuLastSemesterCourses);
+      calculatedCGPA =
+        calculateCGPAFromCourses(appliedSubjectCourses);
 
       if (calculatedCGPA === null) {
         return {
           status: "fail",
-          data: "Invalid grade or credit hour"
+          data: "Invalid course credit or grade point"
         };
       }
     }
 
     /* =================================================
-       7️⃣ PUBLICATIONS
+       7️⃣ PUBLICATIONS VALIDATION
     ================================================= */
     if (numberOfPublications > 0) {
       if (
         !Array.isArray(publications) ||
-        publications.length !== numberOfPublications
+        publications.length !== numberOfPublications ||
+        publications.some(p => !p)
       ) {
         return {
           status: "fail",
@@ -205,7 +208,7 @@ const ApplyForAdmissionService = async (req) => {
     }
 
     /* =================================================
-       8️⃣ PAYMENT CHECK
+       8️⃣ PAYMENT VERIFICATION
     ================================================= */
     const payment = await AdmissionPaymentModel.findOne({
       email: email.toLowerCase(),
@@ -221,7 +224,7 @@ const ApplyForAdmissionService = async (req) => {
     }
 
     /* =================================================
-       9️⃣ ADDRESS
+       9️⃣ ADDRESS HANDLING
     ================================================= */
     const finalPresentAddress =
       JSON.stringify(permanentAddress) === JSON.stringify(presentAddress)
@@ -229,10 +232,12 @@ const ApplyForAdmissionService = async (req) => {
         : presentAddress;
 
     /* =================================================
-       🔟 APPLICATION NO
+       🔟 APPLICATION NUMBER
     ================================================= */
     const applicationNo =
-      `PGS-${season.academicYear}-${Math.floor(100000 + Math.random() * 900000)}`;
+      `PGS-${season.academicYear}-${Math.floor(
+        100000 + Math.random() * 900000
+      )}`;
 
     /* =================================================
        1️⃣1️⃣ SAVE APPLICATION
@@ -241,24 +246,31 @@ const ApplyForAdmissionService = async (req) => {
       program,
       admissionSeason,
       academicYear: season.academicYear,
+
       department,
       supervisor,
+
       applicantName,
       email: email.toLowerCase(),
       mobile,
+
       permanentAddress,
       presentAddress: finalPresentAddress,
+
       academicRecords,
-      isPSTUStudent,
-      pstuBScInfo,
-      pstuLastSemesterCourses,
+      appliedSubjectCourses,
       calculatedCGPA,
+
       isInService,
       serviceInfo,
+
       numberOfPublications,
       publications,
+
       declarationAccepted,
+
       payment: payment._id,
+
       applicationNo,
       applicationStatus: "Submitted"
     });
@@ -284,11 +296,11 @@ Dear ${populatedApplication.applicantName},
 
 Your admission application has been submitted successfully.
 
-Application No : ${populatedApplication.applicationNo}
-Payment Transaction ID : ${populatedApplication.payment.transactionId}
-Program        : ${program}
-Department     : ${populatedApplication.department.name}
-Supervisor     : ${populatedApplication.supervisor.name}
+Application No        : ${populatedApplication.applicationNo}
+Payment Transaction ID: ${populatedApplication.payment.transactionId}
+Program               : ${program}
+Department            : ${populatedApplication.department.name}
+Supervisor            : ${populatedApplication.supervisor.name}
 
 Regards,
 PGS Admission Office
@@ -305,8 +317,8 @@ PGS Admission Office
     return {
       status: "success",
       data: {
-        applicationNo: application.applicationNo,
-        applicationStatus: application.applicationStatus
+        applicationNo: populatedApplication.applicationNo,
+        applicationStatus: populatedApplication.applicationStatus
       }
     };
 

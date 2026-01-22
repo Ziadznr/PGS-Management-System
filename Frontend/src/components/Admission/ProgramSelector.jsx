@@ -12,6 +12,7 @@ const ProgramSelector = ({ formData, setFormData }) => {
         <option value="">Select Program</option>
         <option value="MBA">MBA</option>
         <option value="MS">MS</option>
+        <option value="LLM">LLM</option>
         <option value="PhD">PhD</option>
       </select>
     </div>

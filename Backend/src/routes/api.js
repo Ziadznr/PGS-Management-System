@@ -215,7 +215,7 @@ router.get(
 );
 
 router.delete(
-  "/dDeleteDepartment/:id",
+  "/DeleteDepartment/:id",
   AuthVerifyMiddleware,
   DepartmentController.DeleteDepartment
 );
