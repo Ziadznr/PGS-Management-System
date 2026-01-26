@@ -135,7 +135,7 @@ const UserProfile = () => {
               <input
                 type="password"
                 className="form-control mb-3"
-                placeholder="New Password"
+                placeholder="New Password(must be minimum 6 characters)"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
               />

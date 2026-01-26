@@ -21,13 +21,20 @@ const Profile = () => {
   const profile = useSelector((state) => state.profile.value);
 
   // load profile
-  useEffect(() => {
-    (async () => {
+ useEffect(() => {
+  const loadProfile = async () => {
+    if (!profile?.email) {
       setLoading(true);
       await GetProfileDetails();
       setLoading(false);
-    })();
-  }, []);
+    } else {
+      setLoading(false);
+    }
+  };
+
+  loadProfile();
+}, [profile]);
+
 
   // sync redux → local form
   useEffect(() => {

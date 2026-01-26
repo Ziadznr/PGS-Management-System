@@ -9,11 +9,18 @@ const mongoSanitize = require('express-mongo-sanitize');
 const hpp = require('hpp');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
+const path = require("path");
 const mongoose = require('mongoose');
 
 // Middleware
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
+// 🔥 STATIC FILES (MUST BE BEFORE ROUTES)
+app.use(
+  "/uploads",
+  express.static(path.join(__dirname, "uploads"))
+);
 
 const apiCorsOptions = {
     origin: '*',

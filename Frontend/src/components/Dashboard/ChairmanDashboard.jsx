@@ -8,42 +8,60 @@ import { ErrorToast, SuccessToast } from "../../helper/FormHelper";
 const ChairmanDashboard = () => {
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [processing, setProcessing] = useState(false);
 
-  // 🔹 Load chairman applications
+  /* ================= LOAD APPLICATIONS ================= */
+  const loadApplications = async () => {
+    setLoading(true);
+    const result = await ChairmanApplications();
+    setApplications(Array.isArray(result) ? result : []);
+    setLoading(false);
+  };
+
   useEffect(() => {
-    const loadApplications = async () => {
-      setLoading(true);
-      const result = await ChairmanApplications();
-      if (Array.isArray(result)) {
-        setApplications(result);
-      } else {
-        setApplications([]);
-      }
-      setLoading(false);
-    };
     loadApplications();
   }, []);
 
-  // 🔹 Approve / Reject
-  const handleDecision = async (applicationId, decision) => {
-    if (!applicationId) return;
+  /* ================= GROUP BY SUPERVISOR ================= */
+  const groupedBySupervisor = applications.reduce((acc, app) => {
+    const supName = app.supervisor || "Unknown Supervisor";
+    if (!acc[supName]) acc[supName] = [];
+    acc[supName].push(app);
+    return acc;
+  }, {});
 
-    const result = await ChairmanDecision(applicationId, decision);
+  /* ================= RUN MERIT PROCESS ================= */
+  const handleMeritProcess = async () => {
+    setProcessing(true);
+    const ok = await ChairmanDecision();
+    setProcessing(false);
 
-    if (result) {
-      SuccessToast(`Application ${decision}`);
-      setApplications((prev) =>
-        prev.filter((app) => app._id !== applicationId)
-      );
+    if (ok) {
+      SuccessToast("Merit selection completed successfully");
+      await loadApplications();
     } else {
-      ErrorToast("Decision failed");
+      ErrorToast("Merit processing failed");
     }
   };
 
+  /* ================= UI ================= */
   return (
     <div className="container mt-4">
-      <h4 className="mb-3">Chairman Panel</h4>
-      <p className="text-muted">Applications approved by supervisors</p>
+      <h4 className="mb-2">Chairman Panel</h4>
+      <p className="text-muted">
+        Supervisor-wise merit list (Top 10 per supervisor auto selected)
+      </p>
+
+      {/* 🔘 RUN MERIT BUTTON */}
+      <button
+        className="btn btn-primary mb-3"
+        onClick={handleMeritProcess}
+        disabled={processing}
+      >
+        {processing
+          ? "Processing Merit List..."
+          : "Run Merit Selection"}
+      </button>
 
       {/* Loading */}
       {loading && <p>Loading applications...</p>}
@@ -53,56 +71,65 @@ const ChairmanDashboard = () => {
         <p className="text-muted">No applications found</p>
       )}
 
-      {/* Table */}
-      {!loading && applications.length > 0 && (
-        <div className="table-responsive">
-          <table className="table table-bordered table-hover">
-            <thead className="table-light">
-              <tr>
-                <th>#</th>
-                <th>Applicant</th>
-                <th>Program</th>
-                <th>Faculty</th>
-                <th>Department</th>
-                <th>Supervisor</th>
-                <th>Mobile</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {applications.map((app, index) => (
-                <tr key={app._id}>
-                  <td>{index + 1}</td>
-                  <td>{app.applicantName}</td>
-                  <td>{app.program}</td>
-                  <td>{app.faculty?.Name}</td>
-                  <td>{app.department?.Name}</td>
-                  <td>{app.supervisor?.CustomerName || "-"}</td>
-                  <td>{app.mobile}</td>
-                  <td className="d-flex gap-2">
-                    <button
-                      className="btn btn-success btn-sm"
-                      onClick={() =>
-                        handleDecision(app._id, "Approved")
-                      }
-                    >
-                      Approve
-                    </button>
-                    <button
-                      className="btn btn-danger btn-sm"
-                      onClick={() =>
-                        handleDecision(app._id, "Rejected")
-                      }
-                    >
-                      Reject
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      {/* Supervisor-wise Tables */}
+      {!loading &&
+        Object.entries(groupedBySupervisor).map(
+          ([supervisorName, apps], idx) => (
+            <div key={idx} className="mb-4">
+              <h6 className="fw-bold mb-2">
+                Supervisor: {supervisorName}
+              </h6>
+
+              <div className="table-responsive">
+                <table className="table table-bordered table-hover align-middle">
+                  <thead className="table-light">
+                    <tr>
+                      <th>#</th>
+                      <th>Applicant</th>
+                      <th>Program</th>
+                      <th>Mobile</th>
+                      <th>Merit Points</th>
+                      <th>Rank</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {apps.map((app, index) => {
+                      const status =
+                        app.previewStatus || app.applicationStatus;
+
+                      const isSelected =
+                        status === "ChairmanSelected";
+
+                      return (
+                        <tr key={app._id}>
+                          <td>{index + 1}</td>
+                          <td>{app.applicantName}</td>
+                          <td>{app.program}</td>
+                          <td>{app.mobile}</td>
+                          <td>{app.academicQualificationPoints || 0}</td>
+                          <td>{app.supervisorRank}</td>
+                          <td>
+                            <span
+                              className={`badge ${
+                                isSelected
+                                  ? "bg-success"
+                                  : "bg-warning"
+                              }`}
+                            >
+                              {status}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )
+        )}
     </div>
   );
 };

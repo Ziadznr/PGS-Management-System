@@ -28,10 +28,10 @@ const DepartmentController =
 // Admission
 const AdmissionController =
   require("../controllers/Admission/AdmissionController");
-  const DepartmentLastSemesterCourseController =
-  require("../controllers/Admission/DepartmentLastSemesterCourseController");
-    const AdmissionDocumentController =
-  require("../controllers/Admission/AdmissionDocumentController");
+  // const DepartmentLastSemesterCourseController =
+  // require("../controllers/Admission/DepartmentLastSemesterCourseController");
+    const UploadTempDocumentsController =
+  require("../controllers/Admission/UploadTempDocumentsController");
 
 // Notice
 const NoticeController =
@@ -120,31 +120,31 @@ router.post(
 );
 
 
-// Chairman creates / updates department last semester courses
-router.post(
-  "/admission/department-last-semester-courses",
-  UserAuthMiddleware,
-  RoleCheckMiddleware(["Chairman"]),
-  DepartmentLastSemesterCourseController.SetDepartmentLastSemesterCourses
-);
+// // Chairman creates / updates department last semester courses
+// router.post(
+//   "/admission/department-last-semester-courses",
+//   UserAuthMiddleware,
+//   RoleCheckMiddleware(["Chairman"]),
+//   DepartmentLastSemesterCourseController.SetDepartmentLastSemesterCourses
+// );
 
-// List (for update UI)
-router.get(
-  "/admission/department-last-semester-courses/chairman",
-  UserAuthMiddleware,
-  RoleCheckMiddleware(["Chairman"]),
-  DepartmentLastSemesterCourseController.DepartmentCourseList
-);
+// // List (for update UI)
+// router.get(
+//   "/admission/department-last-semester-courses/chairman",
+//   UserAuthMiddleware,
+//   RoleCheckMiddleware(["Chairman"]),
+//   DepartmentLastSemesterCourseController.DepartmentCourseList
+// );
 
 /* =================================================
    PUBLIC (STUDENT APPLICATION)
 ================================================= */
 
-// Get last semester courses by department
-router.get(
-  "/admission/department-last-semester-courses/:departmentId",
-  DepartmentLastSemesterCourseController.GetDepartmentLastSemesterCourses
-);
+// // Get last semester courses by department
+// router.get(
+//   "/admission/department-last-semester-courses/:departmentId",
+//   DepartmentLastSemesterCourseController.GetDepartmentLastSemesterCourses
+// );
 
 // =================================================
 // ============== DEAN PANEL =======================
@@ -225,6 +225,11 @@ router.get(
   DepartmentController.DepartmentDropdown
 );
 
+router.get(
+  "/DepartmentSubjectDropdown/:departmentId",
+  DepartmentController.DepartmentSubjectDropdown
+);
+
 // =================================================
 // ============== ADMISSION ADMIN ==================
 // =================================================
@@ -277,9 +282,9 @@ router.delete(
 // ============== ADMIN USER MANAGEMENT =============
 // =================================================
 router.post(
-  "/admin/users/create",
+  "/admin/users/create-update",
   AuthVerifyMiddleware,
-  AdminSideUsersController.AdminCreateUser
+  AdminSideUsersController.AdminCreateOrUpdateUser
 );
 
 router.get(
@@ -322,16 +327,26 @@ router.get(
 // =================================================
 // ============== ADMIN NOTICE ======================
 // =================================================
+const uploadNotice = require("../utility/noticeUpload");
+
 router.post(
-  "/notice/create",
+  "/admin/notice/create",
   AuthVerifyMiddleware,
+  uploadNotice.single("attachment"),
   NoticeController.Create
 );
 
 router.post(
-  "/notice/update/:id",
+  "/admin/notice/update/:id",
   AuthVerifyMiddleware,
+  uploadNotice.single("attachment"),
   NoticeController.Update
+);
+
+router.post(
+  "/admin/notice/toggle-public/:id",
+  AuthVerifyMiddleware,
+  NoticeController.TogglePublic
 );
 
 router.post(
@@ -388,15 +403,28 @@ router.post(
 );
 
 router.post(
-  "/admission/upload-documents",
+  "/admission/upload-temp-documents",
   upload.array("documents", 20),
-  AdmissionDocumentController
+  UploadTempDocumentsController
 );
 
 router.get(
   "/admission/application/pdf/:applicationNo",
   UserAuthMiddleware,
   AdmissionController.DownloadPDF
+);
+const CheckPaymentService =
+  require("../services/admission/CheckPaymentService");
+
+router.post(
+  "/payment/check",
+  CheckPaymentService
+);
+
+router.get(
+  "/admission/enrollment/summary",
+  AuthVerifyMiddleware,
+  AdmissionController.EnrollmentSummary
 );
 
 

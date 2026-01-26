@@ -3,9 +3,24 @@ const bcrypt = require("bcryptjs");
 
 const UsersSchema = new mongoose.Schema(
   {
-    // ================= BASIC INFO =================
-    name: { type: String, required: true },
-    phone: { type: String, required: true },
+    /* ================= BASIC INFO ================= */
+    name: {
+      type: String,
+      required: true,
+      trim: true
+    },
+
+    nameExtension: {
+      type: String,
+      required: true,
+      trim: true
+    },
+
+    phone: {
+      type: String,
+      required: true,
+      trim: true
+    },
 
     email: {
       type: String,
@@ -19,22 +34,25 @@ const UsersSchema = new mongoose.Schema(
     password: {
       type: String,
       required: true,
-      select: false // 🔐 never return password by default
+      select: false
     },
 
-    photo: { type: String, default: "" },
+    photo: {
+      type: String,
+      default: ""
+    },
 
-    // ================= ROLE =================
+    /* ================= ROLE ================= */
     role: {
       type: String,
       enum: ["Dean", "Chairman", "Supervisor", "Student"],
       required: true
     },
 
-    // ================= STATUS & TENURE =================
+    /* ================= STATUS & TENURE ================= */
     isActive: {
       type: Boolean,
-      default: true // ❗ never delete staff, only deactivate
+      default: true
     },
 
     deactivatedAt: {
@@ -49,11 +67,11 @@ const UsersSchema = new mongoose.Schema(
       },
       endDate: {
         type: Date,
-        default: null // null = currently serving
+        default: null
       }
     },
 
-    // ================= DEPARTMENT =================
+    /* ================= DEPARTMENT ================= */
     department: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "departments",
@@ -62,16 +80,22 @@ const UsersSchema = new mongoose.Schema(
       }
     },
 
-    // ================= ACCOUNT ORIGIN =================
+    /* ================= SUBJECT (SUPERVISOR ONLY) ================= */
+    subject: {
+      type: String,
+      default: null
+    },
+
+    /* ================= ACCOUNT ORIGIN ================= */
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "admins",
-      default: null // null = self registered (Student)
+      default: null
     },
 
     isSelfRegistered: {
       type: Boolean,
-      default: false // true only for students
+      default: false
     },
 
     isEnrolled: {
@@ -79,16 +103,16 @@ const UsersSchema = new mongoose.Schema(
       default: false
     },
 
-    // ================= SECURITY =================
+    /* ================= SECURITY ================= */
     isFirstLogin: {
       type: Boolean,
-      default: true // force password change after admin creation
+      default: true
     },
 
     passwordResetToken: String,
     passwordResetExpires: Date,
 
-    // ================= META =================
+    /* ================= META ================= */
     createdAt: {
       type: Date,
       default: Date.now
@@ -97,7 +121,7 @@ const UsersSchema = new mongoose.Schema(
   { versionKey: false }
 );
 
-// ================= PASSWORD HASH =================
+/* ================= PASSWORD HASH ================= */
 UsersSchema.pre("save", async function () {
     if (!this.isModified("password")) return;
     this.password = await bcrypt.hash(this.password, 10);

@@ -13,6 +13,15 @@ const DepartmentRegistrationRangeSchema = new mongoose.Schema({
         ref: "departments",
         required: true
     },
+      subjectId: {
+    type: mongoose.Schema.Types.ObjectId,
+    required: false
+  },
+
+  subjectName: {
+    type: String,
+    default: null
+  },
 
     startRegNo: {
         type: Number,
@@ -51,8 +60,8 @@ const DepartmentRegistrationRangeSchema = new mongoose.Schema({
 
 // 🔒 One department can have only ONE range per season
 DepartmentRegistrationRangeSchema.index(
-    { admissionSeason: 1, department: 1 },
-    { unique: true }
+  { admissionSeason: 1, department: 1, subjectId: 1 },
+  { unique: true }
 );
 
 module.exports =

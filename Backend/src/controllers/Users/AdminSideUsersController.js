@@ -7,24 +7,24 @@ const DropDownService = require("../../services/users/DropdownService");
 const DetailsByIDService = require("../../services/common/DetailsByIDService");
 const DeleteService = require("../../services/common/DeleteService");
 const SendEmailUtility = require("../../utility/SendEmailUtility");
-const AdminCreateUserService = require("../../services/users/AdminCreateUserService");
+const AdminCreateUpdateUserService = require("../../services/users/AdminCreateUpdateUserService");
 
-// ------------------ ADMIN CREATE USER ------------------
-exports.AdminCreateUser = async (req, res) => {
+
+// ------------------ ADMIN CREATE / UPDATE USER ------------------
+exports.AdminCreateOrUpdateUser = async (req, res) => {
   try {
-    const result = await AdminCreateUserService(req);
-
-    // service already returns proper status + message
+    const result = await AdminCreateUpdateUserService(req);
     return res.status(200).json(result);
 
   } catch (error) {
-    console.error("AdminCreateUser Error:", error);
+    console.error("AdminCreateOrUpdateUser Error:", error);
     return res.status(500).json({
       status: "fail",
       data: error.toString()
     });
   }
 };
+
 
 
 // ------------------ List Users (Admin) ------------------

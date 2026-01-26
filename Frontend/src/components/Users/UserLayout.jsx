@@ -81,13 +81,6 @@ const UserLayout = ({ children }) => {
         subMenu: [
           { title: "Applications", icon: <BsCircle />, url: "/admission/chairman/applications" }
         ]
-      },
-      {
-        title: "Courses",
-        icon: <BsGraphUp />,
-        subMenu: [
-          { title: "Create", icon: <BsCircle />, url: "/DepartmentLastSemesterCoursesPage" }
-        ]
       }
     ],
 

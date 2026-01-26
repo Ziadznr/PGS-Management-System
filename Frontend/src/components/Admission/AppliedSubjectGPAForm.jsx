@@ -6,11 +6,7 @@ const MIN_CGPA = 2.75;
 const COURSE_CODE_REGEX = /^[A-Z]+[0-9]{3}$/;
 
 const AppliedSubjectGPAForm = ({ formData, setFormData }) => {
-  const {
-    program,
-    appliedSubjectCourses = [],
-    calculatedCGPA
-  } = formData;
+  const { program, appliedSubjectCourses = [] } = formData;
 
   // Only applicable programs
   if (!["MS", "MBA", "LLM"].includes(program)) return null;
@@ -23,12 +19,12 @@ const AppliedSubjectGPAForm = ({ formData, setFormData }) => {
     let totalPoints = 0;
 
     appliedSubjectCourses.forEach(c => {
-      const credit = parseFloat(c.creditHour);
-      const grade = parseFloat(c.gradePoint);
+      const credit = Number(c.creditHour);
+      const grade = Number(c.gradePoint);
 
       if (
         credit > 0 &&
-        !isNaN(grade) &&
+        !Number.isNaN(grade) &&
         grade >= 0 &&
         grade <= 4
       ) {
@@ -65,8 +61,10 @@ const AppliedSubjectGPAForm = ({ formData, setFormData }) => {
         {
           id: Date.now(),
           courseCode: "",
+          courseTitle: "",
           creditHour: "",
-          gradePoint: ""
+          gradePoint: "",
+          gpXch: 0
         }
       ]
     }));
@@ -85,13 +83,23 @@ const AppliedSubjectGPAForm = ({ formData, setFormData }) => {
     const updated = [...appliedSubjectCourses];
 
     if (field === "courseCode") {
-      // ✔ Uppercase + remove invalid chars
-      value = value
-        .toUpperCase()
-        .replace(/[^A-Z0-9]/g, "");
+      value = value.toUpperCase().replace(/[^A-Z0-9]/g, "");
     }
 
-    updated[index] = { ...updated[index], [field]: value };
+    const updatedCourse = {
+      ...updated[index],
+      [field]: value
+    };
+
+    // auto calculate GP × Credit
+    const credit = Number(updatedCourse.creditHour);
+    const grade = Number(updatedCourse.gradePoint);
+
+    if (!Number.isNaN(credit) && !Number.isNaN(grade)) {
+      updatedCourse.gpXch = Number((credit * grade).toFixed(2));
+    }
+
+    updated[index] = updatedCourse;
 
     setFormData(prev => ({
       ...prev,
@@ -116,43 +124,53 @@ const AppliedSubjectGPAForm = ({ formData, setFormData }) => {
       </p>
 
       {appliedSubjectCourses.map((course, index) => {
-        const isValid =
+        const isCodeValid =
           course.courseCode === "" ||
           COURSE_CODE_REGEX.test(course.courseCode);
 
         return (
-          <div
-            key={course.id || index}
-            className="row g-2 mb-2 align-items-end"
-          >
+          <div key={course.id || index} className="row g-2 mb-2">
             {/* COURSE CODE */}
-            <div className="col-md-4">
+            <div className="col-md-3">
               <input
                 className={`form-control ${
-                  !isValid ? "is-invalid" : ""
+                  !isCodeValid ? "is-invalid" : ""
                 }`}
-                placeholder="Course Code (e.g. CSE101)"
+                placeholder="Course Code (CSE101)"
                 value={course.courseCode}
                 onChange={e =>
                   updateCourse(index, "courseCode", e.target.value)
                 }
                 required
               />
-              {!isValid && (
+              {!isCodeValid && (
                 <div className="invalid-feedback">
-                  Must be uppercase department code + 3 digits (e.g. CSE101)
+                  Must be uppercase letters + 3 digits
                 </div>
               )}
             </div>
 
-            {/* CREDIT HOUR */}
+            {/* COURSE TITLE */}
             <div className="col-md-3">
+              <input
+                className="form-control"
+                placeholder="Course Title"
+                value={course.courseTitle}
+                onChange={e =>
+                  updateCourse(index, "courseTitle", e.target.value)
+                }
+                required
+              />
+            </div>
+
+            {/* CREDIT HOUR */}
+            <div className="col-md-2">
               <input
                 type="number"
                 step="0.5"
-                min="0"
+                min="0.5"
                 className="form-control"
-                placeholder="Credit Hour"
+                placeholder="Credit"
                 value={course.creditHour}
                 onChange={e =>
                   updateCourse(index, "creditHour", e.target.value)
@@ -162,14 +180,14 @@ const AppliedSubjectGPAForm = ({ formData, setFormData }) => {
             </div>
 
             {/* GRADE POINT */}
-            <div className="col-md-3">
+            <div className="col-md-2">
               <input
                 type="number"
                 step="0.01"
                 min="0"
                 max="4"
                 className="form-control"
-                placeholder="Grade Point"
+                placeholder="Grade"
                 value={course.gradePoint}
                 onChange={e =>
                   updateCourse(index, "gradePoint", e.target.value)

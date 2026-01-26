@@ -6,6 +6,8 @@ const AdmissionSeasonModel =
   require("../../models/Admission/AdmissionSeasonModel");
 const AdmissionPaymentModel =
   require("../../models/Admission/AdmissionPaymentModel");
+const TempUploadModel =
+  require("../../models/Admission/TempUploadModel");
 
 const SendEmailUtility = require("../../utility/SendEmailUtility");
 const GenerateAdmissionPDF = require("../../utility/GenerateAdmissionPDF");
@@ -20,17 +22,21 @@ const calculateCGPAFromCourses = (courses = []) => {
   let totalPoints = 0;
 
   for (const c of courses) {
+    const creditHour = Number(c.creditHour);
+    const gradePoint = Number(c.gradePoint);
+
     if (
-      typeof c.creditHour !== "number" ||
-      typeof c.gradePoint !== "number" ||
-      c.gradePoint < 0 ||
-      c.gradePoint > 4
+      Number.isNaN(creditHour) ||
+      Number.isNaN(gradePoint) ||
+      creditHour <= 0 ||
+      gradePoint < 0 ||
+      gradePoint > 4
     ) {
       return null;
     }
 
-    totalCredits += c.creditHour;
-    totalPoints += c.creditHour * c.gradePoint;
+    totalCredits += creditHour;
+    totalPoints += creditHour * gradePoint;
   }
 
   if (totalCredits === 0) return null;
@@ -40,28 +46,48 @@ const calculateCGPAFromCourses = (courses = []) => {
 
 const ApplyForAdmissionService = async (req) => {
   try {
+
+    /* =================================================
+       TEMP DOCUMENT MERGE
+    ================================================= */
+    let finalDocuments = [];
+    let totalDocumentSizeKB = 0;
+
+    if (req.body.tempId) {
+      const temp = await TempUploadModel.findOne({
+        tempId: req.body.tempId
+      });
+
+      if (temp) {
+        finalDocuments = temp.documents;
+        totalDocumentSizeKB = temp.totalSizeKB;
+      }
+    }
+
     const {
       program,
       admissionSeason,
       department,
       supervisor,
-
       applicantName,
+      fatherName,
+      motherName,
+      dateOfBirth,
+      nationality,
+      maritalStatus,
+      sex,
       email,
       mobile,
       permanentAddress,
       presentAddress,
-
       academicRecords,
       appliedSubjectCourses,
-
       isInService,
       serviceInfo,
-
       numberOfPublications,
       publications,
-
-      declarationAccepted
+      declarationAccepted,
+      tempId
     } = req.body;
 
     /* =================================================
@@ -104,6 +130,7 @@ const ApplyForAdmissionService = async (req) => {
     ================================================= */
     const exists = await AdmissionApplicationModel.findOne({
       admissionSeason,
+      program,
       email: email.toLowerCase()
     });
 
@@ -165,7 +192,7 @@ const ApplyForAdmissionService = async (req) => {
     }
 
     /* =================================================
-       6️⃣ COURSE-WISE GPA CALCULATION (MS / MBA / LLM)
+       6️⃣ COURSE-WISE GPA CALCULATION
     ================================================= */
     let calculatedCGPA = null;
 
@@ -180,8 +207,7 @@ const ApplyForAdmissionService = async (req) => {
         };
       }
 
-      calculatedCGPA =
-        calculateCGPAFromCourses(appliedSubjectCourses);
+      calculatedCGPA = calculateCGPAFromCourses(appliedSubjectCourses);
 
       if (calculatedCGPA === null) {
         return {
@@ -213,6 +239,7 @@ const ApplyForAdmissionService = async (req) => {
     const payment = await AdmissionPaymentModel.findOne({
       email: email.toLowerCase(),
       admissionSeason,
+      program,
       status: "SUCCESS"
     });
 
@@ -251,6 +278,13 @@ const ApplyForAdmissionService = async (req) => {
       supervisor,
 
       applicantName,
+      fatherName,
+      motherName,
+      dateOfBirth,
+      nationality,
+      maritalStatus,
+      sex,
+
       email: email.toLowerCase(),
       mobile,
 
@@ -268,8 +302,10 @@ const ApplyForAdmissionService = async (req) => {
       publications,
 
       declarationAccepted,
-
       payment: payment._id,
+
+      documents: finalDocuments,
+      totalDocumentSizeKB,
 
       applicationNo,
       applicationStatus: "Submitted"
@@ -314,6 +350,13 @@ PGS Admission Office
       ]
     );
 
+    /* =================================================
+       🧹 CLEAN TEMP UPLOAD
+    ================================================= */
+    if (tempId) {
+      await TempUploadModel.deleteOne({ tempId });
+    }
+
     return {
       status: "success",
       data: {
@@ -323,8 +366,11 @@ PGS Admission Office
     };
 
   } catch (error) {
-    console.error("ApplyForAdmissionService Error:", error);
-    return { status: "fail", data: error.message };
+    console.error("ApplyForAdmissionService error:", error);
+    return {
+      status: "fail",
+      data: "Something went wrong. Please try again later."
+    };
   }
 };
 

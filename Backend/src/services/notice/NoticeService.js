@@ -12,21 +12,27 @@ exports.Create = async (req) => {
     const {
       title,
       description,
-      attachment,
       expireAt,
-      isPublic   // ✅ READ IT
+      isPublic
     } = req.body;
 
     if (!title || !description) {
-      return { status: "fail", data: "All fields required" };
+      return { status: "fail", data: "Title & description required" };
     }
 
     const notice = await NoticeModel.create({
       title,
       description,
-      attachment,
-      expireAt,
-      isPublic: Boolean(isPublic), // ✅ FIX
+      expireAt: expireAt || null,
+
+      // ✅ file path
+      attachment: req.file
+        ? `/uploads/notices/${req.file.filename}`
+        : null,
+
+      // ✅ default true if not provided
+      isPublic: isPublic !== undefined ? Boolean(isPublic) : true,
+
       createdBy: req.user.id
     });
 
@@ -36,6 +42,7 @@ exports.Create = async (req) => {
     return { status: "fail", data: error.message };
   }
 };
+
 
 
 // =================================================
@@ -54,12 +61,22 @@ exports.Update = async (req) => {
       return { status: "fail", data: "Notice is locked" };
     }
 
-    await NoticeModel.updateOne({ _id: id }, req.body);
+    const updateData = { ...req.body };
+
+    // 🔥 attachment replace
+    if (req.file) {
+      updateData.attachment = `/uploads/notices/${req.file.filename}`;
+    }
+
+    await NoticeModel.updateOne({ _id: id }, { $set: updateData });
+
     return { status: "success", data: "Notice updated" };
+
   } catch (error) {
     return { status: "fail", data: error.message };
   }
 };
+
 
 // =================================================
 // DELETE NOTICE
@@ -88,6 +105,28 @@ exports.TogglePin = async (req) => {
       status: "success",
       data: notice.isPinned ? "Notice pinned" : "Notice unpinned"
     };
+  } catch (error) {
+    return { status: "fail", data: error.message };
+  }
+};
+
+exports.TogglePublic = async (req) => {
+  try {
+    const notice = await NoticeModel.findById(req.params.id);
+    if (!notice) {
+      return { status: "fail", data: "Notice not found" };
+    }
+
+    notice.isPublic = !notice.isPublic;
+    await notice.save();
+
+    return {
+      status: "success",
+      data: notice.isPublic
+        ? "Notice is now Public"
+        : "Notice is now Private"
+    };
+
   } catch (error) {
     return { status: "fail", data: error.message };
   }

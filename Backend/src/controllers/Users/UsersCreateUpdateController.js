@@ -32,7 +32,7 @@ exports.ProfileUpdate = async (req, res) => {
     } catch (error) {
         res.status(500).json({ status: 'fail', data: error.toString() });
     }
-};
+}; 
 
 // ------------------ Profile Details ------------------
 exports.ProfileDetails = async (req, res) => {
@@ -53,7 +53,7 @@ exports.RecoverVerifyEmail = async (req, res) => {
     } catch (error) {
         res.status(500).json({ status: 'fail', data: error.toString() });
     }
-};
+}; 
 
 // ------------------ Verify OTP ------------------
 exports.RecoverVerifyOTP = async (req, res) => {

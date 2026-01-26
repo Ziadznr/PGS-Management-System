@@ -14,10 +14,10 @@ const ListService = async (
 
     let matchStage = {
       ...MatchQuery,
-      isActive: true // 🔥 ONLY ACTIVE USERS
+      isActive: true // ✅ ONLY ACTIVE USERS
     };
 
-    // ---------------- ROLE BASED FILTER ----------------
+    /* ================= ROLE BASED FILTER ================= */
     if (req.user.role === "Student") {
       matchStage.email = req.user.email;
     }
@@ -29,7 +29,7 @@ const ListService = async (
       matchStage.department = new mongoose.Types.ObjectId(req.user.department);
     }
 
-    // ---------------- SEARCH ----------------
+    /* ================= SEARCH ================= */
     if (searchKeyword !== "0" && SearchArray.length > 0) {
       matchStage.$or = SearchArray;
     }
@@ -37,6 +37,7 @@ const ListService = async (
     const data = await DataModel.aggregate([
       { $match: matchStage },
 
+      /* ================= DEPARTMENT LOOKUP ================= */
       {
         $lookup: {
           from: "departments",
@@ -45,18 +46,14 @@ const ListService = async (
           as: "DepartmentData"
         }
       },
-      { $unwind: { path: "$DepartmentData", preserveNullAndEmptyArrays: true } },
-
       {
-        $lookup: {
-          from: "faculties",
-          localField: "DepartmentData.faculty",
-          foreignField: "_id",
-          as: "FacultyData"
+        $unwind: {
+          path: "$DepartmentData",
+          preserveNullAndEmptyArrays: true
         }
       },
-      { $unwind: { path: "$FacultyData", preserveNullAndEmptyArrays: true } },
 
+      /* ================= RESULT ================= */
       {
         $facet: {
           Total: [{ $count: "count" }],
@@ -66,11 +63,16 @@ const ListService = async (
             {
               $project: {
                 name: 1,
+                nameExtension: 1,
                 email: 1,
-                role: 1,
                 phone: 1,
-                DepartmentName: "$DepartmentData.name",
-                FacultyName: "$FacultyData.name"
+                role: 1,
+
+                // ✅ IMPORTANT: subject for Supervisor
+                subject: 1,
+
+                // Department display
+                DepartmentName: "$DepartmentData.name"
               }
             }
           ]
@@ -79,6 +81,7 @@ const ListService = async (
     ]);
 
     let result = data[0] || { Total: [], Rows: [] };
+
     if (!result.Total.length) {
       result.Total = [{ count: 0 }];
     }

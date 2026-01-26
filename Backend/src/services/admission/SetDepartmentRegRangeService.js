@@ -1,12 +1,14 @@
 const DepartmentRegistrationRangeModel =
   require("../../models/Admission/DepartmentRegistrationRangeModel");
+const DepartmentModel =
+  require("../../models/Departments/DepartmentModel");
 
-// =================================================
-// CREATE or UPDATE (ADMIN ONLY)
-// =================================================
+/* =================================================
+   CREATE or UPDATE (ADMIN ONLY)
+================================================= */
 exports.CreateOrUpdate = async (req) => {
   try {
-    // 🔒 STRICT ADMIN CHECK
+    /* ---------- ADMIN CHECK ---------- */
     if (!req.user || req.user.role !== "admin") {
       return { status: "fail", data: "Unauthorized admin" };
     }
@@ -14,9 +16,10 @@ exports.CreateOrUpdate = async (req) => {
     const adminId = req.user.id;
 
     let {
-      id,                 // optional (for update)
+      id,                 // optional (update)
       admissionSeason,
       department,
+      subjectId,          // optional
       startRegNo,
       endRegNo
     } = req.body;
@@ -24,9 +27,9 @@ exports.CreateOrUpdate = async (req) => {
     startRegNo = Number(startRegNo);
     endRegNo = Number(endRegNo);
 
-    // ---------------- VALIDATION ----------------
+    /* ---------- BASIC VALIDATION ---------- */
     if (!admissionSeason || !department) {
-      return { status: "fail", data: "All fields are required" };
+      return { status: "fail", data: "Admission season and department required" };
     }
 
     if (isNaN(startRegNo) || isNaN(endRegNo)) {
@@ -40,7 +43,33 @@ exports.CreateOrUpdate = async (req) => {
       };
     }
 
-    // ================= UPDATE =================
+    /* ---------- SUBJECT VALIDATION ---------- */
+    let subjectName = null;
+
+    if (subjectId) {
+      const dept = await DepartmentModel.findById(department).lean();
+
+      if (!dept) {
+        return { status: "fail", data: "Invalid department" };
+      }
+
+      const subject = dept.offeredSubjects?.find(
+        s => s.isActive && s._id.toString() === subjectId
+      );
+
+      if (!subject) {
+        return {
+          status: "fail",
+          data: "Invalid subject for selected department"
+        };
+      }
+
+      subjectName = subject.name;
+    }
+
+    /* =================================================
+       UPDATE
+    ================================================= */
     if (id) {
       const range = await DepartmentRegistrationRangeModel.findById(id);
 
@@ -56,9 +85,30 @@ exports.CreateOrUpdate = async (req) => {
         };
       }
 
+      // 🔒 OVERLAP CHECK (excluding self)
+      const overlap = await DepartmentRegistrationRangeModel.findOne({
+        _id: { $ne: id },
+        admissionSeason,
+        department,
+        subjectId: subjectId || null,
+        startRegNo: { $lte: endRegNo },
+        endRegNo: { $gte: startRegNo }
+      });
+
+      if (overlap) {
+        return {
+          status: "fail",
+          data: `Overlaps with existing range (${overlap.startRegNo}-${overlap.endRegNo})`
+        };
+      }
+
       range.startRegNo = startRegNo;
       range.endRegNo = endRegNo;
-      // ❌ do NOT reset currentRegNo
+
+      if (subjectId !== undefined) {
+        range.subjectId = subjectId || null;
+        range.subjectName = subjectName;
+      }
 
       await range.save();
 
@@ -68,40 +118,88 @@ exports.CreateOrUpdate = async (req) => {
       };
     }
 
-    // ================= CREATE =================
-    const exists = await DepartmentRegistrationRangeModel.findOne({
+    /* =================================================
+       SCENARIO-B RULES
+    ================================================= */
+
+    // ❌ department-only exists → block subject-wise
+    if (subjectId) {
+      const deptOnlyExists =
+        await DepartmentRegistrationRangeModel.exists({
+          admissionSeason,
+          department,
+          subjectId: null
+        });
+
+      if (deptOnlyExists) {
+        return {
+          status: "fail",
+          data: "Department-only range exists. Cannot add subject-wise ranges."
+        };
+      }
+    }
+
+    // ❌ subject-wise exists → block department-only
+    if (!subjectId) {
+      const subjectExists =
+        await DepartmentRegistrationRangeModel.exists({
+          admissionSeason,
+          department,
+          subjectId: { $ne: null }
+        });
+
+      if (subjectExists) {
+        return {
+          status: "fail",
+          data: "Subject-wise ranges exist. Department-only range not allowed."
+        };
+      }
+    }
+
+    /* =================================================
+       🔒 AUTO-LOCK OVERLAPPING NUMBERS (CORE FIX)
+    ================================================= */
+    const overlap = await DepartmentRegistrationRangeModel.findOne({
       admissionSeason,
-      department
+      department,
+      subjectId: subjectId || null,
+      startRegNo: { $lte: endRegNo },
+      endRegNo: { $gte: startRegNo }
     });
 
-    if (exists) {
+    if (overlap) {
       return {
         status: "fail",
-        data: "Registration range already exists for this department"
+        data: `Overlaps with existing range (${overlap.startRegNo}-${overlap.endRegNo})`
       };
     }
 
-    const newRange = await DepartmentRegistrationRangeModel.create({
-      admissionSeason,
-      department,
-      startRegNo,
-      endRegNo,
-      currentRegNo: startRegNo,
-      createdBy: adminId
-    });
+    /* =================================================
+       CREATE
+    ================================================= */
+    const newRange =
+      await DepartmentRegistrationRangeModel.create({
+        admissionSeason,
+        department,
+        subjectId: subjectId || null,
+        subjectName,
+        startRegNo,
+        endRegNo,
+        currentRegNo: startRegNo,
+        createdBy: adminId
+      });
 
-    return {
-      status: "success",
-      data: newRange
-    };
+    return { status: "success", data: newRange };
 
   } catch (error) {
     return { status: "fail", data: error.message };
   }
 };
 
+
+
 // =================================================
-// LIST (Season-wise)
+// LIST (Season-wise OR All)
 // =================================================
 exports.ListBySeason = async (req) => {
   try {
@@ -111,16 +209,14 @@ exports.ListBySeason = async (req) => {
 
     const { admissionSeason } = req.params;
 
-    // ✅ CONDITIONALLY BUILD QUERY
-    const query = admissionSeason
-      ? { admissionSeason }
-      : {}; // 🔥 EMPTY = ALL SEASONS
+    const query = admissionSeason ? { admissionSeason } : {};
 
-    const data = await DepartmentRegistrationRangeModel.find(query)
-      .populate("department", "name")
-      .populate("admissionSeason", "seasonName academicYear") // ✅ already correct
-      .sort({ "admissionSeason.createdAt": -1, startRegNo: 1 })
-      .lean();
+    const data =
+      await DepartmentRegistrationRangeModel.find(query)
+        .populate("department", "name")
+        .populate("admissionSeason", "seasonName academicYear")
+        .sort({ "admissionSeason.createdAt": -1, startRegNo: 1 })
+        .lean();
 
     return { status: "success", data };
 
@@ -128,8 +224,6 @@ exports.ListBySeason = async (req) => {
     return { status: "fail", data: error.message };
   }
 };
-
-
 
 // =================================================
 // DELETE (ADMIN ONLY)
@@ -142,7 +236,8 @@ exports.Delete = async (req) => {
 
     const { id } = req.params;
 
-    const range = await DepartmentRegistrationRangeModel.findById(id);
+    const range =
+      await DepartmentRegistrationRangeModel.findById(id);
 
     if (!range) {
       return { status: "fail", data: "Range not found" };
@@ -167,3 +262,4 @@ exports.Delete = async (req) => {
     return { status: "fail", data: error.message };
   }
 };
+ 

@@ -6,9 +6,11 @@ import {
   DeleteNoticeRequest,
   ToggleNoticePinRequest,
   ToggleNoticeLockRequest,
+  ToggleNoticePublicRequest,
   GetAdminNoticeListRequest
 } from "../../APIRequest/NoticeAPIRequest";
 import { IsEmpty, ErrorToast } from "../../helper/FormHelper";
+import { BaseURL } from "../../helper/config";
 
 const Notice = () => {
   const [notices, setNotices] = useState([]);
@@ -16,11 +18,11 @@ const Notice = () => {
   const [form, setForm] = useState({
     title: "",
     description: "",
-    expireAt: "",
-    isPublic: true // ✅ DEFAULT PUBLIC
+    isPublic: true,
+    attachment: null
   });
 
-  // ================= LOAD NOTICES =================
+  /* ================= LOAD ================= */
   const loadNotices = async () => {
     const data = await GetAdminNoticeListRequest();
     setNotices(data || []);
@@ -30,26 +32,36 @@ const Notice = () => {
     loadNotices();
   }, []);
 
-  // ================= CREATE NOTICE =================
+  /* ================= CREATE ================= */
   const createNotice = async () => {
     if (IsEmpty(form.title) || IsEmpty(form.description)) {
       ErrorToast("Title and description required");
       return;
     }
 
-    const success = await CreateNoticeRequest(form);
+    const formData = new FormData();
+    formData.append("title", form.title);
+    formData.append("description", form.description);
+    formData.append("isPublic", form.isPublic);
+
+    if (form.attachment) {
+      formData.append("attachment", form.attachment);
+    }
+
+    const success = await CreateNoticeRequest(formData);
+
     if (success) {
       setForm({
         title: "",
         description: "",
-        expireAt: "",
-        isPublic: true
+        isPublic: true,
+        attachment: null
       });
       loadNotices();
     }
   };
 
-  // ================= EDIT NOTICE =================
+  /* ================= EDIT ================= */
   const editNotice = async (notice) => {
     if (notice.isLocked) {
       ErrorToast("This notice is locked");
@@ -61,25 +73,32 @@ const Notice = () => {
       html: `
         <input id="title" class="swal2-input" value="${notice.title}">
         <textarea id="desc" class="swal2-textarea">${notice.description}</textarea>
-        <input id="expire" type="date" class="swal2-input"
-          value="${notice.expireAt?.substring(0, 10) || ""}">
+        <label style="margin-top:10px">
+          <input type="checkbox" id="isPublic" ${notice.isPublic ? "checked" : ""}>
+          Public
+        </label>
       `,
       showCancelButton: true,
       confirmButtonText: "Update",
       preConfirm: () => ({
         title: document.getElementById("title").value,
         description: document.getElementById("desc").value,
-        expireAt: document.getElementById("expire").value || null
+        isPublic: document.getElementById("isPublic").checked
       })
     });
 
     if (!value) return;
 
-    const success = await UpdateNoticeRequest(notice._id, value);
+    const formData = new FormData();
+    Object.entries(value).forEach(([k, v]) =>
+      formData.append(k, v)
+    );
+
+    const success = await UpdateNoticeRequest(notice._id, formData);
     if (success) loadNotices();
   };
 
-  // ================= DELETE NOTICE =================
+  /* ================= DELETE ================= */
   const deleteNotice = async (notice) => {
     if (notice.isLocked) {
       ErrorToast("Locked notice cannot be deleted");
@@ -89,11 +108,11 @@ const Notice = () => {
     if (success) loadNotices();
   };
 
-  // ================= UI =================
+  /* ================= UI ================= */
   return (
     <div className="container-fluid my-4">
 
-      {/* ================= CREATE NOTICE ================= */}
+      {/* CREATE */}
       <div className="card mb-4">
         <div className="card-body">
           <h5>Create Notice</h5>
@@ -105,7 +124,7 @@ const Notice = () => {
                 className="form-control"
                 placeholder="Notice title"
                 value={form.title}
-                onChange={(e) =>
+                onChange={e =>
                   setForm({ ...form, title: e.target.value })
                 }
               />
@@ -116,37 +135,31 @@ const Notice = () => {
                 className="form-control"
                 placeholder="Notice description"
                 value={form.description}
-                onChange={(e) =>
+                onChange={e =>
                   setForm({ ...form, description: e.target.value })
                 }
               />
             </div>
 
-            <div className="col-md-2">
+            <div className="col-md-3">
               <input
-                type="date"
+                type="file"
                 className="form-control"
-                value={form.expireAt}
-                onChange={(e) =>
-                  setForm({ ...form, expireAt: e.target.value })
+                onChange={e =>
+                  setForm({ ...form, attachment: e.target.files[0] })
                 }
               />
             </div>
 
-            <div className="col-md-2 d-flex align-items-center">
-              <div className="form-check">
-                <input
-                  type="checkbox"
-                  className="form-check-input"
-                  checked={form.isPublic}
-                  onChange={(e) =>
-                    setForm({ ...form, isPublic: e.target.checked })
-                  }
-                />
-                <label className="form-check-label">
-                  Public
-                </label>
-              </div>
+            <div className="col-md-1 d-flex align-items-center">
+              <input
+                type="checkbox"
+                checked={form.isPublic}
+                onChange={e =>
+                  setForm({ ...form, isPublic: e.target.checked })
+                }
+              />{" "}
+              <span className="ms-1">Public</span>
             </div>
 
             <div className="col-md-1">
@@ -158,7 +171,7 @@ const Notice = () => {
         </div>
       </div>
 
-      {/* ================= NOTICE LIST ================= */}
+      {/* LIST */}
       <div className="card">
         <div className="card-body">
           <h5>All Notices</h5>
@@ -169,38 +182,39 @@ const Notice = () => {
                 <th>#</th>
                 <th>Title</th>
                 <th>Status</th>
-                <th>Expire</th>
+                <th>Attachment</th>
                 <th>Actions</th>
               </tr>
             </thead>
 
             <tbody>
-              {notices.length > 0 ? (
+              {notices.length ? (
                 notices.map((n, i) => (
                   <tr key={n._id}>
                     <td>{i + 1}</td>
                     <td>{n.title}</td>
 
                     <td>
-                      {n.isPublic ? (
-                        <span className="badge bg-success me-1">Public</span>
-                      ) : (
-                        <span className="badge bg-secondary me-1">Private</span>
-                      )}
-
-                      {n.isPinned && (
-                        <span className="badge bg-primary me-1">Pinned</span>
-                      )}
-
-                      {n.isLocked && (
-                        <span className="badge bg-danger">Locked</span>
-                      )}
+                      <span className={`badge me-1 ${n.isPublic ? "bg-success" : "bg-secondary"}`}>
+                        {n.isPublic ? "Public" : "Private"}
+                      </span>
+                      {n.isPinned && <span className="badge bg-primary me-1">Pinned</span>}
+                      {n.isLocked && <span className="badge bg-danger">Locked</span>}
                     </td>
 
                     <td>
-                      {n.expireAt
-                        ? new Date(n.expireAt).toLocaleDateString()
-                        : "-"}
+                      {n.attachment ? (
+                        <a
+                          href={`${BaseURL.replace("/api/v1", "")}${n.attachment}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="btn btn-sm btn-outline-primary"
+                        >
+                          View
+                        </a>
+                      ) : (
+                        "-"
+                      )}
                     </td>
 
                     <td>
@@ -210,6 +224,15 @@ const Notice = () => {
                         onClick={() => editNotice(n)}
                       >
                         Edit
+                      </button>
+
+                      <button
+                        className="btn btn-sm btn-info me-1"
+                        onClick={() =>
+                          ToggleNoticePublicRequest(n._id).then(loadNotices)
+                        }
+                      >
+                        {n.isPublic ? "Private" : "Public"}
                       </button>
 
                       <button

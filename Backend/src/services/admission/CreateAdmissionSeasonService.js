@@ -10,40 +10,30 @@ const CreateAdmissionSeasonService = async (req) => {
       return { status: "fail", data: "Unauthorized admin" };
     }
 
-    const {
-      seasonName,
-      academicYear,
-      applicationStartDate,
-      applicationEndDate
-    } = req.body;
+    const { seasonName, academicYear } = req.body;
 
-    if (
-      !seasonName ||
-      !academicYear ||
-      !applicationStartDate ||
-      !applicationEndDate
-    ) {
-      return { status: "fail", data: "All fields are required" };
-    }
-
-    if (new Date(applicationStartDate) >= new Date(applicationEndDate)) {
+    // ✅ Basic validation
+    if (!seasonName || !academicYear) {
       return {
         status: "fail",
-        data: "Application start date must be before end date"
+        data: "Season name and academic year are required"
       };
     }
 
+    // ✅ Create season
     const season = await AdmissionSeasonModel.create({
       seasonName,
       academicYear,
-      applicationStartDate,
-      applicationEndDate,
       createdBy: adminId
     });
 
-    return { status: "success", data: season };
+    return {
+      status: "success",
+      data: season
+    };
 
   } catch (error) {
+    // 🔒 Duplicate season protection
     if (error.code === 11000) {
       return {
         status: "fail",
@@ -51,7 +41,10 @@ const CreateAdmissionSeasonService = async (req) => {
       };
     }
 
-    return { status: "fail", data: error.message };
+    return {
+      status: "fail",
+      data: error.message
+    };
   }
 };
 
@@ -69,10 +62,16 @@ CreateAdmissionSeasonService.List = async (req) => {
       .sort({ createdAt: -1 })
       .lean();
 
-    return { status: "success", data };
+    return {
+      status: "success",
+      data
+    };
 
   } catch (error) {
-    return { status: "fail", data: error.message };
+    return {
+      status: "fail",
+      data: error.message
+    };
   }
 };
 

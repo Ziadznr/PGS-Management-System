@@ -3,13 +3,9 @@ const AdmissionSeasonModel =
 
 const PublicAdmissionSeasonService = async () => {
   try {
-    const today = new Date();
-
     const seasons = await AdmissionSeasonModel.find({
       isActive: true,
-      isLocked: false,
-      applicationStartDate: { $lte: today },
-      applicationEndDate: { $gte: today }
+      isLocked: false
     })
       .sort({ createdAt: -1 })
       .lean();
@@ -20,7 +16,10 @@ const PublicAdmissionSeasonService = async () => {
     };
 
   } catch (error) {
-    return { status: "fail", data: error.message };
+    return {
+      status: "fail",
+      data: error.message
+    };
   }
 };
 

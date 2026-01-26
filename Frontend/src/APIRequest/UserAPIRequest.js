@@ -29,17 +29,20 @@ export const getAxiosHeader = () => {
 
 export const getAdminAxiosHeader = () => {
   const token = getAdminToken();
-  if (!token) removeSessions();
+  if (!token) {
+    throw new Error("Admin token missing");
+  }
   return { headers: { token } };
 };
 
 
-export async function AdminCreateUserRequest(payload) {
+
+export async function AdminCreateUpdateUserRequest(payload) {
   try {
     store.dispatch(ShowLoader());
 
     const res = await axios.post(
-      `${BaseURL}/admin/users/create`,
+      `${BaseURL}/admin/users/create-update`,
       payload,
       getAdminAxiosHeader()
     );
@@ -282,39 +285,43 @@ export async function UserRecoverResetPassRequest(email, OTP, password) {
   }
 }
 
-/* ================= ADMIN: USERS ================= */
-
 export async function AdminUsersListRequest(
   pageNo,
   perPage,
   searchKeyword,
   role
 ) {
+  const token = getAdminToken();
+
+  if (!token) {
+    ErrorToast("Admin login required");
+    return { Rows: [], Total: [{ count: 0 }] };
+  }
+
   try {
     store.dispatch(ShowLoader());
 
     const URL = `${BaseURL}/admin/users/list/${pageNo}/${perPage}/${searchKeyword || "0"}/${role}`;
 
-    const res = await axios.get(
-      URL,
-      getAdminAxiosHeader() // ✅ ADMIN TOKEN ONLY
-    );
+    const res = await axios.get(URL, {
+      headers: { token }
+    });
 
     store.dispatch(HideLoader());
 
     if (res.data?.status === "success") {
-      // backend returns [{ Total, Rows }]
       return res.data.data[0];
     }
 
     return { Rows: [], Total: [{ count: 0 }] };
 
-  } catch (err) {
+  } catch {
     store.dispatch(HideLoader());
     ErrorToast("Failed to load users");
     return { Rows: [], Total: [{ count: 0 }] };
   }
 }
+
 
 
 export async function AdminDeleteUserRequest(userId) {
@@ -424,17 +431,37 @@ export async function DepartmentDropdownRequest() {
   }
 }
 
-
-/*
-⚠️ Backend REQUIRED:
-GET /users/supervisors/:departmentID
-*/
-export async function SupervisorDropdownRequest(departmentID) {
+export const DepartmentSubjectDropdownRequest = async (departmentId) => {
   try {
     const res = await axios.get(
-      `${BaseURL}/users/supervisors/${departmentID}`,
-      // getAxiosHeader()
+      `${BaseURL}/DepartmentSubjectDropdown/${departmentId}`
     );
+
+    if (res.data?.status === "success") {
+      return res.data.data;
+    }
+    return [];
+  } catch {
+    return [];
+  }
+};
+/*
+/*
+⚠️ Backend REQUIRED:
+GET /users/supervisors/:departmentId?subject=XYZ
+*/
+export async function SupervisorDropdownRequest(departmentId, subject = null) {
+  if (!departmentId) return [];
+
+  try {
+    let url = `${BaseURL}/users/supervisors/${departmentId}`;
+
+    // 🔥 subject-aware
+    if (subject) {
+      url += `?subject=${encodeURIComponent(subject)}`;
+    }
+
+    const res = await axios.get(url);
 
     if (res.status === 200 && res.data?.status === "success") {
       return res.data.data || [];
@@ -446,4 +473,5 @@ export async function SupervisorDropdownRequest(departmentID) {
     return [];
   }
 }
+
 

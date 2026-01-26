@@ -8,39 +8,47 @@ const is_live = false; // true for production
 
 const InitiatePaymentService = async (req, res) => {
   try {
-    const { email, admissionSeason } = req.body;
+    const { email, admissionSeason, program } = req.body;
 
-    if (!email || !admissionSeason) {
+    /* ================= VALIDATION ================= */
+    if (!email || !admissionSeason || !program) {
       return res.status(400).json({
         status: "fail",
-        data: "Missing payment info"
+        data: "Email, admission season and program are required"
+      });
+    }
+
+    /* ================= DUPLICATE SUCCESS CHECK =================
+       Allow retry if INITIATED / FAILED
+       Block only if SUCCESS exists
+    ============================================================ */
+    const exists = await AdmissionPaymentModel.findOne({
+      email: email.toLowerCase(),
+      admissionSeason,
+      program,
+      status: "SUCCESS"
+    });
+
+    if (exists) {
+      return res.status(400).json({
+        status: "fail",
+        data: "Application fee already paid for this program"
       });
     }
 
     const transactionId = "PGS-" + Date.now();
 
-    const exists = await AdmissionPaymentModel.findOne({
-  email,
-  admissionSeason,
-  status: "SUCCESS"
-});
-
-if (exists) {
-  return res.status(400).json({
-    status: "fail",
-    data: "Application fee already paid"
-  });
-}
-
-    // 🔒 Save INITIATED payment
+    /* ================= SAVE INITIATED PAYMENT ================= */
     await AdmissionPaymentModel.create({
-      email,
+      email: email.toLowerCase(),
+      program,
+      admissionSeason,
       amount: 100,
       transactionId,
-      admissionSeason,
       status: "INITIATED"
     });
 
+    /* ================= SSLCOMMERZ ================= */
     const sslcz = new SSLCommerzPayment(
       store_id,
       store_passwd,
@@ -64,7 +72,7 @@ if (exists) {
       cus_phone: "01700000000",
 
       shipping_method: "NO",
-      product_name: "PGS Admission Fee",
+      product_name: `PGS Admission Fee (${program})`,
       product_category: "Education",
       product_profile: "general"
     };

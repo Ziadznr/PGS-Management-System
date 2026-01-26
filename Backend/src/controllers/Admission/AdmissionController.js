@@ -304,3 +304,13 @@ exports.DownloadPDF = (req, res) => {
 
   res.download(filePath);
 };
+
+
+const EnrollmentSummaryService =
+  require("../../services/enrollment/EnrollmentSummaryService");
+
+exports.EnrollmentSummary = async (req, res) => {
+  const result = await EnrollmentSummaryService();
+  return res.status(200).json(result);
+};
+

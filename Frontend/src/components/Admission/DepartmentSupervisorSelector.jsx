@@ -1,25 +1,60 @@
 import { useEffect, useState } from "react";
-import { SupervisorDropdownRequest } from "../../APIRequest/UserAPIRequest";
+import {
+  SupervisorDropdownRequest,
+  DepartmentSubjectDropdownRequest
+} from "../../APIRequest/UserAPIRequest";
 
 const DepartmentSupervisorSelector = ({
   formData,
   setFormData,
   departments
 }) => {
+  const [subjects, setSubjects] = useState([]);
   const [supervisors, setSupervisors] = useState([]);
 
+  /* ================= LOAD SUBJECTS ================= */
   useEffect(() => {
     if (formData.department) {
-      SupervisorDropdownRequest(formData.department)
-        .then(setSupervisors);
+      DepartmentSubjectDropdownRequest(formData.department)
+        .then((data) => {
+          setSubjects(data || []);
+
+          // reset subject if department changes
+          setFormData((prev) => ({
+            ...prev,
+            subject: "",
+            supervisor: ""
+          }));
+        });
     } else {
+      setSubjects([]);
       setSupervisors([]);
     }
   }, [formData.department]);
 
+  /* ================= LOAD SUPERVISORS ================= */
+  useEffect(() => {
+    if (!formData.department) {
+      setSupervisors([]);
+      return;
+    }
+
+    // if subjects exist → wait for subject selection
+    if (subjects.length > 0 && !formData.subject) {
+      setSupervisors([]);
+      return;
+    }
+
+    SupervisorDropdownRequest(
+      formData.department,
+      formData.subject || null
+    ).then(setSupervisors);
+
+  }, [formData.department, formData.subject, subjects.length]);
+
   return (
     <>
-      {/* DEPARTMENT */}
+      {/* ================= DEPARTMENT ================= */}
       <div className="mb-3">
         <label className="form-label">Department</label>
         <select
@@ -29,6 +64,7 @@ const DepartmentSupervisorSelector = ({
             setFormData({
               ...formData,
               department: e.target.value,
+              subject: "",
               supervisor: ""
             })
           }
@@ -42,13 +78,41 @@ const DepartmentSupervisorSelector = ({
         </select>
       </div>
 
-      {/* SUPERVISOR */}
+      {/* ================= SUBJECT (ONLY IF EXISTS) ================= */}
+      {subjects.length > 0 && (
+        <div className="mb-3">
+          <label className="form-label">Subject</label>
+          <select
+            className="form-control"
+            value={formData.subject}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                subject: e.target.value,
+                supervisor: ""
+              })
+            }
+          >
+            <option value="">Select Subject</option>
+            {subjects.map((s, i) => (
+              <option key={i} value={s.name}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {/* ================= SUPERVISOR ================= */}
       <div className="mb-3">
         <label className="form-label">Supervisor</label>
         <select
           className="form-control"
           value={formData.supervisor}
-          disabled={!formData.department}
+          disabled={
+            !formData.department ||
+            (subjects.length > 0 && !formData.subject)
+          }
           onChange={(e) =>
             setFormData({
               ...formData,
@@ -60,6 +124,7 @@ const DepartmentSupervisorSelector = ({
           {supervisors.map((s) => (
             <option key={s._id} value={s._id}>
               {s.name}
+              {/* {s.subject ? ` (${s.subject})` : ""} */}
             </option>
           ))}
         </select>

@@ -12,7 +12,7 @@ const NoticeSchema = new mongoose.Schema(
     isActive: { type: Boolean, default: true },
      isPublic: {
       type: Boolean,
-      default: false
+      default: true
     },
 
     expireAt: Date,

@@ -1,1 +1,3 @@
-export const BaseURL="http://localhost:5000/api/v1";
+// config.js
+export const BaseURL = "http://localhost:5000/api/v1";
+

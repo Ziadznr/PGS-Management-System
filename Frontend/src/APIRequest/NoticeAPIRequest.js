@@ -6,26 +6,31 @@ import { BaseURL } from "../helper/config";
 import { getAdminToken } from "../helper/SessionHelper";
 import { DeleteAlert } from "../helper/DeleteAlert";
 
-// =================================================
-// AXIOS ADMIN HEADER
-// =================================================
+/* =================================================
+   AXIOS ADMIN HEADER
+================================================= */
 const adminHeader = () => ({
   headers: {
     token: getAdminToken()
   }
 });
 
-// =================================================
-// CREATE NOTICE (ADMIN)
-// =================================================
-export async function CreateNoticeRequest(payload) {
+/* =================================================
+   CREATE NOTICE (ADMIN) – supports attachment
+================================================= */
+export async function CreateNoticeRequest(formData) {
   try {
     store.dispatch(ShowLoader());
 
     const res = await axios.post(
-      `${BaseURL}/notice/create`,
-      payload,
-      adminHeader()
+      `${BaseURL}/admin/notice/create`,
+      formData, // 👈 FormData
+      {
+        headers: {
+          ...adminHeader().headers,
+          "Content-Type": "multipart/form-data"
+        }
+      }
     );
 
     store.dispatch(HideLoader());
@@ -45,17 +50,22 @@ export async function CreateNoticeRequest(payload) {
   }
 }
 
-// =================================================
-// UPDATE NOTICE (ADMIN)
-// =================================================
-export async function UpdateNoticeRequest(id, payload) {
+/* =================================================
+   UPDATE NOTICE (ADMIN) – supports attachment
+================================================= */
+export async function UpdateNoticeRequest(id, formData) {
   try {
     store.dispatch(ShowLoader());
 
     const res = await axios.post(
-      `${BaseURL}/notice/update/${id}`,
-      payload,
-      adminHeader()
+      `${BaseURL}/admin/notice/update/${id}`,
+      formData, // 👈 FormData
+      {
+        headers: {
+          ...adminHeader().headers,
+          "Content-Type": "multipart/form-data"
+        }
+      }
     );
 
     store.dispatch(HideLoader());
@@ -75,9 +85,9 @@ export async function UpdateNoticeRequest(id, payload) {
   }
 }
 
-// =================================================
-// DELETE NOTICE (ADMIN)
-// =================================================
+/* =================================================
+   DELETE NOTICE (ADMIN)
+================================================= */
 export async function DeleteNoticeRequest(id) {
   const confirm = await DeleteAlert();
   if (!confirm.isConfirmed) return false;
@@ -107,9 +117,9 @@ export async function DeleteNoticeRequest(id) {
   }
 }
 
-// =================================================
-// PIN / UNPIN NOTICE (ADMIN)
-// =================================================
+/* =================================================
+   PIN / UNPIN NOTICE (ADMIN)
+================================================= */
 export async function ToggleNoticePinRequest(id) {
   try {
     const res = await axios.post(
@@ -132,9 +142,9 @@ export async function ToggleNoticePinRequest(id) {
   }
 }
 
-// =================================================
-// LOCK / UNLOCK NOTICE (ADMIN)
-// =================================================
+/* =================================================
+   LOCK / UNLOCK NOTICE (ADMIN)
+================================================= */
 export async function ToggleNoticeLockRequest(id) {
   try {
     const res = await axios.post(
@@ -157,9 +167,34 @@ export async function ToggleNoticeLockRequest(id) {
   }
 }
 
-// =================================================
-// ADMIN NOTICE LIST
-// =================================================
+/* =================================================
+   PUBLIC ⇄ PRIVATE TOGGLE (ADMIN) 🔥 NEW
+================================================= */
+export async function ToggleNoticePublicRequest(id) {
+  try {
+    const res = await axios.post(
+      `${BaseURL}/admin/notice/toggle-public/${id}`,
+      {},
+      adminHeader()
+    );
+
+    if (res.data?.status === "success") {
+      SuccessToast(res.data.data);
+      return true;
+    }
+
+    ErrorToast("Action failed");
+    return false;
+
+  } catch {
+    ErrorToast("Server error");
+    return false;
+  }
+}
+
+/* =================================================
+   ADMIN NOTICE LIST
+================================================= */
 export async function GetAdminNoticeListRequest() {
   try {
     store.dispatch(ShowLoader());
@@ -180,9 +215,9 @@ export async function GetAdminNoticeListRequest() {
   }
 }
 
-// =================================================
-// PUBLIC NOTICE LIST (LANDING PAGE)
-// =================================================
+/* =================================================
+   PUBLIC NOTICE LIST
+================================================= */
 
 // 🔄 Latest notice (slider)
 export async function GetLatestNoticeRequest() {
@@ -203,5 +238,3 @@ export async function GetPublicNoticesRequest() {
     return [];
   }
 }
-
-

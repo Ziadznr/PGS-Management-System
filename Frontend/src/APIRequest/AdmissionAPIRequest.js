@@ -67,14 +67,15 @@ export async function SupervisorApplications() {
     );
 
     store.dispatch(HideLoader());
-    return res.data?.status === "success" ? res.data.data : [];
+    return res.data; // 🔥 RETURN FULL RESPONSE
 
   } catch {
     store.dispatch(HideLoader());
     ErrorToast("Failed to load supervisor applications");
-    return [];
+    return { status: "fail", data: [] };
   }
 }
+
 
 export async function SupervisorDecision(applicationId, decision, remarks) {
   try {

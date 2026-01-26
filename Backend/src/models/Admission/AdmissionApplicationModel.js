@@ -320,6 +320,16 @@ const AdmissionApplicationSchema = new mongoose.Schema({
     ],
     default: "Submitted"
   },
+  supervisorRank: {
+  type: Number,
+  default: null
+},
+
+isWithinSupervisorQuota: {
+  type: Boolean,
+  default: false
+},
+
 
   approvalLog: [ApprovalLogSchema],
 
@@ -334,7 +344,7 @@ const AdmissionApplicationSchema = new mongoose.Schema({
    UNIQUE CONSTRAINT
 ========================================================= */
 AdmissionApplicationSchema.index(
-  { admissionSeason: 1, email: 1 },
+  { admissionSeason: 1, program: 1, email: 1 },
   { unique: true }
 );
 

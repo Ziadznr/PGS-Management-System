@@ -1,67 +1,62 @@
 import axios from "axios";
 import { BaseURL } from "../../helper/config";
-import { ErrorToast } from "../../helper/FormHelper";
+import { ErrorToast, SuccessToast } from "../../helper/FormHelper";
 
 const DocumentsUploadForm = ({ formData, setFormData }) => {
 
   const handleUpload = async (e) => {
     const files = Array.from(e.target.files);
+    if (files.length === 0) return;
 
-    let totalSize = files.reduce(
-      (sum, f) => sum + f.size,
-      0
-    );
-
+    const totalSize = files.reduce((sum, f) => sum + f.size, 0);
     if (totalSize > 30 * 1024 * 1024) {
       ErrorToast("Total upload size must be within 30 MB");
       return;
     }
 
     const data = new FormData();
-    files.forEach(f => data.append("documents", f));
+
+    // 🔑 send existing tempId if exists (append more files)
+    if (formData.tempId) {
+      data.append("tempId", formData.tempId);
+    }
+
+    files.forEach(file => data.append("documents", file));
 
     try {
       const res = await axios.post(
-        `${BaseURL}/admission/upload-documents`,
-        data
+        `${BaseURL}/admission/upload-temp-documents`,
+        data,
+        { headers: { "Content-Type": "multipart/form-data" } }
       );
 
       if (res.data?.status === "success") {
         setFormData(prev => ({
           ...prev,
+          tempId: res.data.data.tempId,
           documents: res.data.data.documents,
-          totalDocumentSizeKB:
-            res.data.data.totalSizeKB
+          totalDocumentSizeKB: res.data.data.totalSizeKB
         }));
+
+        SuccessToast("Documents uploaded successfully");
+        e.target.value = "";
+      } else {
+        ErrorToast(res.data?.data || "Upload failed");
       }
-    } catch {
+    } catch (err) {
       ErrorToast("Document upload failed");
     }
   };
 
   return (
     <div className="card p-3 mt-3">
-      <div className="mb-3">
-  <h6 className="fw-bold mb-2">📄 Required Documents</h6>
+      <h6 className="fw-bold mb-2">📄 Required Documents</h6>
 
-  <ol className="ps-3">
-    <li className="mb-2">
-      Clearance certificate from the respective employer, attested copies of
-      all academic certificates, mark sheets / transcripts, nationality
-      certificate, testimonial, and recent passport-size photographs.
-    </li>
+      <div className="alert alert-info">
+        ℹ️ Documents are saved temporarily and will be attached when you submit
+        the application.
+      </div>
 
-    <li className="mb-2">
-      <strong>For PhD Applicants only:</strong> A synopsis of the proposed
-      dissertation work (within <strong>3–4 pages</strong>), recommended by the
-      proposed supervisor and forwarded by the concerned Chairman.
-    </li>
-  </ol>
-      <p className="text-muted fst-italic">
-  *The total size of all uploaded documents must not exceed 30&nbsp;MB.*
-</p>
-
-</div>
       <input
         type="file"
         multiple

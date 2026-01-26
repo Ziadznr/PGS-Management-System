@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   AdminUsersListRequest,
   AdminDeleteUserRequest,
   AdminSendEmailRequest
 } from "../../APIRequest/UserAPIRequest";
-import { AiOutlineDelete, AiOutlineMail } from "react-icons/ai";
+import {AiOutlineEdit, AiOutlineDelete, AiOutlineMail } from "react-icons/ai";
 import ReactPaginate from "react-paginate";
 import { DeleteAlert } from "../../helper/DeleteAlert";
 import { ErrorToast, SuccessToast } from "../../helper/FormHelper";
@@ -29,6 +30,7 @@ const AdminUsersList = () => {
   const [attachments, setAttachments] = useState([]);
 
   const searchTimeout = useRef(null);
+  const navigate = useNavigate();
 
   // ---------------- FETCH USERS ----------------
   const fetchUsers = async (page = 1, keyword = searchKeyword) => {
@@ -177,8 +179,10 @@ const AdminUsersList = () => {
               <th>No</th>
               <th>Name</th>
               <th>Email</th>
+              <th>Phone</th>
               <th>Role</th>
               <th>Department</th>
+              <th>Edit</th>
               <th>Delete</th>
               <th>Mail</th>
             </tr>
@@ -192,34 +196,63 @@ const AdminUsersList = () => {
             ) : users.length ? (
               users.map((u, i) => (
                 <tr key={u._id}>
-                  <td>{i + 1 + (pageNo - 1) * perPage}</td>
-                  <td>{u.name}</td>
-                  <td>{u.email}</td>
-                  <td>{u.role}</td>
-                  <td>{u.DepartmentName|| "-"}</td>
+  <td>{i + 1 + (pageNo - 1) * perPage}</td>
 
-                  <td>
-                    <button
-                      className="btn btn-outline-danger btn-sm"
-                      onClick={() => DeleteItem(u._id)}
-                    >
-                      <AiOutlineDelete />
-                    </button>
-                  </td>
+  <td>
+    <div>
+      <strong>{u.name}</strong>
+  <div className="text-muted small ps-3">
+       {u.nameExtension}
+  </div>
 
-                  <td>
-                    <button
-                      className="btn btn-outline-primary btn-sm"
-                      onClick={() => {
-                        setSelectedUserId(u._id);
-                        setEmailSubject(`Hello ${u.name}`);
-                        setShowEmailModal(true);
-                      }}
-                    >
-                      <AiOutlineMail />
-                    </button>
-                  </td>
-                </tr>
+      {u.role === "Supervisor" && u.subject && (
+        <div className="text-muted small">
+          (Subject: {u.subject})
+        </div>
+      )}
+    </div>
+  </td>
+
+  <td>{u.email}</td>
+  <td>{u.phone}</td>
+  <td>{u.role}</td>
+  <td>{u.DepartmentName || "-"}</td>
+  <td>
+  <button
+    className="btn btn-outline-secondary btn-sm"
+    onClick={() =>
+      navigate("/AdminCreateUserPage", {
+        state: { user: u }
+      })
+    }
+  >
+    <AiOutlineEdit />
+  </button>
+</td>
+
+  <td>
+    <button
+      className="btn btn-outline-danger btn-sm"
+      onClick={() => DeleteItem(u._id)}
+    >
+      <AiOutlineDelete />
+    </button>
+  </td>
+
+  <td>
+    <button
+      className="btn btn-outline-primary btn-sm"
+      onClick={() => {
+        setSelectedUserId(u._id);
+        setEmailSubject(`Hello ${u.name}`);
+        setShowEmailModal(true);
+      }}
+    >
+      <AiOutlineMail />
+    </button>
+  </td>
+</tr>
+
               ))
             ) : (
               <tr>

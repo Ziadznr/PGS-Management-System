@@ -3,61 +3,36 @@ const AdmissionApplicationModel =
 
 const SupervisorPanelListService = async (req) => {
   try {
-    // ================= 1️⃣ AUTH CHECK =================
+    /* ================= AUTH ================= */
     if (!req.user || req.user.role !== "Supervisor") {
-      return {
-        status: "fail",
-        data: "Unauthorized access"
-      };
+      return { status: "fail", data: "Unauthorized access" };
     }
 
     const supervisorId = req.user.id;
 
-    // ================= 2️⃣ FETCH APPLICATIONS =================
+    /* ================= FETCH FULL APPLICATION ================= */
     const applications = await AdmissionApplicationModel.find({
       supervisor: supervisorId,
       applicationStatus: "Submitted"
     })
       .populate([
         { path: "department", select: "name" },
-        { path: "supervisor", select: "name email" }
+        { path: "supervisor", select: "name email" },
+        { path: "payment", select: "transactionId amount status" },
+        { path: "admissionSeason", select: "seasonName academicYear" }
       ])
       .sort({ createdAt: -1 })
       .lean();
 
-    // ================= 3️⃣ RESPONSE =================
+    /* ================= RETURN FULL DATA ================= */
     return {
       status: "success",
-      data: applications.map(app => ({
-        _id: app._id,
-        applicationNo: app.applicationNo,
-        program: app.program,
-        applicantName: app.applicantName,
-        email: app.email,
-        mobile: app.mobile,
-
-        department: app.department?.name || "",
-        supervisor: app.supervisor?.name || "",
-
-        academicRecords: app.academicRecords,
-        admittedSubjectGPA: app.admittedSubjectGPA,
-
-        isInService: app.isInService,
-        serviceInfo: app.serviceInfo,
-
-        numberOfPublications: app.numberOfPublications,
-        applicationStatus: app.applicationStatus,
-
-        createdAt: app.createdAt
-      }))
+      data: applications
     };
 
   } catch (error) {
     console.error("SupervisorPanelListService Error:", error);
-    return {
-      status: "fail",
-      data: error.message
-    };
+    return { status: "fail", data: error.message };
   }
 };
 

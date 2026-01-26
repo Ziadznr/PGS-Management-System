@@ -12,6 +12,9 @@ exports.Delete = async (req, res) =>
 exports.TogglePin = async (req, res) =>
   res.status(200).json(await NoticeService.TogglePin(req));
 
+exports.TogglePublic = async (req, res) =>
+  res.status(200).json(await NoticeService.TogglePublic(req));
+
 exports.ToggleLock = async (req, res) =>
   res.status(200).json(await NoticeService.ToggleLock(req));
 

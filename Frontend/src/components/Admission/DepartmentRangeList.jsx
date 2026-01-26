@@ -19,8 +19,12 @@ const DepartmentRangeList = () => {
   const loadAllRanges = async () => {
     const data = await GetAllDepartmentRangesRequest();
 
+    if (!Array.isArray(data)) {
+      setGroupedData({});
+      return;
+    }
+
     const grouped = data.reduce((acc, item) => {
-      // 🔒 PROTECT AGAINST BROKEN DATA
       if (!item?.admissionSeason || !item?.department) return acc;
 
       const seasonId = item.admissionSeason._id;
@@ -92,6 +96,7 @@ const DepartmentRangeList = () => {
       id: range._id,
       admissionSeason: range.admissionSeason._id,
       department: range.department._id,
+      subjectId: range.subjectId || null, // ✅ keep subject unchanged
       ...value
     });
 
@@ -100,6 +105,15 @@ const DepartmentRangeList = () => {
 
   /* ================= DELETE RANGE ================= */
   const deleteRange = async (id) => {
+    const confirm = await Swal.fire({
+      title: "Delete this range?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Yes, Delete"
+    });
+
+    if (!confirm.isConfirmed) return;
+
     const ok = await DeleteDepartmentRangeRequest(id);
     if (ok) loadAllRanges();
   };
@@ -155,6 +169,7 @@ const DepartmentRangeList = () => {
                   <tr>
                     <th>No</th>
                     <th>Department</th>
+                    <th>Subject</th>
                     <th>Start</th>
                     <th>End</th>
                     <th>Current</th>
@@ -167,9 +182,19 @@ const DepartmentRangeList = () => {
                     <tr key={r._id}>
                       <td>{i + 1}</td>
                       <td>{r.department?.name || "N/A"}</td>
+                      <td>
+  {r.subjectName ? (
+    <span className="badge bg-info text-dark">
+      {r.subjectName}
+    </span>
+  ) : (
+    <span className="text-muted">—</span>
+  )}
+</td>
+
                       <td>{r.startRegNo}</td>
                       <td>{r.endRegNo}</td>
-                      <td>{r.currentRegNo}</td>
+                      <td>{r.currentRegNo ?? "—"}</td>
                       <td>
                         <button
                           disabled={season.isLocked}

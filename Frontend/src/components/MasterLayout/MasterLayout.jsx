@@ -18,9 +18,10 @@ import {
   BsGraphUp,
   BsPeople,
 } from "react-icons/bs";
-import { IoCreateOutline } from "react-icons/io5";
+import { HiOutlineSpeakerphone } from "react-icons/hi";
 import { RiDashboardLine } from "react-icons/ri";
-import { TbTruckDelivery } from "react-icons/tb";
+import { FaUniversity } from "react-icons/fa";
+import { HiOutlineCalendarDays } from "react-icons/hi2";
 
 import logo from "../../assets/images/ps.png";
 import { removeSessions } from "../../helper/SessionHelper";
@@ -77,13 +78,13 @@ const MasterLayout = (props) => {
     },
     {
       title: "Notice Management",
-      icon: <BsPeople className="side-bar-item-icon" />,
+      icon: <HiOutlineSpeakerphone  className="side-bar-item-icon" />,
       url: "/admin/notices",
       subMenu: [{ title: "Notice", icon: <BsCircle size={16} />, url: "/admin/notices" }],
     },
     {
       title: "Department",
-      icon: <BsPeople className="side-bar-item-icon" />,
+      icon: <FaUniversity className="side-bar-item-icon" />,
       url: "/department-list",
       subMenu: [
         { title: "Department List", icon: <BsCircle size={16} />, url: "/department-list" },
@@ -92,7 +93,7 @@ const MasterLayout = (props) => {
     },
      {
       title: "Season",
-      icon: <BsPeople className="side-bar-item-icon" />,
+      icon: <HiOutlineCalendarDays className="side-bar-item-icon" />,
       url: "/admission-seasons",
       subMenu: [
         { title: "Admission-Season", icon: <BsCircle size={16} />, url: "/admission-seasons" },

@@ -68,7 +68,7 @@ const initialFormState = {
 
   appliedSubjectCourses: [],
   calculatedCGPA: null,
-  isEligibleByCGPA: true, // 🔑 important
+  isEligibleByCGPA: true,
 
   isInService: false,
   serviceInfo: {},
@@ -78,6 +78,8 @@ const initialFormState = {
 
   documents: [],
   totalDocumentSizeKB: 0,
+
+  tempId: null,   // ✅ ADD THIS
 
   paymentTransactionId: "",
   declarationAccepted: false
@@ -118,7 +120,7 @@ const ApplyAdmissionPage = () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(formData));
   }, [formData, isFormLoaded, isSubmitted]);
 
-  /* ================= PAYMENT RETURN ================= */
+  /* ================= PAYMENT RETURN (GATEWAY CALLBACK) ================= */
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
 
@@ -176,10 +178,50 @@ const ApplyAdmissionPage = () => {
     })();
   }, [formData.department]);
 
+  /* =================================================
+     ✅ CHECK EXISTING PAYMENT (KEY FIX)
+     email + season + program + SUCCESS
+  ================================================= */
+  useEffect(() => {
+  if (!formData.email || !formData.admissionSeason || !formData.program) {
+    setIsPaid(false);
+    return;
+  }
+
+  (async () => {
+    try {
+      const res = await axios.post(
+        `${BaseURL}/payment/check`,
+        {
+          email: formData.email,
+          admissionSeason: formData.admissionSeason,
+          program: formData.program
+        }
+      );
+
+      if (
+        res.data?.status === "success" &&
+        res.data.data?.transactionId
+      ) {
+        setIsPaid(true);
+        setFormData(prev => ({
+          ...prev,
+          paymentTransactionId: res.data.data.transactionId
+        }));
+      } else {
+        setIsPaid(false);
+      }
+    } catch {
+      setIsPaid(false);
+    }
+  })();
+}, [formData.email, formData.admissionSeason, formData.program]);
+
+
   /* ================= PAYMENT ================= */
   const initiatePayment = async () => {
-    if (!formData.email || !formData.admissionSeason) {
-      return ErrorToast("Email and admission season required before payment");
+    if (!formData.email || !formData.admissionSeason || !formData.program) {
+      return ErrorToast("Email, program and season required before payment");
     }
 
     try {
@@ -189,7 +231,8 @@ const ApplyAdmissionPage = () => {
         `${BaseURL}/payment/initiate`,
         {
           email: formData.email,
-          admissionSeason: formData.admissionSeason
+          admissionSeason: formData.admissionSeason,
+          program: formData.program
         }
       );
 
@@ -209,7 +252,6 @@ const ApplyAdmissionPage = () => {
   const submit = async () => {
     if (!isPaid) return ErrorToast("Please complete payment first");
 
-    // 🔴 CGPA RULE ENFORCED HERE
     if (
       ["MS", "MBA", "LLM"].includes(formData.program) &&
       formData.calculatedCGPA !== null &&
@@ -225,7 +267,7 @@ const ApplyAdmissionPage = () => {
 
       const result = await ApplyForAdmissionRequest(formData);
 
-      if (result) {
+      if (result?.status === "success") {
         setIsSubmitted(true);
         localStorage.removeItem(STORAGE_KEY);
         setFormData(initialFormState);
@@ -233,8 +275,6 @@ const ApplyAdmissionPage = () => {
         setIsSuccess(true);
         window.scrollTo(0, 0);
       }
-    } catch (err) {
-      console.error("Submission Error:", err);
     } finally {
       setIsSubmitting(false);
     }
@@ -275,7 +315,11 @@ const ApplyAdmissionPage = () => {
           <AppliedSubjectGPAForm formData={formData} setFormData={setFormData} />
           <ServiceInfoForm formData={formData} setFormData={setFormData} />
           <PublicationsForm formData={formData} setFormData={setFormData} />
-          <DocumentsUploadForm formData={formData} setFormData={setFormData} />
+          <DocumentsUploadForm
+  formData={formData}
+  setFormData={setFormData}
+/>
+
           <Declaration formData={formData} setFormData={setFormData} />
 
           {!isPaid ? (
@@ -288,18 +332,14 @@ const ApplyAdmissionPage = () => {
             </button>
           ) : (
             <div className="alert alert-info mt-3 text-center">
-              ✅ Application fee paid. You can now submit.
+              ✅ Application fee already paid. You can submit anytime.
             </div>
           )}
 
           <button
             className="btn btn-success w-100 mt-3"
             onClick={submit}
-            disabled={
-              !isPaid ||
-              isSubmitting ||
-              formData.isEligibleByCGPA === false
-            }
+            disabled={!isPaid || isSubmitting || formData.isEligibleByCGPA === false}
           >
             {isSubmitting ? "Submitting..." : "Submit Application"}
           </button>
