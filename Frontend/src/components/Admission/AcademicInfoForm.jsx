@@ -112,7 +112,7 @@ const AcademicInfoForm = ({ formData, setFormData }) => {
   ================================================= */
   return (
     <div className="card p-3 mt-3">
-      <h5 className="fw-bold mb-3">Academic Information</h5>
+      <h5 className="mb-3">9. Academic Information</h5>
 
       {/* SSC & HSC (Always Required) */}
       {renderAcademicBlock("SSC", 5)}

@@ -13,7 +13,7 @@ const PersonalInfoForm = ({ formData, setFormData }) => {
 
   return (
     <div className="card mb-3 p-3">
-      <h5 className="mb-3">Personal Information</h5>
+      <h5 className="mb-3">5. Personal Information</h5>
 
       <input
         className="form-control mb-2"

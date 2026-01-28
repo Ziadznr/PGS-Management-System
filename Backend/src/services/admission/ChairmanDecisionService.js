@@ -1,31 +1,15 @@
 const AdmissionApplicationModel =
   require("../../models/Admission/AdmissionApplicationModel");
-const SendEmailUtility = require("../../utility/SendEmailUtility");
+const SendEmailUtility =
+  require("../../utility/SendEmailUtility");
+const UsersModel =
+  require("../../models/Users/UsersModel");
 
 const MAX_PER_SUPERVISOR = 10;
 
 /* =========================================================
-   NORMALIZE CGPA TO SCALE-4
-========================================================= */
-const normalizeCGPA = (cgpa, scale) => {
-  if (!cgpa || !scale) return 0;
-  return scale === 5 ? (cgpa / 5) * 4 : cgpa;
-};
-
-/* =========================================================
-   POINT-9 SCORING (CGPA → POINT)
-========================================================= */
-const scoreFromCGPA = (cgpa4) => {
-  if (cgpa4 >= 3.75) return 10;
-  if (cgpa4 >= 3.50) return 9;
-  if (cgpa4 >= 3.25) return 8;
-  if (cgpa4 >= 3.00) return 7;
-  if (cgpa4 >= 2.75) return 6;
-  return 5;
-};
-
-/* =========================================================
-   TOTAL MERIT POINT CALCULATOR (YOUR RULE)
+   TOTAL MERIT POINT CALCULATOR (PURE CGPA SUM)
+   Merit = SSC + HSC + Bachelor + Calculated CGPA (if applicable)
 ========================================================= */
 const calculateTotalMeritPoint = (application) => {
   let total = 0;
@@ -34,48 +18,24 @@ const calculateTotalMeritPoint = (application) => {
 
   // SSC
   const ssc = academicRecords.find(r => r.examLevel === "SSC");
-  if (ssc) {
-    total += scoreFromCGPA(
-      normalizeCGPA(ssc.cgpa, ssc.cgpaScale)
-    );
-  }
+  if (ssc) total += Number(ssc.cgpa);
 
   // HSC
   const hsc = academicRecords.find(r => r.examLevel === "HSC");
-  if (hsc) {
-    total += scoreFromCGPA(
-      normalizeCGPA(hsc.cgpa, hsc.cgpaScale)
-    );
-  }
+  if (hsc) total += Number(hsc.cgpa);
 
-  // Bachelor
+  // Bachelor (BSc / BBA / LLB)
   const bachelor = academicRecords.find(r =>
     ["BSc", "BBA", "LLB"].includes(r.examLevel)
   );
-  if (bachelor) {
-    total += scoreFromCGPA(
-      normalizeCGPA(bachelor.cgpa, bachelor.cgpaScale)
-    );
-  }
+  if (bachelor) total += Number(bachelor.cgpa);
 
-  // MS / MBA / LLM applicants → calculatedCGPA
+  // MS / MBA / LLM → calculated CGPA
   if (["MS", "MBA", "LLM"].includes(program) && calculatedCGPA) {
-    total += scoreFromCGPA(calculatedCGPA); // already scale-4
+    total += Number(calculatedCGPA);
   }
 
-  // PhD applicants → MS/MBA/LLM final CGPA
-  if (program === "PhD") {
-    const ms = academicRecords.find(r =>
-      ["MS", "MBA", "LLM"].includes(r.examLevel) && r.isFinal
-    );
-    if (ms) {
-      total += scoreFromCGPA(
-        normalizeCGPA(ms.cgpa, ms.cgpaScale)
-      );
-    }
-  }
-
-  return total;
+  return Number(total.toFixed(2)); // clean merit value
 };
 
 /* =========================================================
@@ -83,10 +43,25 @@ const calculateTotalMeritPoint = (application) => {
 ========================================================= */
 const ChairmanDecisionService = async (req) => {
   try {
-    const chairman = req.user;
+    const chairmanSession = req.user;
 
-    if (!chairman || chairman.role !== "Chairman") {
+    if (!chairmanSession || chairmanSession.role !== "Chairman") {
       return { status: "fail", data: "Unauthorized access" };
+    }
+
+    const chairmanId = chairmanSession?.id?.toString();
+
+    if (!chairmanId) {
+      return { status: "fail", data: "Chairman ID missing from session" };
+    }
+
+    /* ================= LOAD CHAIRMAN SNAPSHOT ================= */
+    const chairman = await UsersModel
+      .findById(chairmanId)
+      .select("name email role department");
+
+    if (!chairman) {
+      return { status: "fail", data: "Chairman account not found" };
     }
 
     /* ================= FETCH SUPERVISOR-APPROVED ================= */
@@ -111,13 +86,13 @@ const ChairmanDecisionService = async (req) => {
     for (const supervisorId in grouped) {
       const list = grouped[supervisorId];
 
-      // 🔢 Calculate total merit point
+      /* ===== Calculate merit ===== */
       list.forEach(app => {
         app.academicQualificationPoints =
           calculateTotalMeritPoint(app);
       });
 
-      // 🔽 Sort: highest point → earliest submit
+      /* ===== Sort by merit (desc), then submission time ===== */
       list.sort((a, b) => {
         if (b.academicQualificationPoints !== a.academicQualificationPoints) {
           return b.academicQualificationPoints - a.academicQualificationPoints;
@@ -125,7 +100,7 @@ const ChairmanDecisionService = async (req) => {
         return a.createdAt - b.createdAt;
       });
 
-      /* ================= SELECT / WAIT ================= */
+      /* ===== Select / Waiting ===== */
       for (let i = 0; i < list.length; i++) {
         const app = list[i];
         const selected = i < MAX_PER_SUPERVISOR;
@@ -137,11 +112,18 @@ const ChairmanDecisionService = async (req) => {
         app.supervisorRank = i + 1;
         app.isWithinSupervisorQuota = selected;
 
+        /* ================= APPROVAL LOG ================= */
         app.approvalLog.push({
           role: "Chairman",
-          approvedBy: chairman.id,
+
+          approvedBy: chairman._id,
+          approvedByName: chairman.name,
+          approvedByEmail: chairman.email,
+          approvedByRoleAtThatTime: chairman.role,
+
           decision: selected ? "Selected" : "Waiting",
-          remarks: `Rank ${i + 1} | Total Point ${app.academicQualificationPoints}`
+          remarks: `Rank ${i + 1} | Merit Point ${app.academicQualificationPoints}`,
+          decidedAt: new Date()
         });
 
         await app.save();
@@ -159,7 +141,7 @@ You have been SELECTED based on academic merit.
 
 Supervisor: ${app.supervisor.name}
 Merit Rank : ${i + 1}
-Total Point: ${app.academicQualificationPoints}
+Merit Point: ${app.academicQualificationPoints}
 
 Your application will now be reviewed by the Dean.
 
@@ -173,7 +155,7 @@ Your application is currently on the WAITING LIST
 based on academic merit.
 
 Merit Rank : ${i + 1}
-Total Point: ${app.academicQualificationPoints}
+Merit Point: ${app.academicQualificationPoints}
 
 You will be notified if a seat becomes available.
 

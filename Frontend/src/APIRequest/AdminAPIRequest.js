@@ -237,3 +237,12 @@ export async function SupervisorDropdownRequest(departmentId) {
     return [];
   }
 }
+
+export async function AdminTenureListRequest() {
+  const res = await axios.get(
+    `${BaseURL}/admin/tenure/list`,
+    getAxiosHeader()
+  );
+  return res.data?.data || [];
+}
+

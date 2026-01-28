@@ -19,7 +19,7 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 // 🔥 STATIC FILES (MUST BE BEFORE ROUTES)
 app.use(
   "/uploads",
-  express.static(path.join(__dirname, "uploads"))
+  express.static(path.join(__dirname, "./uploads"))
 );
 
 const apiCorsOptions = {

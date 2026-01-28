@@ -1,4 +1,6 @@
 import React from "react";
+import { BaseURL } from "../../helper/config";
+
 
 const SupervisorApplicationDetails = ({ app, onClose }) => {
   if (!app) return null;
@@ -136,25 +138,27 @@ const SupervisorApplicationDetails = ({ app, onClose }) => {
             )}
 
             {/* ================= DOCUMENTS ================= */}
-            <h6 className="fw-bold">Uploaded Documents</h6>
-            {(app.documents || []).length === 0 ? (
-              <p className="text-muted">No documents uploaded</p>
-            ) : (
-              <ul>
-                {(app.documents || []).map((d, i) => (
-                  <li key={i}>
-                    <a
-                      href={d.fileUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      {d.title}
-                    </a>{" "}
-                    ({d.fileType}, {d.fileSizeKB} KB)
-                  </li>
-                ))}
-              </ul>
-            )}
+            {/* ================= DOCUMENTS ================= */}
+<h6 className="fw-bold">Uploaded Documents</h6>
+{(app.documents || []).length === 0 ? (
+  <p className="text-muted">No documents uploaded</p>
+) : (
+  <ul>
+    {(app.documents || []).map((d, i) => (
+      <li key={i}>
+        <a
+          href={`${BaseURL.replace("/api/v1", "")}${d.fileUrl}`}
+          target="_blank"
+          rel="noreferrer"
+        >
+          {d.title}
+        </a>{" "}
+        ({d.fileType}, {d.fileSizeKB} KB)
+      </li>
+    ))}
+  </ul>
+)}
+
 
             <hr />
 

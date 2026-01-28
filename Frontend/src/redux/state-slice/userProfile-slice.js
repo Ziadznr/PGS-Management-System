@@ -16,6 +16,7 @@ const initialState = {
         name:
           persistedUser.name ||
           `${persistedUser.firstName || ""} ${persistedUser.lastName || ""}`.trim(),
+        nameExtension: persistedUser.nameExtension || "",
         email: persistedUser.email || "",
         role: persistedUser.role || "",
         department: persistedUser.department || null,
@@ -24,6 +25,7 @@ const initialState = {
     : {
         id: null,
         name: "",
+        nameExtension: "",
         email: "",
         role: "",
         department: null,
@@ -48,6 +50,7 @@ export const userProfileSlice = createSlice({
         name:
           user?.name ||
           `${user?.firstName || ""} ${user?.lastName || ""}`.trim(),
+        nameExtension: user?.nameExtension || "",  
         email: user?.email || "",
         role: user?.role || "",
         department: user?.department || null,
@@ -62,6 +65,7 @@ export const userProfileSlice = createSlice({
       user: {
         id: null,
         name: "",
+        nameExtension: "",
         email: "",
         role: "",
         department: null,

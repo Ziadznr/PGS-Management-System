@@ -29,6 +29,7 @@ import UserDashboardPage from "./pages/Users/UserDashboardPage";
 
 import AdminCreateUserPage from "./pages/Users/AdminCreateUserPage";
 import AdminUsersListPage from "./pages/Users/AdminUsersListPage";
+import AdminTnureListPage from "./pages/Admin/AdminTnureListPage";
 
 // -------- MAIN PAGES --------
 import DashboardPage from "./pages/Dashboard/DashboardPage";
@@ -36,6 +37,9 @@ import DepartmentListPage from "./pages/Department/DepartmentListPage";
 import DepartmentCreateUpdatePage from "./pages/Department/DepartmentCreateUpdatePage";
 import SeasonRangeSetupPage from "./pages/Admission/SeasonRangeSetupPage";
 import DepartmentRangeListPage from "./pages/Admission/DepartmentRangeListPage";
+
+import DeanUsersListPage from "./pages/Dean/DeanUsersListPage";
+import ChairmanSupervisorsListPage from "./pages/Chairman/ChairmanSupervisorsListPage";
 
 // Notice Page
 import NoticePage from "./pages/Notice/NoticePage";
@@ -169,6 +173,7 @@ const App = () => {
 />
 <Route path="/AdminCreateUserPage" element={<ProtectedRoute><AdminCreateUserPage /></ProtectedRoute>} />
 <Route path="/AdminUsersListPage" element={<ProtectedRoute><AdminUsersListPage /></ProtectedRoute>} />
+<Route path="/AdminTnureListPage" element={<ProtectedRoute><AdminTnureListPage /></ProtectedRoute>} />
 
 <Route
   path="/users/dashboard"
@@ -188,10 +193,19 @@ const App = () => {
 />
 
 <Route
-  path="/DepartmentLastSemesterCoursesPage"
+  path="/DeanUsersListPage"
   element={
     <UserProtectedRoute>
-      <DepartmentLastSemesterCoursesPage />
+      <DeanUsersListPage />
+    </UserProtectedRoute>
+  }
+/>
+
+<Route
+  path="/ChairmanSupervisorsListPage"
+  element={
+    <UserProtectedRoute>
+      <ChairmanSupervisorsListPage />
     </UserProtectedRoute>
   }
 />

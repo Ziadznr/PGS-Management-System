@@ -1,17 +1,16 @@
-import React, {Fragment, Suspense} from 'react';
+import React, {Fragment, lazy, Suspense} from 'react';
 import MasterLayout from "../../components/MasterLayout/MasterLayout";
 import LazyLoader from "../../components/MasterLayout/LazyLoader";
-import CustomerProductCreate from "../../components/Customer/CustomerProductCreate";
-const CreateCustomerProductPage = () => {
+const AdminTenureList =lazy(() => import('../../components/Admin/AdminTenureList'));
+const AdminTenureListPage = () => {
     return (
         <Fragment>
             <MasterLayout>
                 <Suspense fallback={<LazyLoader/>}>
-                    <CustomerProductCreate/>
+                    <AdminTenureList/>
                 </Suspense>
             </MasterLayout>
         </Fragment>
     );
 };
-
-export default CreateCustomerProductPage;
+export default AdminTenureListPage;

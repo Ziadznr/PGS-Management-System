@@ -54,3 +54,55 @@ td div {
   transform: translateY(-4px);
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
 }
+
+.icon-button {
+  color: aliceblue;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  /* bigger click area */
+  display: flex;
+  align-items: center;
+  font-size: 20px;
+  /* makes the dots big */
+}
+.icon-button:hover {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 50%;
+}
+
+.user-card {
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+}
+
+.user-card h6 {
+  margin: 0;
+  font-weight: 600;
+}
+
+.user-card span {
+  display: block;
+  font-size: 0.8rem;
+  color: #6366f1;
+  /* accent */
+}
+
+.user-card small {
+  display: block;
+  margin-top: 2px;
+  color: #6b7280;
+}
+
+.submenu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  /* 👈 spacing */
+}
+
+.submenu-dot {
+  color: #9ca3af;
+  /* subtle gray */
+}

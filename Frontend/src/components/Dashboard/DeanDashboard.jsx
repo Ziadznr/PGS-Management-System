@@ -17,12 +17,7 @@ const DeanDashboard = () => {
       setLoading(true);
 
       const result = await DeanApplications();
-
-      if (Array.isArray(result)) {
-        setApplications(result);
-      } else {
-        setApplications([]);
-      }
+      setApplications(Array.isArray(result) ? result : []);
 
       setLoading(false);
     };
@@ -38,8 +33,8 @@ const DeanDashboard = () => {
 
     if (ok) {
       SuccessToast(
-        decision === "Accepted"
-          ? "Application accepted successfully"
+        decision === "Approve"
+          ? "Application approved successfully"
           : "Application rejected"
       );
 
@@ -50,6 +45,20 @@ const DeanDashboard = () => {
       setSelectedApp(null);
     } else {
       ErrorToast("Decision failed");
+    }
+  };
+
+  /* ================= STATUS BADGE ================= */
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case "ChairmanSelected":
+        return "bg-primary";
+      case "DeanAccepted":
+        return "bg-success";
+      case "DeanRejected":
+        return "bg-danger";
+      default:
+        return "bg-secondary";
     }
   };
 
@@ -92,14 +101,14 @@ const DeanDashboard = () => {
                   <td>{index + 1}</td>
                   <td>{app.applicantName}</td>
                   <td>{app.program}</td>
-                  <td>{app.department}</td>
-                  <td>{app.supervisor}</td>
+                  <td>{app.departmentName}</td>
+                  <td>{app.supervisorName}</td>
                   <td>{app.chairmanName}</td>
                   <td>{app.mobile}</td>
                   <td>{app.academicQualificationPoints}</td>
                   <td>{app.supervisorRank}</td>
                   <td>
-                    <span className="badge bg-success">
+                    <span className={`badge ${getStatusBadge(app.applicationStatus)}`}>
                       {app.applicationStatus}
                     </span>
                   </td>
@@ -107,7 +116,7 @@ const DeanDashboard = () => {
                   <td className="d-flex gap-2">
                     <button
                       className="btn btn-info btn-sm"
-                      onClick={() => setSelectedApp(app)}
+                      onClick={() => setSelectedApp(app.fullApplication)}
                     >
                       View
                     </button>
@@ -115,16 +124,16 @@ const DeanDashboard = () => {
                     <button
                       className="btn btn-success btn-sm"
                       onClick={() =>
-                        handleDecision(app._id, "Accepted")
+                        handleDecision(app._id, "Approve")
                       }
                     >
-                      Accept
+                      Approve
                     </button>
 
                     <button
                       className="btn btn-danger btn-sm"
                       onClick={() =>
-                        handleDecision(app._id, "Rejected")
+                        handleDecision(app._id, "Reject")
                       }
                     >
                       Reject

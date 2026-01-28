@@ -91,32 +91,65 @@ const AppliedSubjectCourseSchema = new mongoose.Schema({
 /* =========================================================
    APPROVAL LOG
 ========================================================= */
-const ApprovalLogSchema = new mongoose.Schema({
-  role: {
-    type: String,
-    enum: ["Supervisor", "Chairman", "Dean"],
-    required: true
+
+const ApprovalLogSchema = new mongoose.Schema(
+  {
+    /* ================= ROLE ================= */
+    role: {
+      type: String,
+      enum: ["Supervisor", "Chairman", "Dean"],
+      required: true
+    },
+
+    /* ================= USER REFERENCE ================= */
+    approvedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "users",
+      required: true
+    },
+
+    /* ================= SNAPSHOT (IMMUTABLE) ================= */
+    approvedByName: {
+      type: String,
+      required: true
+    },
+
+    approvedByEmail: {
+      type: String,
+      required: true
+    },
+
+    approvedByRoleAtThatTime: {
+      type: String,
+      enum: ["Supervisor", "Chairman", "Dean"],
+      required: true
+    },
+
+    /* ================= DECISION ================= */
+    decision: {
+      type: String,
+      enum: ["Approved", "Rejected", "Selected", "Waiting"],
+      required: true
+    },
+
+    remarks: {
+      type: String,
+      default: ""
+    },
+
+    /* ================= TIMESTAMP ================= */
+    decidedAt: {
+      type: Date,
+      default: Date.now
+    }
   },
-
-  approvedBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "users",
-    required: true
-  },
-
-  decision: {
-    type: String,
-    enum: ["Approved", "Rejected", "Selected", "Waiting"],
-    required: true
-  },
-
-  remarks: String,
-
-  decidedAt: {
-    type: Date,
-    default: Date.now
+  {
+    _id: false // ✅ log entries don't need their own _id
   }
-}, { _id: false });
+);
+
+module.exports = ApprovalLogSchema;
+
 
 /* =========================================================
    MAIN ADMISSION APPLICATION SCHEMA

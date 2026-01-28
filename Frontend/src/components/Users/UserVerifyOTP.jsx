@@ -34,7 +34,7 @@ const UserVerifyOTP = () => {
     const result = await UserRecoverVerifyOTPRequest(getEmail(), OTP);
 
     if (result === true) {
-      navigate("/user/reset-password"); // ✅ next step
+      navigate("/users/create-password"); // ✅ next step
     }
   };
 

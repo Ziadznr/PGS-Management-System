@@ -107,6 +107,7 @@ const MasterLayout = (props) => {
       subMenu: [
         { title: "New User", icon: <BsCircle size={16} />, url: "/AdminCreateUserPage" },
         { title: "Users List", icon: <BsCircle size={16} />, url: "/AdminUsersListPage" },
+        { title: "Tenure History", icon: <BsCircle size={16} />, url: "/AdminTnureListPage" }
       ],
     },
    

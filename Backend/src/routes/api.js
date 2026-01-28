@@ -14,13 +14,19 @@ const RoleCheckMiddleware = require("../middlewares/RoleCheckMiddleware");
 // Admin
 const AdminController =
   require("../controllers/Admin/AdminController");
+  const TenureAdminController =
+  require("../controllers/Admin/TenureAdminController");
 
 // Users
 const UsersController =
   require("../controllers/Users/UsersCreateUpdateController");
 const AdminSideUsersController =
   require("../controllers/Users/AdminSideUsersController");
+const ChairmanUsersController =
+  require("../controllers/Users/ChairmanUsersController");  
 
+  const TenureDeanController =
+  require("../controllers/Dean/TenureDeanController"); 
 // Departments
 const DepartmentController =
   require("../controllers/Departments/DepartmentController");
@@ -119,6 +125,25 @@ router.post(
   AdmissionController.ChairmanDecision
 );
 
+router.get(
+  "/chairman/users/supervisors/:searchKeyword",
+  UserAuthMiddleware,
+  RoleCheckMiddleware(["Chairman"]),
+  ChairmanUsersController.ChairmanSupervisorsList
+);
+
+router.get(
+  "/admin/tenure/list",
+  AuthVerifyMiddleware,
+  TenureAdminController.List
+);
+
+router.get(
+  "/dean/tenure/chairmen",
+  UserAuthMiddleware,
+  RoleCheckMiddleware(["Dean"]),
+  TenureDeanController.ListChairman
+);
 
 // // Chairman creates / updates department last semester courses
 // router.post(
@@ -162,6 +187,14 @@ router.post(
   RoleCheckMiddleware(["Dean"]),
   AdmissionController.DeanDecision
 );
+
+router.get(
+  "/dean/users/list/:pageNo/:perPage/:searchKeyword/:role",
+  UserAuthMiddleware,
+  RoleCheckMiddleware(["Dean"]),
+  AdminSideUsersController.UsersList
+);
+
 
 // =================================================
 // ============== FINAL ENROLLMENT =================
@@ -402,11 +435,15 @@ router.post(
   PaymentController.Cancel
 );
 
+const uploadAdmissionDocs =
+  require("../utility/uploadAdmissionDocs");
+
 router.post(
   "/admission/upload-temp-documents",
-  upload.array("documents", 20),
+  uploadAdmissionDocs.array("documents", 20),
   UploadTempDocumentsController
 );
+
 
 router.get(
   "/admission/application/pdf/:applicationNo",
@@ -426,6 +463,7 @@ router.get(
   AuthVerifyMiddleware,
   AdmissionController.EnrollmentSummary
 );
+
 
 
 

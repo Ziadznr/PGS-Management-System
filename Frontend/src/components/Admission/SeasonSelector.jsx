@@ -1,7 +1,7 @@
 const SeasonSelector = ({ formData, setFormData, seasons }) => {
   return (
     <div className="mb-3">
-      <label className="form-label">Admission Season</label>
+      <h5 className="form-label">2. Admission Season</h5>
 
       <select
         className="form-control"

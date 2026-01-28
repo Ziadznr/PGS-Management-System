@@ -1,24 +1,49 @@
 const crypto = require("crypto");
 const bcrypt = require("bcryptjs");
+
 const AdmissionApplicationModel =
   require("../../models/Admission/AdmissionApplicationModel");
-const SendEmailUtility = require("../../utility/SendEmailUtility");
+const SendEmailUtility =
+  require("../../utility/SendEmailUtility");
+const UsersModel =
+  require("../../models/Users/UsersModel");
 
 const DeanDecisionService = async (req) => {
   try {
     const { applicationId, decision, remarks } = req.body;
-    const dean = req.user;
+    const deanSession = req.user;
 
-    // ================= 1️⃣ AUTH =================
-    if (!dean || dean.role !== "Dean") {
+    /* ================= 1️⃣ AUTH ================= */
+    if (!deanSession || deanSession.role !== "Dean") {
       return { status: "fail", data: "Unauthorized access" };
+    }
+
+    const deanId = deanSession?.id?.toString();
+
+    if (!deanId) {
+      return {
+        status: "fail",
+        data: "Dean ID missing from session"
+      };
+    }
+
+    /* ================= LOAD DEAN SNAPSHOT ================= */
+    const dean = await UsersModel
+      .findById(deanId)
+      .select("name email role");
+
+    if (!dean) {
+      return {
+        status: "fail",
+        data: "Dean account not found"
+      };
     }
 
     if (!["Approve", "Reject"].includes(decision)) {
       return { status: "fail", data: "Invalid decision" };
     }
 
-    // ================= 2️⃣ FETCH APPLICATION =================
+    /* ================= 2️⃣ FETCH APPLICATION ================= */
     const application = await AdmissionApplicationModel.findOne({
       _id: applicationId,
       applicationStatus: "ChairmanSelected"
@@ -34,16 +59,22 @@ const DeanDecisionService = async (req) => {
       };
     }
 
-    // ================= 3️⃣ REJECT =================
+    /* ================= 3️⃣ REJECT ================= */
     if (decision === "Reject") {
       application.applicationStatus = "DeanRejected";
       application.finalDecisionAt = new Date();
 
       application.approvalLog.push({
         role: "Dean",
-        approvedBy: dean.id,
+
+        approvedBy: dean._id,
+        approvedByName: dean.name,
+        approvedByEmail: dean.email,
+        approvedByRoleAtThatTime: dean.role,
+
         decision: "Rejected",
-        remarks
+        remarks: remarks || "",
+        decidedAt: new Date()
       });
 
       await application.save();
@@ -66,7 +97,7 @@ PGS Admission Office
       return { status: "success", data: "Application rejected" };
     }
 
-    // ================= 4️⃣ APPROVE =================
+    /* ================= 4️⃣ APPROVE ================= */
     const tempId = Math.floor(
       1000000000 + Math.random() * 9000000000
     ).toString();
@@ -89,9 +120,15 @@ PGS Admission Office
 
     application.approvalLog.push({
       role: "Dean",
-      approvedBy: dean.id,
+
+      approvedBy: dean._id,
+      approvedByName: dean.name,
+      approvedByEmail: dean.email,
+      approvedByRoleAtThatTime: dean.role,
+
       decision: "Approved",
-      remarks
+      remarks: remarks || "",
+      decidedAt: new Date()
     });
 
     await application.save();

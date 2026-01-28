@@ -322,6 +322,76 @@ export async function AdminUsersListRequest(
   }
 }
 
+export async function DeanUsersListRequest(
+  pageNo,
+  perPage,
+  searchKeyword,
+  role
+) {
+  const token = getToken(); // 👈 DEAN TOKEN
+
+  if (!token) {
+    ErrorToast("Login required");
+    return { Rows: [], Total: [{ count: 0 }] };
+  }
+
+  try {
+    store.dispatch(ShowLoader());
+
+    const URL = `${BaseURL}/dean/users/list/${pageNo}/${perPage}/${searchKeyword || "0"}/${role}`;
+
+    const res = await axios.get(URL, {
+      headers: { token }
+    });
+
+    store.dispatch(HideLoader());
+
+    if (res.data?.status === "success") {
+      return res.data.data[0];
+    }
+
+    return { Rows: [], Total: [{ count: 0 }] };
+
+  } catch {
+    store.dispatch(HideLoader());
+    ErrorToast("Failed to load users");
+    return { Rows: [], Total: [{ count: 0 }] };
+  }
+}
+
+export async function DeanChairmanTenureListRequest() {
+  const res = await axios.get(
+    `${BaseURL}/dean/tenure/chairmen`,
+    getAxiosHeader()
+  );
+  return res.data?.data || [];
+}
+
+
+export async function ChairmanSupervisorsListRequest(searchKeyword = "0") {
+  try {
+    store.dispatch(ShowLoader());
+
+    const res = await axios.get(
+      `${BaseURL}/chairman/users/supervisors/${searchKeyword}`,
+      getAxiosHeader()   // ✅ CORRECT
+    );
+
+    store.dispatch(HideLoader());
+
+    if (res.data?.status === "success") {
+      return res.data.data;
+    }
+
+    return [];
+
+  } catch (error) {
+    store.dispatch(HideLoader());
+    ErrorToast("Failed to load supervisors");
+    console.error(error.response?.data);
+    return [];
+  }
+}
 
 
 export async function AdminDeleteUserRequest(userId) {

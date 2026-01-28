@@ -24,7 +24,7 @@ const SupervisorDropdownService = async (req) => {
     }
 
     const supervisors = await UsersModel.find(query)
-      .select("_id name subject")
+      .select("_id name nameExtension subject")
       .lean();
 
     return {

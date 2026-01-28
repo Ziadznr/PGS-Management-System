@@ -1,7 +1,7 @@
 const ProgramSelector = ({ formData, setFormData }) => {
   return (
     <div className="mb-3">
-      <label className="form-label">Program</label>
+      <h5 className="form-label ">1. Program</h5>
       <select
         className="form-control"
         value={formData.program}

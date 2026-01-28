@@ -1,242 +1,418 @@
+/* ================= ROOT ================= */
 .landing-container {
-  position: relative;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
-  padding-top: 0;
-  background: linear-gradient(135deg, rgba(106,17,203,0.2), rgba(37,117,252,0.2));
+  background: linear-gradient(135deg,
+      rgba(106, 17, 203, 0.15),
+      rgba(37, 117, 252, 0.15));
 }
 
-.landing-main-title {
+/* ================= HEADER WRAPPER ================= */
+.header-wrapper {
   position: sticky;
-  /* 👈 THIS IS THE KEY */
   top: 0;
-
-  font-size: clamp(2.4rem, 4vw, 3rem);
-  font-weight: 800;
-  color: #1a1a1a;
-  text-align: center;
-  margin-bottom: 1rem;
-  padding: 12px 16px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-  letter-spacing: 0.4px;
-  line-height: 1.25;
-  backdrop-filter: blur(6px);
-
-  background: transparent;
-  z-index: 5;
-}
-
-.landing-main-title::after {
-  content: "";
-  display: block;
-  width: 80px;
-  height: 4px;
-  margin: 14px auto 0;
-  background: var(--bs-green);
-  border-radius: 10px;
-}
-
-/* Logo */
-.logo-wrapper {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-bottom: 2rem;
-}
-
-.landing-logo {
-  width: 200px;
-  height: auto;
-  opacity: 0.9;
-  transition: transform 0.3s ease;
-}
-
-.landing-logo:hover {
-  transform: scale(1.05) rotate(2deg);
-}
-
-/* Glassmorphism Card */
-.landing-card {
-  background: rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-radius: 1.5rem;
-  padding: 2.5rem 2rem;
-  min-width: 350px;
-  max-width: 450px;
-  text-align: center;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
-  animation: fadeInUp 0.8s ease-out;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-}
-
-.landing-title {
-  font-size: 2rem;
-  font-weight: 700;
-  color: #222;
-  margin-bottom: 0.5rem;
-}
-
-.landing-subtitle {
-  font-size: 1rem;
-  color: #444;
-  margin-bottom: 2rem;
-}
-
-/* Buttons */
-.landing-buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.landing-btn {
-  padding: 0.9rem 1rem;
-  font-size: 1rem;
-  font-weight: 600;
-  border: none;
-  border-radius: 1rem;
-  cursor: pointer;
-  transition: transform 0.25s, box-shadow 0.25s;
-  background-size: 200% auto;
-  color: white;
-}
-
-.landing-btn:hover {
-  transform: translateY(-3px) scale(1.05);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
-}
-
-/* Gradient Buttons */
-.login-btn {
-  background-image: linear-gradient(45deg, #2563eb, #4f46e5);
-}
-
-.chairman-btn {
-  background-image: linear-gradient(45deg, #16a34a, #22c55e);
-}
-
-/* Animation */
-@keyframes fadeInUp {
-  from { transform: translateY(40px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
+  width: 100%;
+  z-index: 100;
 }
 
 /* ================= NOTICE TICKER ================= */
-
 .notice-ticker {
-  position: relative;
   width: 100%;
+  height: 48px;
+  /* fixed height for offset */
+  position: relative;
   overflow: hidden;
+  padding: 12px 150px 12px 0;
 
-  /* reserve space for View all */
-  padding: 12px 140px 12px 0;
+  background: linear-gradient(90deg,
+      #003973,
+      #005aa7,
+      #003973);
 
-  background: linear-gradient(90deg, #003973, #005aa7, #003973);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
 }
 
-/* Sliding notice text */
 .notice-text {
-  position: relative;
-  display: inline-block;
   white-space: nowrap;
-
-  font-size: 16px;
+  font-size: 15px;
   color: #ffffff;
-
-  /* start AFTER the View all button */
-  padding-left: calc(100% - 120px);
-
+  padding-left: calc(100% - 130px);
   animation: tickerMove 18s linear infinite;
 }
 
-/* Highlight title */
 .notice-text strong {
   color: #ffeb3b;
 }
 
-/* ================= VIEW ALL (FIXED) ================= */
-
+/* View All Button */
 .view-all-link {
   position: absolute;
-  /* KEY FIX */
-  right: 20px;
+  right: 18px;
   top: 50%;
   transform: translateY(-50%);
 
   padding: 4px 14px;
   border-radius: 20px;
+
   background: #ffffff;
   color: #003973;
-  font-weight: 600;
-  font-size: 14px;
-  cursor: pointer;
 
-  white-space: nowrap;
-  z-index: 10;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
 
   transition: all 0.25s ease;
 }
 
-/* Hover */
 .view-all-link:hover {
   background: #ffeb3b;
-  color: #000;
   transform: translateY(-50%) scale(1.05);
 }
 
-/* ================= ANIMATION ================= */
+/* ================= NAVBAR ================= */
+.landing-navbar {
+  position: sticky;
+  top: 48px;
+  /* sits under notice */
+  width: 100%;
+  height: 64px;
 
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 40px;
+
+  background: linear-gradient(90deg,
+      #ffffff 0%,
+      #eef6ff 45%,
+      #dbeafe 100%);
+
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.12);
+  z-index: 90;
+}
+
+/* LEFT SIDE */
+.nav-left {
+  display: flex;
+  align-items: center;
+}
+
+.nav-logo {
+  height: 42px;
+  cursor: pointer;
+}
+
+/* RIGHT SIDE */
+.nav-links {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 30px;
+  margin: 0;
+  padding: 0;
+}
+
+/* ================= PILL NAV CONTAINER ================= */
+/* ================= PILL NAV CONTAINER ================= */
+.pill-nav {
+  display: flex;
+  align-items: center;
+
+  background: linear-gradient(135deg,
+      rgba(255, 255, 255, 0.96),
+      rgba(219, 234, 254, 0.96));
+
+  padding: 6px;
+  border-radius: 999px;
+
+  box-shadow:
+    0 10px 22px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+/* ================= PILL ITEM ================= */
+.pill-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+/* ================= PILL BUTTON (DEFAULT STATE) ================= */
+.pill-btn {
+  padding: 8px 18px;
+  border-radius: 999px;
+
+  font-size: 14px;
+  font-weight: 700;
+  /* bold */
+  letter-spacing: 0.3px;
+
+  color: #0b3c5d;
+  /* dark navy blue */
+  background-color: transparent;
+
+  cursor: pointer;
+  white-space: nowrap;
+
+  transition:
+    background-color 0.25s ease,
+    color 0.25s ease,
+    box-shadow 0.25s ease,
+    transform 0.2s ease;
+}
+
+/* ================= HOVER STATE ================= */
+.pill-btn:hover {
+  background-color: #0b3c5d;
+  /* dark navy blue */
+  color: #ffffff;
+  /* white text */
+
+  box-shadow:
+    0 6px 14px rgba(11, 60, 93, 0.35);
+}
+
+/* ================= ACTIVE CLICK FEEDBACK ================= */
+.pill-btn:active {
+  transform: translateY(0);
+  box-shadow:
+    inset 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* ================= DIVIDER ================= */
+.pill-divider {
+  width: 1px;
+  height: 22px;
+  background: rgba(255, 255, 255, 0.25);
+  margin: 0 4px;
+}
+
+
+/* ================= TICKER ANIMATION ================= */
 @keyframes tickerMove {
-  0% {
+  from {
     transform: translateX(0);
   }
 
-  100% {
+  to {
     transform: translateX(-100%);
   }
 }
 
-/* ================= APPLY ADMISSION CARD ================= */
+/* ================= DROPDOWN (BASE) ================= */
+.dropdown {
+  position: relative;
+}
 
-.apply-admission-card {
+/* Invisible hover bridge (prevents flicker) */
+.dropdown::before {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  height: 12px;
+}
+
+/* ================= DROPDOWN MENU (PILL STYLE) ================= */
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+
+  min-width: 220px;
+
   background: #ffffff;
-  border: 2px solid #0d6efd;
   border-radius: 12px;
-  padding: 25px;
-  margin: 30px auto;
-  max-width: 420px;
-  text-align: center;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+
+  box-shadow:
+    0 12px 30px rgba(0, 0, 0, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+
+  display: none;
+  z-index: 9999;
+  overflow: hidden;
 }
 
-.apply-admission-card h2 {
-  color: #0d6efd;
-  margin-bottom: 10px;
+/* Show dropdown on hover */
+.dropdown:hover .dropdown-menu,
+.dropdown-menu:hover {
+  display: block;
 }
 
-.apply-admission-card p {
-  font-size: 15px;
-  color: #444;
-  margin-bottom: 20px;
-}
+/* ================= DROPDOWN ITEMS ================= */
+.dropdown-menu li {
+  padding: 12px 18px;
 
-.apply-btn {
-  background-color: #0d6efd;
-  color: #fff;
-  border: none;
-  padding: 12px 30px;
-  font-size: 16px;
-  border-radius: 25px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #111827;
+
   cursor: pointer;
-  transition: all 0.3s ease;
+  white-space: nowrap;
+
+  transition: background-color 0.15s ease;
 }
 
-.apply-btn:hover {
-  background-color: #084298;
-  transform: translateY(-2px);
+.dropdown-menu li:hover {
+  background-color: #f3f4f6;
+}
+
+/* Disabled item */
+.dropdown-menu .disabled {
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.dropdown-menu .disabled:hover {
+  background-color: transparent;
+}
+
+/* ================= MAIN TITLE ================= */
+.landing-main-title {
+  margin: 28px 0 22px;
+  /* perfect spacing */
+  padding: 10px 20px;
+
+  font-size: clamp(2.2rem, 3.5vw, 2.8rem);
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  line-height: 1.2;
+
+  text-align: center;
+  color: #0b3c5d;
+  /* deep academic blue */
+
+  position: relative;
+}
+
+/* Elegant underline accent */
+.landing-main-title::after {
+  content: "";
+  display: block;
+
+  width: 110px;
+  height: 4px;
+  margin: 14px auto 0;
+
+  background: linear-gradient(90deg,
+      #2563eb,
+      #22c55e,
+      #2563eb);
+
+  border-radius: 999px;
+}
+
+/* Soft separator glow (very subtle, classy) */
+.landing-main-title::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -18px;
+  transform: translateX(-50%);
+
+  width: 260px;
+  height: 1px;
+
+  background: radial-gradient(circle,
+      rgba(37, 99, 235, 0.35),
+      transparent 70%);
+}
+
+/* ================= LOGO ================= */
+.logo-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 25px 0 40px;
+}
+
+.landing-logo {
+  width: 200px;
+  opacity: 0.92;
+  transition: transform 0.3s ease;
+}
+
+.landing-logo:hover {
+  transform: scale(1.06) rotate(1.5deg);
+}
+
+/* ================= ANIMATION ================= */
+@keyframes tickerMove {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+/* ================= SLIDER ================= */
+.slider-container {
+  position: relative;
+  width: 95%;
+  max-width: 1400px;
+  height: 520px;
+  margin: 40px auto 70px;
+  overflow: hidden;
+  border-radius: 22px;
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.25);
+}
+
+.slider-track {
+  display: flex;
+  height: 100%;
+  transition: transform 0.9s ease-in-out;
+}
+
+.slider-track.no-transition {
+  transition: none !important;
+}
+
+.slider-track img {
+  min-width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ================= ARROWS ================= */
+.slider-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+
+  background: rgba(255, 255, 255, 0.75);
+  border: none;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+
+  font-size: 32px;
+  font-weight: bold;
+  cursor: pointer;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  transition: background 0.25s ease, transform 0.2s ease;
+}
+
+.slider-arrow:hover {
+  background: #ffffff;
+  transform: translateY(-50%) scale(1.1);
+}
+
+.slider-arrow.left {
+  left: 20px;
+}
+
+.slider-arrow.right {
+  right: 20px;
 }

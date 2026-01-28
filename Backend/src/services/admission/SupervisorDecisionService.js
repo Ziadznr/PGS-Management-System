@@ -1,53 +1,106 @@
 const AdmissionApplicationModel =
   require("../../models/Admission/AdmissionApplicationModel");
-const SendEmailUtility = require("../../utility/SendEmailUtility");
+const SendEmailUtility =
+  require("../../utility/SendEmailUtility");
+const UsersModel =
+  require("../../models/Users/UsersModel");
 
 const SupervisorDecisionService = async (req) => {
   try {
-    const { applicationId, decision, remarks } = req.body;
-    const supervisorId = req.user.id;
+    /* ================= AUTH ================= */
+    const supervisorSession = req.user;
 
-    // ================= 1️⃣ VALIDATE DECISION =================
+    if (!supervisorSession || supervisorSession.role !== "Supervisor") {
+      return { status: "fail", data: "Unauthorized access" };
+    }
+
+    const supervisorId = supervisorSession?.id?.toString();
+
+    if (!supervisorId) {
+      return {
+        status: "fail",
+        data: "Supervisor ID missing from session"
+      };
+    }
+
+    /* ================= LOAD SUPERVISOR SNAPSHOT ================= */
+    const supervisor = await UsersModel
+      .findById(supervisorId)
+      .select("name email role");
+
+    if (!supervisor) {
+      return {
+        status: "fail",
+        data: "Supervisor account not found"
+      };
+    }
+
+    const { applicationId, decision, remarks } = req.body;
+
+    /* ================= VALIDATE DECISION ================= */
     if (!["Approve", "Reject"].includes(decision)) {
       return { status: "fail", data: "Invalid decision" };
     }
 
-    // ================= 2️⃣ FIND APPLICATION =================
-    const application = await AdmissionApplicationModel.findOne({
-      _id: applicationId,
-      supervisor: supervisorId,
-      applicationStatus: "Submitted"
-    }).populate([
-      { path: "department", select: "name" },
-      { path: "supervisor", select: "name email" }
-    ]);
+    /* ================= FIND APPLICATION ================= */
+    const application = await AdmissionApplicationModel
+      .findById(applicationId)
+      .populate("supervisor", "name email");
 
     if (!application) {
+      return { status: "fail", data: "Application not found" };
+    }
+
+    if (application.applicationStatus !== "Submitted") {
       return {
         status: "fail",
-        data: "Application not found or already processed"
+        data: "Application already processed"
       };
     }
 
-    // ================= 3️⃣ UPDATE STATUS =================
-    const finalStatus =
+    /* ================= VERIFY SUPERVISOR ================= */
+    const appSupervisorId =
+      application.supervisor?._id
+        ? application.supervisor._id.toString()
+        : application.supervisor?.toString();
+
+    if (!appSupervisorId) {
+      return {
+        status: "fail",
+        data: "Application supervisor missing"
+      };
+    }
+
+    if (appSupervisorId !== supervisorId) {
+      return {
+        status: "fail",
+        data: "You are not assigned as supervisor for this application"
+      };
+    }
+
+    /* ================= UPDATE STATUS ================= */
+    application.applicationStatus =
       decision === "Approve"
         ? "SupervisorApproved"
         : "SupervisorRejected";
 
-    application.applicationStatus = finalStatus;
-
-    // ================= 4️⃣ LOG DECISION =================
+    /* ================= APPROVAL LOG (IMMUTABLE SNAPSHOT) ================= */
     application.approvalLog.push({
       role: "Supervisor",
-      approvedBy: supervisorId,
+
+      approvedBy: supervisor._id,
+      approvedByName: supervisor.name,
+      approvedByEmail: supervisor.email,
+      approvedByRoleAtThatTime: supervisor.role,
+
       decision: decision === "Approve" ? "Approved" : "Rejected",
-      remarks
+      remarks: remarks || "",
+      decidedAt: new Date()
     });
 
     await application.save();
 
-    // ================= 5️⃣ EMAIL APPLICANT =================
+    /* ================= EMAIL ================= */
     const emailSubject =
       decision === "Approve"
         ? "PGS Application Approved by Supervisor"
@@ -59,7 +112,7 @@ const SupervisorDecisionService = async (req) => {
 Dear ${application.applicantName},
 
 Your application (Application No: ${application.applicationNo})
-has been approved by your selected supervisor.
+has been approved by your supervisor.
 
 It will now be reviewed by the Department Chairman.
 
@@ -86,7 +139,7 @@ PGS Admission Office
       emailSubject
     );
 
-    // ================= 6️⃣ RESPONSE =================
+    /* ================= RESPONSE ================= */
     return {
       status: "success",
       data: {

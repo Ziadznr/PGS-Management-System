@@ -18,7 +18,7 @@ const UserSendOTP = () => {
     const result = await UserRecoverVerifyEmailRequest(email);
 
     if (result === true) {
-      navigate("/user/verify-otp"); // ✅ user OTP page
+      navigate("/users/verify-otp"); // ✅ user OTP page
     }
   };
 

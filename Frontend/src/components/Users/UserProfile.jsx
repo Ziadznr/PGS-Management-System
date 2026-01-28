@@ -17,6 +17,7 @@ const UserProfile = () => {
 
   const [form, setForm] = useState({
     name: "",
+    nameExtension: "",
     email: "",
     phone: "",
     role: "",
@@ -68,6 +69,7 @@ const UserProfile = () => {
 
     // NORMAL PROFILE UPDATE
     if (IsEmpty(form.name)) return ErrorToast("Name Required");
+    if (IsEmpty(form.nameExtension)) return ErrorToast("Name Extension Required");
     if (!IsMobile(form.phone)) return ErrorToast("Valid Mobile Required");
     if (!IsEmail(form.email)) return ErrorToast("Valid Email Required");
 
@@ -95,6 +97,14 @@ const UserProfile = () => {
             value={form.name}
             disabled={form.isFirstLogin}
             onChange={(e) => handleChange("name", e.target.value)}
+          />
+          {/* NAME EXTENTION */}
+          <input
+            className="form-control mb-3"
+            placeholder="Name Extension"
+            value={form.nameExtension}
+            disabled={form.isFirstLogin}
+            onChange={(e) => handleChange("nameExtension", e.target.value)}
           />
 
           {/* PHONE */}

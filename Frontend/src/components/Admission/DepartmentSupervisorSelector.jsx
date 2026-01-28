@@ -56,7 +56,7 @@ const DepartmentSupervisorSelector = ({
     <>
       {/* ================= DEPARTMENT ================= */}
       <div className="mb-3">
-        <label className="form-label">Department</label>
+        <h5 className="form-label">3. Department</h5>
         <select
           className="form-control"
           value={formData.department}
@@ -105,7 +105,7 @@ const DepartmentSupervisorSelector = ({
 
       {/* ================= SUPERVISOR ================= */}
       <div className="mb-3">
-        <label className="form-label">Supervisor</label>
+        <h5 className="form-label">4. Supervisor</h5>
         <select
           className="form-control"
           value={formData.supervisor}
@@ -123,7 +123,7 @@ const DepartmentSupervisorSelector = ({
           <option value="">Select Supervisor</option>
           {supervisors.map((s) => (
             <option key={s._id} value={s._id}>
-              {s.name}
+              {s.nameExtension} {s.name}
               {/* {s.subject ? ` (${s.subject})` : ""} */}
             </option>
           ))}

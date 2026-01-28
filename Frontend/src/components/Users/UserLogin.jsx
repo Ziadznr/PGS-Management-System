@@ -86,7 +86,7 @@ const SubmitLogin = async () => {
                   Sign Up
                 </Link>
                 |
-                <Link className="h6 ms-3" to="/users/recover/email">
+                <Link className="h6 ms-3" to="/users/send-otp">
                   Forgot Password
                 </Link>
               </div>

@@ -3,29 +3,13 @@ const bcrypt = require("bcryptjs");
 
 const UsersSchema = new mongoose.Schema(
   {
-    /* ================= BASIC INFO ================= */
-    name: {
-      type: String,
-      required: true,
-      trim: true
-    },
-
-    nameExtension: {
-      type: String,
-      required: true,
-      trim: true
-    },
-
-    phone: {
-      type: String,
-      required: true,
-      trim: true
-    },
+    name: { type: String, required: true, trim: true },
+    nameExtension: { type: String, required: true, trim: true },
+    phone: { type: String, required: true, trim: true },
 
     email: {
       type: String,
       required: true,
-      unique: true,
       lowercase: true,
       trim: true,
       match: [/^\S+@\S+\.\S+$/, "Please use a valid email address"]
@@ -37,41 +21,16 @@ const UsersSchema = new mongoose.Schema(
       select: false
     },
 
-    photo: {
-      type: String,
-      default: ""
-    },
+    photo: { type: String, default: "" },
 
-    /* ================= ROLE ================= */
     role: {
       type: String,
       enum: ["Dean", "Chairman", "Supervisor", "Student"],
       required: true
     },
 
-    /* ================= STATUS & TENURE ================= */
-    isActive: {
-      type: Boolean,
-      default: true
-    },
+    isActive: { type: Boolean, default: true },
 
-    deactivatedAt: {
-      type: Date,
-      default: null
-    },
-
-    tenure: {
-      startDate: {
-        type: Date,
-        default: Date.now
-      },
-      endDate: {
-        type: Date,
-        default: null
-      }
-    },
-
-    /* ================= DEPARTMENT ================= */
     department: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "departments",
@@ -80,51 +39,55 @@ const UsersSchema = new mongoose.Schema(
       }
     },
 
-    /* ================= SUBJECT (SUPERVISOR ONLY) ================= */
     subject: {
       type: String,
-      default: null
+      default: null,
+      required: function () {
+        return this.role === "Supervisor";
+      }
     },
 
-    /* ================= ACCOUNT ORIGIN ================= */
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "admins",
       default: null
     },
 
-    isSelfRegistered: {
-      type: Boolean,
-      default: false
-    },
-
-    isEnrolled: {
-      type: Boolean,
-      default: false
-    },
-
-    /* ================= SECURITY ================= */
-    isFirstLogin: {
-      type: Boolean,
-      default: true
-    },
+    isSelfRegistered: { type: Boolean, default: false },
+    isEnrolled: { type: Boolean, default: false },
+    isFirstLogin: { type: Boolean, default: true },
 
     passwordResetToken: String,
     passwordResetExpires: Date,
 
-    /* ================= META ================= */
-    createdAt: {
-      type: Date,
-      default: Date.now
-    }
+    createdAt: { type: Date, default: Date.now }
   },
   { versionKey: false }
 );
 
 /* ================= PASSWORD HASH ================= */
 UsersSchema.pre("save", async function () {
-    if (!this.isModified("password")) return;
-    this.password = await bcrypt.hash(this.password, 10);
+  if (!this.isModified("password")) return;
+  this.password = await bcrypt.hash(this.password, 10);
 });
+
+/* ================= DB CONSTRAINTS ================= */
+UsersSchema.index(
+  { email: 1, role: 1, department: 1 },
+  { unique: true, partialFilterExpression: { isActive: true } }
+);
+
+UsersSchema.index(
+  { role: 1 },
+  { unique: true, partialFilterExpression: { role: "Dean", isActive: true } }
+);
+
+UsersSchema.index(
+  { role: 1, department: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { role: "Chairman", isActive: true }
+  }
+);
 
 module.exports = mongoose.model("users", UsersSchema);

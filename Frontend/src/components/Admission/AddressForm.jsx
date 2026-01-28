@@ -69,7 +69,7 @@ const AddressForm = ({ formData, setFormData }) => {
     <>
       {/* ================= PRESENT ADDRESS ================= */}
       <AddressFields
-        title="Present Address"
+        title="6. Present Address"
         address={formData.presentAddress || emptyAddress}
         onChange={handlePresentChange}
       />
@@ -98,7 +98,7 @@ const AddressForm = ({ formData, setFormData }) => {
       {/* ================= PERMANENT ADDRESS ================= */}
       {!sameAsPresent && (
         <AddressFields
-          title="Permanent Address"
+          title="7. Permanent Address"
           address={formData.permanentAddress || emptyAddress}
           onChange={addr =>
             setFormData({ ...formData, permanentAddress: addr })
@@ -108,7 +108,7 @@ const AddressForm = ({ formData, setFormData }) => {
 
       {/* ================= CONTACT INFO ================= */}
       <div className="card p-3 mt-3">
-        <h6 className="mb-2">Contact Information</h6>
+        <h5 className="mb-2">8. Contact Information</h5>
 
         <input
           type="text"
