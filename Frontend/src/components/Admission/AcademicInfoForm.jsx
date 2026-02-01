@@ -18,9 +18,15 @@ const AcademicInfoForm = ({ formData, setFormData }) => {
   /* =================================================
      RENDER ACADEMIC BLOCK (WITH CGPA VALIDATION)
   ================================================= */
-  const renderAcademicBlock = (level, scale) => {
+  const renderAcademicBlock = (level, scale, minCGPA = null) => {
     const existing =
       academicRecords.find(r => r.examLevel === level) || {};
+
+    const cgpaNum = Number(existing.cgpa);
+    const showMinWarning =
+      minCGPA !== null &&
+      !isNaN(cgpaNum) &&
+      cgpaNum < minCGPA;
 
     return (
       <div className="border rounded p-3 mb-3">
@@ -72,7 +78,6 @@ const AcademicInfoForm = ({ formData, setFormData }) => {
           onChange={e => {
             const value = e.target.value;
 
-            // allow empty while typing
             if (value === "") {
               upsertRecord({
                 ...existing,
@@ -85,8 +90,6 @@ const AcademicInfoForm = ({ formData, setFormData }) => {
             }
 
             const num = Number(value);
-
-            // block invalid CGPA
             if (isNaN(num) || num < 0 || num > scale) return;
 
             upsertRecord({
@@ -100,9 +103,16 @@ const AcademicInfoForm = ({ formData, setFormData }) => {
           required
         />
 
-        <small className="text-muted">
+        <small className="text-muted d-block">
           Maximum allowed CGPA: {scale.toFixed(2)}
         </small>
+
+        {/* ✅ MIN CGPA WARNING */}
+        {showMinWarning && (
+          <small className="text-danger">
+            Minimum required CGPA for {program} is {minCGPA}
+          </small>
+        )}
       </div>
     );
   };
@@ -118,19 +128,17 @@ const AcademicInfoForm = ({ formData, setFormData }) => {
       {renderAcademicBlock("SSC", 5)}
       {renderAcademicBlock("HSC", 5)}
 
-      {/* Bachelor Degree (Always Required) */}
+      {/* Bachelor Degree (MIN CGPA = 2.25 for MS/MBA/LLM) */}
       {program === "LLM"
-        ? renderAcademicBlock("LLB", 4)
+        ? renderAcademicBlock("LLB", 4, ["MS", "MBA", "LLM"].includes(program) ? 2.25 : null)
         : program === "MBA"
-        ? renderAcademicBlock("BBA", 4)
-        : renderAcademicBlock("BSc", 4)}
+        ? renderAcademicBlock("BBA", 4, ["MS", "MBA", "LLM"].includes(program) ? 2.25 : null)
+        : renderAcademicBlock("BSc", 4, ["MS", "MBA", "LLM"].includes(program) ? 2.25 : null)}
 
       {/* Master Degree (ONLY for PhD Applicants) */}
       {program === "PhD" && (
         <>
-          {program === "LLM"
-            ? renderAcademicBlock("LLM", 4)
-            : renderAcademicBlock("MS", 4)}
+          {renderAcademicBlock("MS", 4)}
         </>
       )}
     </div>

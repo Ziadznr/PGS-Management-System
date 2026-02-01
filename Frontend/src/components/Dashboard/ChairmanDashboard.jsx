@@ -1,12 +1,19 @@
 import React, { useEffect, useState } from "react";
 import {
   ChairmanApplications,
-  ChairmanDecision
+  ChairmanDecision,
+  ChairmanManualSelect
 } from "../../APIRequest/AdmissionAPIRequest";
 import { ErrorToast, SuccessToast } from "../../helper/FormHelper";
+import SupervisorApplicationDetails
+  from "../Supervisor/SupervisorApplicationDetails";
+
+const AUTO_QUOTA = 3;
+const MAX_QUOTA = 5;
 
 const ChairmanDashboard = () => {
   const [applications, setApplications] = useState([]);
+  const [selectedApp, setSelectedApp] = useState(null);
   const [loading, setLoading] = useState(false);
   const [processing, setProcessing] = useState(false);
 
@@ -24,111 +31,169 @@ const ChairmanDashboard = () => {
 
   /* ================= GROUP BY SUPERVISOR ================= */
   const groupedBySupervisor = applications.reduce((acc, app) => {
-    const supName = app.supervisor || "Unknown Supervisor";
+    const supName = app.supervisor?.name || "Unknown Supervisor";
     if (!acc[supName]) acc[supName] = [];
     acc[supName].push(app);
     return acc;
   }, {});
 
-  /* ================= RUN MERIT PROCESS ================= */
+  /* ================= RUN MERIT ================= */
   const handleMeritProcess = async () => {
     setProcessing(true);
     const ok = await ChairmanDecision();
     setProcessing(false);
 
     if (ok) {
-      SuccessToast("Merit selection completed successfully");
+      SuccessToast("Merit processed successfully");
       await loadApplications();
     } else {
       ErrorToast("Merit processing failed");
     }
   };
 
+  /* ================= MANUAL SELECT ================= */
+  const handleManualSelect = async (applicationId) => {
+    const confirm = window.confirm(
+      "Are you sure you want to select this applicant?"
+    );
+    if (!confirm) return;
+
+    const ok = await ChairmanManualSelect(applicationId);
+
+    if (ok) {
+      SuccessToast("Applicant selected successfully");
+      await loadApplications();
+    } else {
+      ErrorToast("Manual selection failed");
+    }
+  };
+
   /* ================= UI ================= */
   return (
     <div className="container mt-4">
-      <h4 className="mb-2">Chairman Panel</h4>
+      <h4 className="mb-2">🏛 Chairman Panel</h4>
       <p className="text-muted">
-        Supervisor-wise merit list (Top 10 per supervisor auto selected)
+        Top {AUTO_QUOTA} auto selected. Rank {AUTO_QUOTA + 1}–{MAX_QUOTA} can be manually selected.
       </p>
 
-      {/* 🔘 RUN MERIT BUTTON */}
+      {/* ===== RUN MERIT BUTTON ===== */}
       <button
         className="btn btn-primary mb-3"
         onClick={handleMeritProcess}
         disabled={processing}
       >
-        {processing
-          ? "Processing Merit List..."
-          : "Run Merit Selection"}
+        {processing ? "Processing..." : "Run Merit Selection"}
       </button>
 
-      {/* Loading */}
       {loading && <p>Loading applications...</p>}
 
-      {/* Empty */}
-      {!loading && applications.length === 0 && (
-        <p className="text-muted">No applications found</p>
-      )}
-
-      {/* Supervisor-wise Tables */}
       {!loading &&
         Object.entries(groupedBySupervisor).map(
-          ([supervisorName, apps], idx) => (
-            <div key={idx} className="mb-4">
-              <h6 className="fw-bold mb-2">
-                Supervisor: {supervisorName}
-              </h6>
+          ([supervisorName, apps], idx) => {
 
-              <div className="table-responsive">
-                <table className="table table-bordered table-hover align-middle">
-                  <thead className="table-light">
-                    <tr>
-                      <th>#</th>
-                      <th>Applicant</th>
-                      <th>Program</th>
-                      <th>Mobile</th>
-                      <th>Merit Points</th>
-                      <th>Rank</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
+            const selectedCount = apps.filter(
+              a => a.applicationStatus === "ChairmanSelected"
+            ).length;
 
-                  <tbody>
-                    {apps.map((app, index) => {
-                      const status =
-                        app.previewStatus || app.applicationStatus;
+            return (
+              <div key={idx} className="mb-4">
+                <h6 className="fw-bold mb-2">
+                  Supervisor: {supervisorName}
+                </h6>
 
-                      const isSelected =
-                        status === "ChairmanSelected";
+                <div className="table-responsive">
+                  <table className="table table-bordered align-middle">
+                    <thead className="table-light">
+                      <tr>
+                        <th>#</th>
+                        <th>Applicant</th>
+                        <th>Program</th>
+                        <th>Merit</th>
+                        <th>Rank</th>
+                        <th>Status</th>
+                        <th>Extra Select</th>
+                        <th style={{ width: 90 }}>View</th>
+                      </tr>
+                    </thead>
 
-                      return (
-                        <tr key={app._id}>
-                          <td>{index + 1}</td>
-                          <td>{app.applicantName}</td>
-                          <td>{app.program}</td>
-                          <td>{app.mobile}</td>
-                          <td>{app.academicQualificationPoints || 0}</td>
-                          <td>{app.supervisorRank}</td>
-                          <td>
-                            <span
-                              className={`badge ${
-                                isSelected
-                                  ? "bg-success"
-                                  : "bg-warning"
-                              }`}
-                            >
-                              {status}
-                            </span>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                    <tbody>
+                      {apps.map(app => {
+                        const rank = app.supervisorRank;
+
+                        const isExtraEligible =
+  app.applicationStatus === "ChairmanWaiting" &&
+  rank > AUTO_QUOTA &&
+  rank <= MAX_QUOTA;
+
+                        return (
+                          <tr key={app._id}>
+                            <td>{rank}</td>
+                            <td>{app.applicantName}</td>
+                            <td>{app.program}</td>
+                            <td>{app.academicQualificationPoints}</td>
+                            <td>{rank}</td>
+
+                            {/* ===== STATUS ===== */}
+                            <td>
+                              <span
+                                className={`badge ${
+                                  app.applicationStatus === "ChairmanSelected"
+                                    ? "bg-success"
+                                    : "bg-warning"
+                                }`}
+                              >
+                                {app.applicationStatus === "ChairmanSelected"
+                                  ? "Auto Selected"
+                                  : "Waiting"}
+                              </span>
+                            </td>
+
+                            {/* ===== EXTRA SELECT ===== */}
+                            <td className="text-center">
+                              {isExtraEligible ? (
+                                <button
+                                  className="btn btn-success btn-sm"
+                                  onClick={() =>
+                                    handleManualSelect(app._id)
+                                  }
+                                >
+                                  Select
+                                </button>
+                              ) : (
+                                "—"
+                              )}
+                            </td>
+
+                            {/* ===== VIEW ===== */}
+                            <td className="text-center">
+                              <button
+                                className="btn btn-info btn-sm"
+                                onClick={() => setSelectedApp(app)}
+                              >
+                                View
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                <small className="text-muted">
+                  Selected: {selectedCount} / {MAX_QUOTA}
+                </small>
+
+                {/* ===== DETAILS MODAL ===== */}
+                {selectedApp && (
+                  <SupervisorApplicationDetails
+                    app={selectedApp}
+                    onClose={() => setSelectedApp(null)}
+                  />
+                )}
               </div>
-            </div>
-          )
+            );
+          }
         )}
     </div>
   );

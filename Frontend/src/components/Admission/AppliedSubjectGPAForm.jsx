@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from "react";
 
-const MIN_CGPA = 2.75;
+const MIN_CGPA = 2.50;
 
 // ✔ Department code (A–Z) + exactly 3 digits
 const COURSE_CODE_REGEX = /^[A-Z]+[0-9]{3}$/;
@@ -39,16 +39,32 @@ const AppliedSubjectGPAForm = ({ formData, setFormData }) => {
   }, [appliedSubjectCourses]);
 
   /* =================================================
-     SYNC CGPA & ELIGIBILITY
+     TOTAL APPLIED SUBJECT CREDIT HOUR
+  ================================================= */
+  const totalAppliedCreditHour = useMemo(() => {
+    return appliedSubjectCourses.reduce((sum, c) => {
+      const credit = Number(c.creditHour);
+      return !Number.isNaN(credit) && credit > 0
+        ? sum + credit
+        : sum;
+    }, 0);
+  }, [appliedSubjectCourses]);
+
+  /* =================================================
+     SYNC CGPA & CREDIT TOTALS
   ================================================= */
   useEffect(() => {
     setFormData(prev => ({
       ...prev,
       calculatedCGPA: computedCGPA,
+      totalCreditHourAppliedSubject:
+        totalAppliedCreditHour > 0
+          ? Number(totalAppliedCreditHour.toFixed(2))
+          : null,
       isEligibleByCGPA:
         computedCGPA === null ? true : computedCGPA >= MIN_CGPA
     }));
-  }, [computedCGPA, setFormData]);
+  }, [computedCGPA, totalAppliedCreditHour, setFormData]);
 
   /* =================================================
      HANDLERS
@@ -91,7 +107,6 @@ const AppliedSubjectGPAForm = ({ formData, setFormData }) => {
       [field]: value
     };
 
-    // auto calculate GP × Credit
     const credit = Number(updatedCourse.creditHour);
     const grade = Number(updatedCourse.gradePoint);
 
@@ -123,6 +138,45 @@ const AppliedSubjectGPAForm = ({ formData, setFormData }) => {
         <strong>Minimum required CGPA: {MIN_CGPA}</strong>
       </p>
 
+      {/* ================= CREDIT INPUTS ================= */}
+      <div className="row mb-3">
+        <div className="col-md-4">
+          <label className="form-label fw-bold">
+            Bachelor (BSc/BBA/LLB) Total Credit Hour
+          </label>
+          <input
+            type="number"
+            min="0"
+            step="1"
+            className="form-control"
+            placeholder="e.g. 140"
+            value={formData.totalCreditHourBachelor || ""}
+            onChange={e =>
+              setFormData(prev => ({
+                ...prev,
+                totalCreditHourBachelor: e.target.value
+                  ? Number(e.target.value)
+                  : null
+              }))
+            }
+            required
+          />
+        </div>
+
+        <div className="col-md-4">
+          <label className="form-label fw-bold">
+            Applied Subject Total Credit Hour
+          </label>
+          <input
+            type="number"
+            className="form-control"
+            value={totalAppliedCreditHour.toFixed(2)}
+            disabled
+          />
+        </div>
+      </div>
+
+      {/* ================= COURSE LIST ================= */}
       {appliedSubjectCourses.map((course, index) => {
         const isCodeValid =
           course.courseCode === "" ||
@@ -130,7 +184,6 @@ const AppliedSubjectGPAForm = ({ formData, setFormData }) => {
 
         return (
           <div key={course.id || index} className="row g-2 mb-2">
-            {/* COURSE CODE */}
             <div className="col-md-3">
               <input
                 className={`form-control ${
@@ -150,7 +203,6 @@ const AppliedSubjectGPAForm = ({ formData, setFormData }) => {
               )}
             </div>
 
-            {/* COURSE TITLE */}
             <div className="col-md-3">
               <input
                 className="form-control"
@@ -163,7 +215,6 @@ const AppliedSubjectGPAForm = ({ formData, setFormData }) => {
               />
             </div>
 
-            {/* CREDIT HOUR */}
             <div className="col-md-2">
               <input
                 type="number"
@@ -179,7 +230,6 @@ const AppliedSubjectGPAForm = ({ formData, setFormData }) => {
               />
             </div>
 
-            {/* GRADE POINT */}
             <div className="col-md-2">
               <input
                 type="number"
@@ -187,7 +237,7 @@ const AppliedSubjectGPAForm = ({ formData, setFormData }) => {
                 min="0"
                 max="4"
                 className="form-control"
-                placeholder="Grade"
+                placeholder="Grade Point"
                 value={course.gradePoint}
                 onChange={e =>
                   updateCourse(index, "gradePoint", e.target.value)
@@ -196,7 +246,6 @@ const AppliedSubjectGPAForm = ({ formData, setFormData }) => {
               />
             </div>
 
-            {/* REMOVE */}
             <div className="col-md-2">
               <button
                 type="button"
@@ -218,7 +267,22 @@ const AppliedSubjectGPAForm = ({ formData, setFormData }) => {
         + Add Course
       </button>
 
-      {/* ================= RESULT ================= */}
+      {/* ================= CREDIT SUMMARY ================= */}
+      <div className="alert alert-secondary mt-3">
+        <strong>Credit Summary</strong>
+        <ul className="mb-0">
+          <li>
+            Bachelor Credit Hour:{" "}
+            <strong>{formData.totalCreditHourBachelor || "—"}</strong>
+          </li>
+          <li>
+            Applied Subject Credit Hour:{" "}
+            <strong>{totalAppliedCreditHour.toFixed(2)}</strong>
+          </li>
+        </ul>
+      </div>
+
+      {/* ================= CGPA RESULT ================= */}
       {computedCGPA !== null && (
         <div
           className={`alert mt-3 text-center ${

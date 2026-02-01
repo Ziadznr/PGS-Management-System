@@ -82,7 +82,7 @@ const AppliedSubjectCourseSchema = new mongoose.Schema({
   },
 
   // auto-calculated (GP × CH)
-  gpXch: {
+  gpXch: { 
     type: Number,
     default: 0
   }
@@ -262,6 +262,11 @@ const AdmissionApplicationSchema = new mongoose.Schema({
     default: null
   },
 
+isEligibleByCGPA: {          
+  type: Boolean,
+  default: true
+},
+
   // set by Chairman
   academicQualificationPoints: {
     type: Number,
@@ -330,7 +335,7 @@ const AdmissionApplicationSchema = new mongoose.Schema({
 
   totalDocumentSizeKB: {
     type: Number,
-    max: 30720 // 30 MB
+    max: 102400 // 100 MB
   },
 
   /* ================= STATUS & FLOW ================= */
@@ -377,7 +382,12 @@ isWithinSupervisorQuota: {
    UNIQUE CONSTRAINT
 ========================================================= */
 AdmissionApplicationSchema.index(
-  { admissionSeason: 1, program: 1, email: 1 },
+  {
+    admissionSeason: 1,
+    program: 1,
+    email: 1,
+    supervisor: 1
+  },
   { unique: true }
 );
 

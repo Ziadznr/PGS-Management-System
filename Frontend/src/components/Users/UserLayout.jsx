@@ -91,6 +91,21 @@ const nameExtension = user?.nameExtension || "";
       url: "/ChairmanSupervisorsListPage"
     }
   ]
+},
+        {
+  title: "BluePrint",
+  icon: <BsPeople className="side-bar-item-icon" />,
+  subMenu: [
+    {
+      title: (
+        <span className="submenu-item">
+          <BsCircle size={8} className="submenu-dot" />
+          Application Decision
+        </span>
+      ),
+      url: "/ChairmanDecisionBlueprintListPage"
+    }
+  ]
 }
     ],
 
@@ -107,6 +122,21 @@ const nameExtension = user?.nameExtension || "";
         </span>
       ),
       url: "/DeanUsersListPage"
+    }
+  ]
+},
+ {
+  title: "Tenure",
+  icon: <BsPeople className="side-bar-item-icon" />,
+  subMenu: [
+    {
+      title: (
+        <span className="submenu-item">
+          <BsCircle size={8} className="submenu-dot" />
+          Tenure Record
+        </span>
+      ),
+      url: "/ChairmanTenurePage"
     }
   ]
 }

@@ -154,6 +154,34 @@ export async function ChairmanDecision() {
   }
 }
 
+export async function ChairmanManualSelect(applicationId) {
+  try {
+    store.dispatch(ShowLoader());
+
+    const res = await axios.post(
+      `${BaseURL}/admission/chairman/manual-select`,
+      { applicationId },
+      userHeader()
+    );
+
+    store.dispatch(HideLoader());
+
+    if (res.data?.status === "success") {
+      SuccessToast("Applicant selected successfully");
+      return true;
+    }
+
+    ErrorToast(res.data?.data || "Action failed");
+    return false;
+
+  } catch {
+    store.dispatch(HideLoader());
+    ErrorToast("Server error");
+    return false;
+  }
+}
+
+
 /* =================================================
    DEAN
 ================================================= */

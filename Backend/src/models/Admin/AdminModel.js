@@ -24,5 +24,13 @@ const DataSchema = mongoose.Schema(
   { versionKey: false }
 );
 
+DataSchema.index(
+  { role: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { role: "admin" }
+  }
+);
+
 const AdminModel = mongoose.model("admins", DataSchema);
 module.exports = AdminModel;

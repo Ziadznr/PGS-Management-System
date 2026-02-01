@@ -39,7 +39,9 @@ import SeasonRangeSetupPage from "./pages/Admission/SeasonRangeSetupPage";
 import DepartmentRangeListPage from "./pages/Admission/DepartmentRangeListPage";
 
 import DeanUsersListPage from "./pages/Dean/DeanUsersListPage";
+import ChairmanTenurePage from "./pages/Dean/ChairmanTenurePage";
 import ChairmanSupervisorsListPage from "./pages/Chairman/ChairmanSupervisorsListPage";
+import ChairmanDecisionBlueprintListPage from "./pages/Chairman/ChairmanDecisionBlueprintListPage";
 
 // Notice Page
 import NoticePage from "./pages/Notice/NoticePage";
@@ -89,7 +91,7 @@ const App = () => {
           <Route path="/registration" element={<RegistrationPage />} />
           <Route path="/send-otp" element={<SendOTPPage />} />
           <Route path="/verify-otp" element={<VerifyOTPPage />} />
-          <Route path="/create-password" element={<CreatePasswordPage />} />
+          <Route path="/CreatePassword" element={<CreatePasswordPage />} />
           <Route path="/notices" element={<PublicNoticeListPage />} />
 
           
@@ -202,6 +204,15 @@ const App = () => {
 />
 
 <Route
+  path="/ChairmanTenurePage"
+  element={
+    <UserProtectedRoute>
+      <ChairmanTenurePage />
+    </UserProtectedRoute>
+  }
+/>
+
+<Route
   path="/ChairmanSupervisorsListPage"
   element={
     <UserProtectedRoute>
@@ -210,7 +221,14 @@ const App = () => {
   }
 />
 
-
+<Route
+  path="/ChairmanDecisionBlueprintListPage"
+  element={
+    <UserProtectedRoute>
+      <ChairmanDecisionBlueprintListPage />
+    </UserProtectedRoute>
+  }
+/>
 
           {/* ---------- NOT FOUND ---------- */}
           <Route path="*" element={<NotFoundPage />} />

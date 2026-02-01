@@ -39,6 +39,6 @@ exports.RecoverVerifyOTP=async(req,res)=>{
 }
 
 exports.RecoverResetPass=async(req,res)=>{
-    let Result=await AdminResetPassService(req,OTPSModel)
+    let Result=await AdminResetPassService(req,DataModel)
     res.status(200).json(Result)
 }

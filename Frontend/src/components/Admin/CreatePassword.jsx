@@ -3,6 +3,7 @@ import { ErrorToast, IsEmpty } from "../../helper/FormHelper";
 import { RecoverResetPassRequest } from "../../APIRequest/AdminAPIRequest";
 import { getEmail, getOTP } from "../../helper/SessionHelper";
 import { useNavigate } from "react-router-dom";
+import logo from "../../assets/images/ps.png";
 
 const CreatePassword = () => {
 
@@ -31,60 +32,67 @@ const CreatePassword = () => {
             );
 
             if (result === true) {
-                navigate("/admin/login"); // ✅ correct for admin
+                navigate("/login"); // ✅ correct for admin
             }
         }
     };
 
     return (
         <Fragment>
-            <div className="container">
-                <div className="row justify-content-center">
-                    <div className="col-md-7 col-lg-6 center-screen">
-                        <div className="card p-4">
-                            <div className="card-body">
-                                <h4>SET NEW PASSWORD</h4>
-                                <br />
+  <div className="container">
+    <div className="row justify-content-center">
+      <div className="col-md-7 col-lg-6 center-screen">
+        <div className="card login-card p-4">
+          <div className="card-body text-center">
 
-                                <label>Your email address</label>
-                                <input
-                                    readOnly
-                                    value={getEmail()}
-                                    className="form-control"
-                                    type="email"
-                                />
+            {/* Logo */}
+            <img src={logo} className="login-logo" alt="Logo" />
 
-                                <br />
-                                <label>New Password</label>
-                                <input
-                                    ref={passwordRef}
-                                    placeholder="New Password"
-                                    className="form-control"
-                                    type="password"
-                                />
+            {/* Title */}
+            <h4 className="mb-2">Set New Password</h4>
+            <p className="text-muted mb-4">
+              Please create a new secure password
+            </p>
 
-                                <br />
-                                <label>Confirm Password</label>
-                                <input
-                                    ref={confirmPasswordRef}
-                                    placeholder="Confirm Password"
-                                    className="form-control"
-                                    type="password"
-                                />
+            {/* Email (readonly) */}
+            <input
+              readOnly
+              value={getEmail()}
+              className="form-control mb-3"
+              type="email"
+            />
 
-                                <br />
-                                <button
-                                    onClick={ResetPass}
-                                    className="btn w-100 btn-success"
-                                >
-                                    Next
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </Fragment>
+            {/* New Password */}
+            <input
+              ref={passwordRef}
+              placeholder="New Password"
+              className="form-control mb-3"
+              type="password"
+            />
+
+            {/* Confirm Password */}
+            <input
+              ref={confirmPasswordRef}
+              placeholder="Confirm Password"
+              className="form-control mb-4"
+              type="password"
+            />
+
+            {/* Action Button */}
+            <button
+              onClick={ResetPass}
+              className="btn login-btn w-100"
+            >
+              Update Password
+            </button>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</Fragment>
+
     );
 };
 

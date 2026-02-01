@@ -12,6 +12,8 @@ import {
   DepartmentDropdownRequest
 } from "../../APIRequest/UserAPIRequest";
 
+import logo from "../../assets/images/ps.png";
+
 // 🔒 FIXED FACULTY (PGS)
 const PGS_FACULTY_ID = "PUT_PGS_FACULTY_OBJECT_ID_HERE";
 
@@ -75,39 +77,52 @@ const UserRegistration = () => {
 
   return (
     <div className="container">
-      <h2 className="text-center mt-4">User Registration</h2>
+  <div className="row justify-content-center">
+    <div className="col-md-8 col-lg-6 center-screen">
+      <div className="card login-card p-4">
+        <div className="card-body text-center">
 
-      <div className="row mt-3">
-        <div className="col-md-6 offset-md-3">
+          {/* Logo */}
+          <img src={logo} className="login-logo" alt="Logo" />
 
+          {/* Title */}
+          <h3 className="mb-2">User Registration</h3>
+          <p className="text-muted mb-4">
+            Create your account to continue
+          </p>
+
+          {/* Full Name */}
           <input
             ref={nameRef}
-            className="form-control mt-3"
+            className="form-control mb-3"
             placeholder="Full Name"
           />
 
+          {/* Mobile Number */}
           <input
             ref={phoneRef}
-            className="form-control mt-3"
+            className="form-control mb-3"
             placeholder="Mobile Number"
           />
 
+          {/* Email */}
           <input
             ref={emailRef}
-            className="form-control mt-3"
+            className="form-control mb-3"
             placeholder="Email Address"
           />
 
+          {/* Password */}
           <input
             ref={passwordRef}
-            className="form-control mt-3"
             type="password"
+            className="form-control mb-3"
             placeholder="Password"
           />
 
-          {/* ================= ROLE ================= */}
+          {/* Role */}
           <select
-            className="form-control mt-3"
+            className="form-control mb-3"
             value={role}
             onChange={(e) => setRole(e.target.value)}
           >
@@ -118,11 +133,11 @@ const UserRegistration = () => {
             <option value="Dean">Dean</option>
           </select>
 
-          {/* ================= DEPARTMENT ================= */}
+          {/* Department (hidden for Dean) */}
           {role && role !== "Dean" && (
             <select
               ref={departmentRef}
-              className="form-control mt-3"
+              className="form-control mb-3"
             >
               <option value="">Select Department</option>
               {departments.map(d => (
@@ -133,14 +148,15 @@ const UserRegistration = () => {
             </select>
           )}
 
-          {/* ================= FACULTY (HIDDEN / FIXED) ================= */}
-          <div className="form-control mt-3 bg-light">
+          {/* Faculty (fixed) */}
+          <div className="form-control mb-4 bg-light text-start">
             Faculty: <strong>PGS</strong>
           </div>
 
+          {/* Register Button */}
           <button
             onClick={onRegister}
-            className="btn btn-success mt-4 w-100"
+            className="btn login-btn w-100"
           >
             Register
           </button>
@@ -148,6 +164,9 @@ const UserRegistration = () => {
         </div>
       </div>
     </div>
+  </div>
+</div>
+
   );
 };
 

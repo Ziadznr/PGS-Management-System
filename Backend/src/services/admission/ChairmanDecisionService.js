@@ -5,69 +5,58 @@ const SendEmailUtility =
 const UsersModel =
   require("../../models/Users/UsersModel");
 
-const MAX_PER_SUPERVISOR = 10;
+const AUTO_QUOTA = 3;
+const MAX_QUOTA = 5;
 
 /* =========================================================
-   TOTAL MERIT POINT CALCULATOR (PURE CGPA SUM)
-   Merit = SSC + HSC + Bachelor + Calculated CGPA (if applicable)
+   TOTAL MERIT POINT CALCULATOR
 ========================================================= */
 const calculateTotalMeritPoint = (application) => {
   let total = 0;
-
   const { academicRecords, program, calculatedCGPA } = application;
 
-  // SSC
   const ssc = academicRecords.find(r => r.examLevel === "SSC");
-  if (ssc) total += Number(ssc.cgpa);
+  if (ssc?.cgpa) total += Number(ssc.cgpa);
 
-  // HSC
   const hsc = academicRecords.find(r => r.examLevel === "HSC");
-  if (hsc) total += Number(hsc.cgpa);
+  if (hsc?.cgpa) total += Number(hsc.cgpa);
 
-  // Bachelor (BSc / BBA / LLB)
   const bachelor = academicRecords.find(r =>
     ["BSc", "BBA", "LLB"].includes(r.examLevel)
   );
-  if (bachelor) total += Number(bachelor.cgpa);
+  if (bachelor?.cgpa) total += Number(bachelor.cgpa);
 
-  // MS / MBA / LLM → calculated CGPA
   if (["MS", "MBA", "LLM"].includes(program) && calculatedCGPA) {
     total += Number(calculatedCGPA);
   }
 
-  return Number(total.toFixed(2)); // clean merit value
+  return Number(total.toFixed(2));
 };
 
 /* =========================================================
-   CHAIRMAN DECISION SERVICE
+   CHAIRMAN DECISION SERVICE (FINAL & SAFE)
 ========================================================= */
 const ChairmanDecisionService = async (req) => {
   try {
-    const chairmanSession = req.user;
-
-    if (!chairmanSession || chairmanSession.role !== "Chairman") {
+    /* ================= AUTH ================= */
+    if (!req.user || req.user.role !== "Chairman") {
       return { status: "fail", data: "Unauthorized access" };
     }
 
-    const chairmanId = chairmanSession?.id?.toString();
-
-    if (!chairmanId) {
-      return { status: "fail", data: "Chairman ID missing from session" };
-    }
-
-    /* ================= LOAD CHAIRMAN SNAPSHOT ================= */
-    const chairman = await UsersModel
-      .findById(chairmanId)
+    const chairman = await UsersModel.findById(req.user.id)
       .select("name email role department");
 
     if (!chairman) {
       return { status: "fail", data: "Chairman account not found" };
     }
 
-    /* ================= FETCH SUPERVISOR-APPROVED ================= */
+    /* =================================================
+       FETCH ONLY NEVER-PROCESSED APPLICATIONS
+       ⚠️ THIS IS THE MOST IMPORTANT FIX
+    ================================================= */
     const applications = await AdmissionApplicationModel.find({
       department: chairman.department,
-      applicationStatus: "SupervisorApproved"
+      applicationStatus: "SupervisorApproved" // 🔒 ONLY FIRST TIME
     }).populate("supervisor", "name email");
 
     if (!applications.length) {
@@ -86,13 +75,13 @@ const ChairmanDecisionService = async (req) => {
     for (const supervisorId in grouped) {
       const list = grouped[supervisorId];
 
-      /* ===== Calculate merit ===== */
+      /* ===== CALCULATE MERIT ===== */
       list.forEach(app => {
         app.academicQualificationPoints =
           calculateTotalMeritPoint(app);
       });
 
-      /* ===== Sort by merit (desc), then submission time ===== */
+      /* ===== SORT BY MERIT THEN TIME ===== */
       list.sort((a, b) => {
         if (b.academicQualificationPoints !== a.academicQualificationPoints) {
           return b.academicQualificationPoints - a.academicQualificationPoints;
@@ -100,68 +89,69 @@ const ChairmanDecisionService = async (req) => {
         return a.createdAt - b.createdAt;
       });
 
-      /* ===== Select / Waiting ===== */
+      /* =================================================
+         APPLY FINAL RULES
+         ✔️ Only top 3 auto selected
+         ✔️ Others stay waiting
+      ================================================= */
       for (let i = 0; i < list.length; i++) {
         const app = list[i];
-        const selected = i < MAX_PER_SUPERVISOR;
+        const rank = i + 1;
 
-        app.applicationStatus = selected
-          ? "ChairmanSelected"
-          : "ChairmanWaiting";
+        if (rank <= AUTO_QUOTA) {
+          // ✅ AUTO SELECT (TOP 3)
+          app.applicationStatus = "ChairmanSelected";
+          app.isWithinSupervisorQuota = true;
+        } else {
+          // ⏳ WAITING (4+)
+          app.applicationStatus = "ChairmanWaiting";
+          app.isWithinSupervisorQuota = false;
+        }
 
-        app.supervisorRank = i + 1;
-        app.isWithinSupervisorQuota = selected;
+        app.supervisorRank = rank;
 
-        /* ================= APPROVAL LOG ================= */
         app.approvalLog.push({
           role: "Chairman",
-
           approvedBy: chairman._id,
           approvedByName: chairman.name,
           approvedByEmail: chairman.email,
           approvedByRoleAtThatTime: chairman.role,
-
-          decision: selected ? "Selected" : "Waiting",
-          remarks: `Rank ${i + 1} | Merit Point ${app.academicQualificationPoints}`,
+          decision: rank <= AUTO_QUOTA ? "Selected" : "Waiting",
+          remarks: `Merit Rank ${rank} | Merit ${app.academicQualificationPoints}`,
           decidedAt: new Date()
         });
 
         await app.save();
 
         /* ================= EMAIL ================= */
-        const subject = selected
-          ? "PGS Application Selected (Merit Based)"
-          : "PGS Application – Waiting List";
+        const subject =
+          rank <= AUTO_QUOTA
+            ? "PGS Application Selected (Merit Based)"
+            : "PGS Application – Waiting List";
 
-        const message = selected
-          ? `
-Dear ${app.applicantName},
+        const message =
+          rank <= AUTO_QUOTA
+            ? `Dear ${app.applicantName},
 
-You have been SELECTED based on academic merit.
+Congratulations! You have been SELECTED based on merit.
 
-Supervisor: ${app.supervisor.name}
-Merit Rank : ${i + 1}
+Supervisor : ${app.supervisor.name}
+Merit Rank : ${rank}
 Merit Point: ${app.academicQualificationPoints}
 
-Your application will now be reviewed by the Dean.
-
 Regards,
-PGS Admission Office
-          `
-          : `
-Dear ${app.applicantName},
+PGS Admission Office`
+            : `Dear ${app.applicantName},
 
-Your application is currently on the WAITING LIST
-based on academic merit.
+Your application is currently on the WAITING LIST.
 
-Merit Rank : ${i + 1}
+Merit Rank : ${rank}
 Merit Point: ${app.academicQualificationPoints}
 
-You will be notified if a seat becomes available.
+You may be considered later if quota allows.
 
 Regards,
-PGS Admission Office
-          `;
+PGS Admission Office`;
 
         await SendEmailUtility(app.email, message, subject);
       }
@@ -169,7 +159,7 @@ PGS Admission Office
 
     return {
       status: "success",
-      data: "Chairman academic merit processing completed"
+      data: "Chairman merit finalized successfully"
     };
 
   } catch (error) {

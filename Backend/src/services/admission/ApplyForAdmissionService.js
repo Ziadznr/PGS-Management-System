@@ -12,6 +12,8 @@ const TempUploadModel =
 const SendEmailUtility = require("../../utility/SendEmailUtility");
 const GenerateAdmissionPDF = require("../../utility/GenerateAdmissionPDF");
 
+const MIN_CGPA = 2.50;
+
 /* =================================================
    HELPER: CALCULATE CGPA FROM COURSE-WISE GPA
    Formula:
@@ -42,7 +44,11 @@ const calculateCGPAFromCourses = (courses = []) => {
   if (totalCredits === 0) return null;
 
   return Number((totalPoints / totalCredits).toFixed(2));
+
+  
 };
+
+
 
 const ApplyForAdmissionService = async (req) => {
   try {
@@ -64,31 +70,36 @@ const ApplyForAdmissionService = async (req) => {
       }
     }
 
-    const {
-      program,
-      admissionSeason,
-      department,
-      supervisor,
-      applicantName,
-      fatherName,
-      motherName,
-      dateOfBirth,
-      nationality,
-      maritalStatus,
-      sex,
-      email,
-      mobile,
-      permanentAddress,
-      presentAddress,
-      academicRecords,
-      appliedSubjectCourses,
-      isInService,
-      serviceInfo,
-      numberOfPublications,
-      publications,
-      declarationAccepted,
-      tempId
-    } = req.body;
+const {
+  program,
+  admissionSeason,
+  department,
+  supervisor,
+  applicantName,
+  fatherName,
+  motherName,
+  dateOfBirth,
+  nationality,
+  maritalStatus,
+  sex,
+  email,
+  mobile,
+  permanentAddress,
+  presentAddress,
+
+  academicRecords,
+  appliedSubjectCourses,
+
+  // ✅ NEW FIELDS
+  totalCreditHourBachelor,
+  isInService,
+  serviceInfo,
+  numberOfPublications,
+  publications,
+  declarationAccepted,
+  tempId
+} = req.body;
+
 
     /* =================================================
        1️⃣ BASIC VALIDATION
@@ -126,17 +137,22 @@ const ApplyForAdmissionService = async (req) => {
     }
 
     /* =================================================
-       3️⃣ DUPLICATE APPLICATION CHECK
-    ================================================= */
-    const exists = await AdmissionApplicationModel.findOne({
-      admissionSeason,
-      program,
-      email: email.toLowerCase()
-    });
+   3️⃣ DUPLICATE APPLICATION CHECK
+   → Same student cannot apply twice under SAME supervisor
+================================================= */
+const exists = await AdmissionApplicationModel.findOne({
+  admissionSeason,
+  program,
+  supervisor,
+  email: email.toLowerCase()
+});
 
-    if (exists) {
-      return { status: "fail", data: "Already applied in this season" };
-    }
+if (exists) {
+  return {
+    status: "fail",
+    data: "You have already applied under this supervisor"
+  };
+}
 
     /* =================================================
        4️⃣ DEPARTMENT & SUPERVISOR VALIDATION
@@ -192,6 +208,43 @@ const ApplyForAdmissionService = async (req) => {
     }
 
     /* =================================================
+   BACHELOR CGPA ELIGIBILITY (MS / MBA / LLM)
+================================================= */
+if (["MS", "MBA", "LLM"].includes(program)) {
+
+  const bachelorRecord = academicRecords.find(
+    r =>
+      ["BSc", "BBA", "LLB"].includes(r.examLevel) &&
+      r.isFinal === true
+  );
+
+  if (!bachelorRecord) {
+    return {
+      status: "fail",
+      data: "Final Bachelor result is required"
+    };
+  }
+
+  const bachelorCGPA = Number(bachelorRecord.cgpa);
+
+  if (Number.isNaN(bachelorCGPA)) {
+    return {
+      status: "fail",
+      data: "Invalid Bachelor CGPA"
+    };
+  }
+
+  if (bachelorCGPA < 2.25) {
+    return {
+      status: "fail",
+      data:
+        "Minimum required Bachelor CGPA is 2.25 for MS/MBA/LLM programs"
+    };
+  }
+}
+
+
+    /* =================================================
        6️⃣ COURSE-WISE GPA CALCULATION
     ================================================= */
     let calculatedCGPA = null;
@@ -216,6 +269,35 @@ const ApplyForAdmissionService = async (req) => {
         };
       }
     }
+
+    /* =================================================
+   TOTAL APPLIED SUBJECT CREDIT HOUR (BACKEND AUTH)
+================================================= */
+let totalCreditHourAppliedSubject = null;
+
+if (Array.isArray(appliedSubjectCourses)) {
+  totalCreditHourAppliedSubject = appliedSubjectCourses.reduce(
+    (sum, c) => sum + Number(c.creditHour || 0),
+    0
+  );
+
+  totalCreditHourAppliedSubject =
+    totalCreditHourAppliedSubject > 0
+      ? Number(totalCreditHourAppliedSubject.toFixed(2))
+      : null;
+}
+
+    /* =================================================
+   CGPA ELIGIBILITY
+================================================= */
+let isEligibleByCGPA = true;
+
+if (
+  calculatedCGPA !== null &&
+  calculatedCGPA < MIN_CGPA
+) {
+  isEligibleByCGPA = false;
+}
 
     /* =================================================
        7️⃣ PUBLICATIONS VALIDATION
@@ -270,46 +352,52 @@ const ApplyForAdmissionService = async (req) => {
        1️⃣1️⃣ SAVE APPLICATION
     ================================================= */
     const application = await AdmissionApplicationModel.create({
-      program,
-      admissionSeason,
-      academicYear: season.academicYear,
+  program,
+  admissionSeason,
+  academicYear: season.academicYear,
 
-      department,
-      supervisor,
+  department,
+  supervisor,
 
-      applicantName,
-      fatherName,
-      motherName,
-      dateOfBirth,
-      nationality,
-      maritalStatus,
-      sex,
+  applicantName,
+  fatherName,
+  motherName,
+  dateOfBirth,
+  nationality,
+  maritalStatus,
+  sex,
 
-      email: email.toLowerCase(),
-      mobile,
+  email: email.toLowerCase(),
+  mobile,
 
-      permanentAddress,
-      presentAddress: finalPresentAddress,
+  permanentAddress,
+  presentAddress: finalPresentAddress,
 
-      academicRecords,
-      appliedSubjectCourses,
-      calculatedCGPA,
+  academicRecords,
+  appliedSubjectCourses,
 
-      isInService,
-      serviceInfo,
+  totalCreditHourBachelor,
+  totalCreditHourAppliedSubject,
 
-      numberOfPublications,
-      publications,
+  calculatedCGPA,
+  isEligibleByCGPA,
 
-      declarationAccepted,
-      payment: payment._id,
+  isInService,
+  serviceInfo,
 
-      documents: finalDocuments,
-      totalDocumentSizeKB,
+  numberOfPublications,
+  publications,
 
-      applicationNo,
-      applicationStatus: "Submitted"
-    });
+  declarationAccepted,
+  payment: payment._id,
+
+  documents: finalDocuments,
+  totalDocumentSizeKB,
+
+  applicationNo,
+  applicationStatus: "Submitted"
+});
+
 
     /* =================================================
        1️⃣2️⃣ POPULATE FOR PDF & EMAIL

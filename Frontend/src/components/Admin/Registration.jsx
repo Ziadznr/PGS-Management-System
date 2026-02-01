@@ -2,6 +2,7 @@ import React, { useRef } from 'react';
 import { useNavigate } from "react-router-dom";
 import { ErrorToast, IsEmail, IsEmpty, IsMobile } from "../../helper/FormHelper";
 import { RegistrationRequest } from "../../APIRequest/AdminAPIRequest";
+import logo from "../../assets/images/ps.png";
 
 const Registration = () => {
     // Correctly initialize refs
@@ -43,45 +44,74 @@ const Registration = () => {
 
     return (
         <div className="container">
-            <h1 className="text-center mt-3">User Registration</h1>
-            <div className="row mt-3">
-                <div className="col-md-6 offset-md-3">
-                    <input
-                        ref={emailRef}
-                        placeholder="User Email"
-                        className="form-control mt-3"
-                        type="email"
-                    />
-                    <input
-                        ref={firstNameRef}
-                        placeholder="First Name"
-                        className="form-control mt-3"
-                        type="text"
-                    />
-                    <input
-                        ref={lastNameRef}
-                        placeholder="Last Name"
-                        className="form-control mt-3"
-                        type="text"
-                    />
-                    <input
-                        ref={mobileRef}
-                        placeholder="Mobile Number"
-                        className="form-control mt-3"
-                        type="text"
-                    />
-                    <input
-                        ref={passwordRef}
-                        placeholder="Password"
-                        className="form-control mt-3"
-                        type="password"
-                    />
-                    <button onClick={onRegistration} className="btn btn-primary mt-3 w-100">
-                        Register
-                    </button>
-                </div>
-            </div>
+  <div className="row justify-content-center">
+    <div className="col-md-8 col-lg-6 center-screen">
+      <div className="card login-card p-4">
+        <div className="card-body text-center">
+
+          {/* Logo */}
+          <img src={logo} className="login-logo" alt="Logo" />
+
+          {/* Title */}
+          <h3 className="mb-2">User Registration</h3>
+          <p className="text-muted mb-4">
+            Please fill in the details below to create your account
+          </p>
+
+          {/* Email */}
+          <input
+            ref={emailRef}
+            type="email"
+            className="form-control mb-3"
+            placeholder="Email Address"
+          />
+
+          {/* First Name */}
+          <input
+            ref={firstNameRef}
+            type="text"
+            className="form-control mb-3"
+            placeholder="First Name"
+          />
+
+          {/* Last Name */}
+          <input
+            ref={lastNameRef}
+            type="text"
+            className="form-control mb-3"
+            placeholder="Last Name"
+          />
+
+          {/* Mobile */}
+          <input
+            ref={mobileRef}
+            type="text"
+            className="form-control mb-3"
+            placeholder="Mobile Number"
+          />
+
+          {/* Password */}
+          <input
+            ref={passwordRef}
+            type="password"
+            className="form-control mb-4"
+            placeholder="Password"
+          />
+
+          {/* Register Button */}
+          <button
+            onClick={onRegistration}
+            className="btn login-btn w-100"
+          >
+            Register
+          </button>
+
         </div>
+      </div>
+    </div>
+  </div>
+</div>
+
     );
 };
 

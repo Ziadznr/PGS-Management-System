@@ -2,6 +2,7 @@ import React, { Fragment, useRef } from "react";
 import { ErrorToast, IsEmail } from "../../helper/FormHelper";
 import { UserRecoverVerifyEmailRequest } from "../../APIRequest/UserAPIRequest";
 import { useNavigate } from "react-router-dom";
+import logo from "../../assets/images/ps.png";
 
 const UserSendOTP = () => {
   const emailRef = useRef(null);
@@ -24,38 +25,45 @@ const UserSendOTP = () => {
 
   return (
     <Fragment>
-      <div className="container">
-        <div className="row justify-content-center">
-          <div className="col-md-7 col-lg-6 center-screen">
-            <div className="card w-90 p-4">
-              <div className="card-body">
-                <h4>EMAIL VERIFICATION</h4>
-                <hr />
+  <div className="container">
+    <div className="row justify-content-center">
+      <div className="col-md-7 col-lg-6 center-screen">
+        <div className="card login-card p-4">
+          <div className="card-body text-center">
 
-                <label htmlFor="emailInput">Your email address</label>
-                <input
-                  id="emailInput"
-                  ref={emailRef}
-                  placeholder="User Email"
-                  className="form-control animated fadeInUp"
-                  type="email"
-                />
+            {/* Logo */}
+            <img src={logo} className="login-logo" alt="Logo" />
 
-                <br />
+            {/* Title */}
+            <h4 className="mb-2">Email Verification</h4>
+            <p className="text-muted mb-4">
+              Please enter your registered email address to continue
+            </p>
 
-                <button
-                  onClick={VerifyEmail}
-                  className="btn w-100 btn-success animated"
-                >
-                  Next
-                </button>
+            {/* Email Input */}
+            <input
+              id="emailInput"
+              ref={emailRef}
+              type="email"
+              className="form-control mb-4"
+              placeholder="Email Address"
+            />
 
-              </div>
-            </div>
+            {/* Action Button */}
+            <button
+              onClick={VerifyEmail}
+              className="btn login-btn w-100"
+            >
+              Send OTP
+            </button>
+
           </div>
         </div>
       </div>
-    </Fragment>
+    </div>
+  </div>
+</Fragment>
+
   );
 };
 

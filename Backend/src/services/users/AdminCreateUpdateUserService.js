@@ -12,6 +12,7 @@ const AdminCreateUpdateUserService = async (req) => {
     }
 
     const {
+      id,
       name,
       nameExtension,
       email,
@@ -30,211 +31,220 @@ const AdminCreateUpdateUserService = async (req) => {
       return { status: "fail", data: "Invalid role" };
     }
 
-    /* =================================================
-       🏛 DEAN / CHAIRMAN (TENURE AWARE)
-    ================================================= */
-    if (role === "Dean" || role === "Chairman") {
-      /* ===== FIND CURRENT ACTIVE HOLDER ===== */
-      const existingUser = await UsersModel.findOne({
-        role,
-        isActive: true
-      });
+    /* ================= EXISTING USER (BY ID) ================= */
+    const existingUserById = id ? await UsersModel.findById(id) : null;
 
-      /* ===== EMAIL UNIQUE CHECK ===== */
-      const emailConflict = await UsersModel.findOne({
+    /* =================================================
+       ✉️ EMAIL ONLY UPDATE (ALL ROLES)
+       - allowed even for Dean / Chairman
+    ================================================= */
+    if (existingUserById) {
+      const isEmailOnlyUpdate =
+        existingUserById.email !== email.toLowerCase() &&
+        existingUserById.name === name &&
+        existingUserById.phone === phone;
+
+      if (isEmailOnlyUpdate) {
+        existingUserById.email = email.toLowerCase();
+        await existingUserById.save();
+
+        await SendEmailUtility(
+          existingUserById.email,
+          `
+Hello ${existingUserById.name},
+
+Your login email has been updated successfully.
+
+New Login Email: ${existingUserById.email}
+Password remains unchanged.
+
+Regards,
+PGS Administration
+          `,
+          "PGS Login Email Updated"
+        );
+
+        return { status: "success" };
+      }
+    }
+
+  /* =================================================
+   🏛 DEAN / CHAIRMAN (WITH TENURE)
+================================================= */
+if (role === "Dean" || role === "Chairman") {
+
+  let existingUser = null;
+
+  /* ================= FIND EXISTING ================= */
+  if (role === "Dean") {
+    existingUser = await UsersModel.findOne({
+      role: "Dean",
+      isActive: true
+    });
+  }
+if (role === "Chairman") {
+  if (id) {
+    // 🔐 EDIT / REPLACE → use existing user's department
+    existingUser = await UsersModel.findById(id);
+  } else {
+    // 🆕 CREATE → department must be provided
+    if (!department) {
+      return { status: "fail", data: "Department required" };
+    }
+
+    existingUser = await UsersModel.findOne({
+      role: "Chairman",
+      department,
+      isActive: true
+    });
+  }
+}
+
+
+  /* ================= EMAIL UNIQUE CHECK ================= */
+ const emailQuery = {
   email: email.toLowerCase(),
   role,
   isActive: true,
   _id: { $ne: existingUser?._id }
-});
+};
 
-if (emailConflict) {
-  return {
-    status: "fail",
-    data: "Email already exists for this role"
-  };
+if (role === "Chairman") {
+  emailQuery.department = department;
 }
 
-      /* ===== RESOLVE DEPARTMENT ===== */
-      let deptId = null;
+const emailConflict = await UsersModel.findOne(emailQuery);
 
-      if (role === "Chairman") {
-        if (existingUser) {
-          deptId = existingUser.department;
-        } else {
-          if (!department) {
-            return { status: "fail", data: "Department required" };
-          }
 
-          const dept = await DepartmentModel.findById(department);
-          if (!dept) {
-            return { status: "fail", data: "Invalid department" };
-          }
+  if (emailConflict) {
+    return { status: "fail", data: "Email already exists for this role" };
+  }
 
-          deptId = department;
-        }
-      }
+  const tempPassword = crypto.randomBytes(4).toString("hex");
 
-      /* ===== CHECK IF THIS IS A REPLACEMENT ===== */
-      const isReplacement =
-        existingUser &&
-        (
-          existingUser.name !== name ||
-          existingUser.email !== email.toLowerCase() ||
-          existingUser.phone !== phone
-        );
+  /* =================================================
+     🔁 UPDATE / REPLACE EXISTING
+  ================================================= */
+  if (existingUser) {
 
-      const tempPassword = crypto.randomBytes(4).toString("hex");
+    const isPersonChanged =
+      existingUser.name !== name ||
+      existingUser.phone !== phone;
 
-      /* =================================================
-         🔁 REPLACEMENT (NEW PERSON, SAME PANEL)
-      ================================================= */
-      if (existingUser && isReplacement) {
-        // 1️⃣ End previous tenure
-        await UserTenureModel.updateOne(
-          { user: existingUser._id, endDate: null },
-          { endDate: new Date() }
-        );
+    /* ================= TENURE (DEAN + CHAIRMAN) ================= */
+    if (isPersonChanged) {
+      // close active tenure
+      await UserTenureModel.updateMany(
+        { user: existingUser._id, endDate: null },
+        { endDate: new Date() }
+      );
 
-        // 2️⃣ Deactivate previous user
-        existingUser.isActive = false;
-        await existingUser.save();
+      // open new tenure
+   await UserTenureModel.create({
+  user: existingUser._id,
+  role,
+  department: role === "Chairman" ? existingUser.department : null,
+  nameSnapshot: name,
+  emailSnapshot: existingUser.email,
+  startDate: new Date(),
+  appointedBy: req.user.id,
+  remarks: `${role} replaced`
+});
 
-        // 3️⃣ Create new user
-        const newUser = await UsersModel.create({
-          name,
-          nameExtension,
-          email: email.toLowerCase(),
-          phone,
-          password: tempPassword,
-          role,
-          department: role === "Chairman" ? deptId : null,
-          createdBy: req.user.id,
-          isFirstLogin: true,
-          isActive: true
-        });
+    }
 
-        // 4️⃣ Start new tenure
-        await UserTenureModel.create({
-          user: newUser._id,
-          role,
-          department: role === "Chairman" ? deptId : null,
-          startDate: new Date(),
-          appointedBy: req.user.id,
-          remarks: "Replaced previous holder"
-        });
+   /* ================= UPDATE USER ================= */
+existingUser.name = name;
+existingUser.nameExtension = nameExtension;
+existingUser.phone = phone;
 
-        await SendEmailUtility(
-          newUser.email,
-          `
-Hello ${newUser.name},
+if (!isPersonChanged) {
+  existingUser.email = email.toLowerCase();
+}
 
-You have been appointed as ${newUser.role}.
+existingUser.password = tempPassword;
+existingUser.isFirstLogin = true;
 
-Login Email : ${newUser.email}
-Temporary Password : ${tempPassword}
+// 🚫 DO NOT TOUCH department here
 
-Please change your password immediately.
+await existingUser.save();
 
-Regards,
-PGS Administration
-          `,
-          "PGS Appointment Notification"
-        );
-
-        return { status: "success" };
-      }
-
-      /* =================================================
-         ✏️ NORMAL UPDATE (SAME PERSON)
-      ================================================= */
-      if (existingUser) {
-        existingUser.name = name;
-        existingUser.nameExtension = nameExtension;
-        existingUser.phone = phone;
-        existingUser.password = tempPassword;
-        existingUser.isFirstLogin = true;
-
-        // preserve model rules
-        if (role === "Chairman") {
-          existingUser.department = deptId;
-        }
-        if (role === "Dean") {
-          existingUser.department = null;
-        }
-
-        await existingUser.save();
-
-        await SendEmailUtility(
-          existingUser.email,
-          `
+    await SendEmailUtility(
+      existingUser.email,
+      `
 Hello ${existingUser.name},
 
-Your ${existingUser.role} account has been UPDATED.
+You have been assigned as ${existingUser.role}.
 
-Login Email : ${existingUser.email}
-Temporary Password : ${tempPassword}
-
-⚠ Please change your password immediately.
-
-Regards,
-PGS Administration
-          `,
-          "PGS Role Updated"
-        );
-
-        return { status: "success" };
-      }
-
-      /* =================================================
-         🆕 FIRST APPOINTMENT
-      ================================================= */
-      const user = await UsersModel.create({
-        name,
-        nameExtension,
-        email: email.toLowerCase(),
-        phone,
-        password: tempPassword,
-        role,
-        department: role === "Chairman" ? deptId : null,
-        createdBy: req.user.id,
-        isFirstLogin: true,
-        isActive: true
-      });
-
-      await UserTenureModel.create({
-        user: user._id,
-        role,
-        department: role === "Chairman" ? deptId : null,
-        startDate: new Date(),
-        appointedBy: req.user.id
-      });
-
-      await SendEmailUtility(
-        user.email,
-        `
-Hello ${user.name},
-
-You have been appointed as ${user.role}.
-
-Login Email : ${user.email}
-Temporary Password : ${tempPassword}
+Login Email: ${existingUser.email}
+Temporary Password: ${tempPassword}
 
 Please change your password after login.
 
 Regards,
 PGS Administration
-        `,
-        "PGS Account Created"
-      );
+      `,
+      "PGS Panel Member Updated"
+    );
 
-      return { status: "success" };
-    }
+    return { status: "success" };
+  }
+
+  /* =================================================
+     🆕 FIRST APPOINTMENT
+  ================================================= */
+  const newUser = await UsersModel.create({
+    name,
+    nameExtension,
+    email: email.toLowerCase(),
+    phone,
+    password: tempPassword,
+    role,
+    department: role === "Chairman" ? department : null,
+    createdBy: req.user.id,
+    isFirstLogin: true,
+    isActive: true
+  });
+
+  /* ================= TENURE (FIRST) ================= */
+await UserTenureModel.create({
+  user: newUser._id,
+  role,
+  department: role === "Chairman" ? department : null,
+  nameSnapshot: newUser.name,
+  emailSnapshot: newUser.email,
+  startDate: new Date(),
+  appointedBy: req.user.id,
+  remarks: "First appointment"
+});
+
+
+  await SendEmailUtility(
+    newUser.email,
+    `
+Hello ${newUser.name},
+
+You have been appointed as ${newUser.role}.
+
+Login Email: ${newUser.email}
+Temporary Password: ${tempPassword}
+
+Please change your password after login.
+
+Regards,
+PGS Administration
+    `,
+    "PGS Panel Member Appointed"
+  );
+
+  return { status: "success" };
+}
+
 
     /* =================================================
        👨‍🏫 SUPERVISOR (CREATE ONLY)
     ================================================= */
-    if (!department) {
+    if (!existingUserById && !department) {
       return { status: "fail", data: "Department required" };
     }
 
@@ -243,13 +253,6 @@ PGS Administration
       return { status: "fail", data: "Invalid department" };
     }
 
-    const emailExists = await UsersModel.findOne({
-  email: email.toLowerCase(),
-  role: "Supervisor",
-  department,
-  isActive: true
-});
-
     const activeSubjects = dept.offeredSubjects?.filter(s => s.isActive) || [];
     let finalSubject = null;
 
@@ -257,11 +260,9 @@ PGS Administration
       if (!subject) {
         return { status: "fail", data: "Subject required" };
       }
-
       if (!activeSubjects.some(s => s.name === subject)) {
         return { status: "fail", data: "Invalid subject" };
       }
-
       finalSubject = subject;
     }
 
@@ -288,8 +289,8 @@ Hello ${supervisor.name},
 
 Your Supervisor account has been created.
 
-Login Email : ${supervisor.email}
-Temporary Password : ${tempPassword}
+Login Email: ${supervisor.email}
+Temporary Password: ${tempPassword}
 
 Please change your password after login.
 
@@ -307,4 +308,4 @@ PGS Administration
   }
 };
 
-module.exports=AdminCreateUpdateUserService;
+module.exports = AdminCreateUpdateUserService;

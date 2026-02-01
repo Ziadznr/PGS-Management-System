@@ -232,19 +232,19 @@ export async function UserRecoverVerifyEmailRequest(email) {
   }
 }
 
-export async function UserRecoverVerifyOTPRequest(email, OTP) {
+export async function UserRecoverVerifyOTPRequest(email, otp) {
   try {
     store.dispatch(ShowLoader());
 
     const res = await axios.post(
       `${BaseURL}/users/recover/verify-otp`,
-      { email, OTP }
+      { email, otp }   // ✅ lowercase
     );
 
     store.dispatch(HideLoader());
 
     if (res.status === 200 && res.data?.status === "success") {
-      setOTP(OTP);
+      setOTP(otp);
       SuccessToast("OTP Verified");
       return true;
     }
@@ -258,6 +258,7 @@ export async function UserRecoverVerifyOTPRequest(email, OTP) {
     return false;
   }
 }
+
 
 export async function UserRecoverResetPassRequest(email, OTP, password) {
   try {
@@ -360,11 +361,16 @@ export async function DeanUsersListRequest(
 }
 
 export async function DeanChairmanTenureListRequest() {
-  const res = await axios.get(
-    `${BaseURL}/dean/tenure/chairmen`,
-    getAxiosHeader()
-  );
-  return res.data?.data || [];
+  try {
+    const res = await axios.get(
+      `${BaseURL}/dean/tenure/chairman`,
+      getAxiosHeader()
+    );
+    return res.data?.data || [];
+  } catch (error) {
+    console.error("DeanChairmanTenureListRequest error:", error);
+    return [];
+  }
 }
 
 
@@ -392,6 +398,35 @@ export async function ChairmanSupervisorsListRequest(searchKeyword = "0") {
     return [];
   }
 }
+
+
+export async function CreateChairmanDecisionBlueprint(supervisorId) {
+  try {
+    const res = await axios.post(
+      `${BaseURL}/chairman/DecisionBlueprint`,
+      { supervisorId },
+      getAxiosHeader()
+    );
+
+    return res.data;
+  } catch (error) {
+    return {
+      status: "fail",
+      data:
+        error.response?.data?.data ||
+        "Failed to create decision blueprint"
+    };
+  }
+}
+
+export async function ChairmanDecisionBlueprintListRequest() {
+  const res = await axios.get(
+    `${BaseURL}/chairman/DecisionBlueprint`,
+    getAxiosHeader()
+  );
+  return res.data?.data || [];
+}
+
 
 
 export async function AdminDeleteUserRequest(userId) {

@@ -30,6 +30,8 @@ const ChairmanUsersController =
 // Departments
 const DepartmentController =
   require("../controllers/Departments/DepartmentController");
+  const ChairmanManualSelectController =
+  require("../controllers/Admission/ChairmanManualSelectController");
 
 // Admission
 const AdmissionController =
@@ -42,6 +44,10 @@ const AdmissionController =
 // Notice
 const NoticeController =
   require("../controllers/Notice/NoticeController");
+
+  // Decision BluePrint 
+const ChairmanDecisionBlueprintController =
+  require("../controllers/DecisionBluePrint/ChairmanDecisionBlueprintController");  
 
 // =================================================
 // ================= PUBLIC ROUTES =================
@@ -125,6 +131,8 @@ router.post(
   AdmissionController.ChairmanDecision
 );
 
+
+
 router.get(
   "/chairman/users/supervisors/:searchKeyword",
   UserAuthMiddleware,
@@ -133,43 +141,33 @@ router.get(
 );
 
 router.get(
+  "/chairman/DecisionBlueprint",
+  UserAuthMiddleware,
+  RoleCheckMiddleware(["Chairman"]),
+  ChairmanDecisionBlueprintController.ListChairmanDecisionBlueprint
+);
+
+router.post(
+  "/admission/chairman/manual-select",
+  UserAuthMiddleware,
+  RoleCheckMiddleware(["Chairman"]),
+  ChairmanManualSelectController.ChairmanManualSelect
+);
+
+
+router.get(
   "/admin/tenure/list",
   AuthVerifyMiddleware,
   TenureAdminController.List
 );
 
 router.get(
-  "/dean/tenure/chairmen",
+  "/dean/tenure/chairman",
   UserAuthMiddleware,
   RoleCheckMiddleware(["Dean"]),
   TenureDeanController.ListChairman
 );
 
-// // Chairman creates / updates department last semester courses
-// router.post(
-//   "/admission/department-last-semester-courses",
-//   UserAuthMiddleware,
-//   RoleCheckMiddleware(["Chairman"]),
-//   DepartmentLastSemesterCourseController.SetDepartmentLastSemesterCourses
-// );
-
-// // List (for update UI)
-// router.get(
-//   "/admission/department-last-semester-courses/chairman",
-//   UserAuthMiddleware,
-//   RoleCheckMiddleware(["Chairman"]),
-//   DepartmentLastSemesterCourseController.DepartmentCourseList
-// );
-
-/* =================================================
-   PUBLIC (STUDENT APPLICATION)
-================================================= */
-
-// // Get last semester courses by department
-// router.get(
-//   "/admission/department-last-semester-courses/:departmentId",
-//   DepartmentLastSemesterCourseController.GetDepartmentLastSemesterCourses
-// );
 
 // =================================================
 // ============== DEAN PANEL =======================

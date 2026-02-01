@@ -11,100 +11,235 @@ module.exports = async (application) => {
   const doc = new PDFDocument({ size: "A4", margin: 40 });
   doc.pipe(fs.createWriteStream(filePath));
 
+  const safe = v =>
+    v === undefined || v === null || Number.isNaN(v) ? "" : String(v);
+
+  const formatDateLong = (value) => {
+  if (!value) return "";
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return "";
+
+  return d.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric"
+  });
+};
+
+  const CONTENT_X = 52;
+  const logoPath = path.join(__dirname, "../../assets/ps.png");
+
   /* ================= WATERMARK ================= */
-  doc.save();
-  doc.rotate(-45, { origin: [300, 400] });
-  doc.fontSize(50).fillColor("gray", 0.15).text("PGS ADMISSION", 100, 400);
-  doc.restore();
-  doc.fillColor("black");
+  if (fs.existsSync(logoPath)) {
+    doc.save();
+    doc.opacity(0.08);
+    doc.image(logoPath, 150, 250, { width: 300 });
+    doc.opacity(1);
+    doc.restore();
+  }
 
-  /* ================= HEADER (From File 2) ================= */
-  doc.fontSize(14).text("PATUAKHALI SCIENCE AND TECHNOLOGY UNIVERSITY", { align: "center", bold: true });
-  doc.fontSize(10).text("Dumki, Patuakhali-8602, Bangladesh", { align: "center" });
-  doc.fontSize(12).text("Admission Form", { align: "center", underline: true });
-  doc.moveDown();
+  /* ================= HEADER ================= */
+  if (fs.existsSync(logoPath)) {
+    doc.image(logoPath, 40, 40, { width: 60 });
+  }
 
-  /* ================= APPLICANT INFO (Merged) ================= */
-  doc.fontSize(10);
-  const leftCol = 50;
-  const rightCol = 300;
+  doc.font("Times-Bold")
+    .fontSize(13)
+    .text(
+      "PATUAKHALI SCIENCE AND TECHNOLOGY UNIVERSITY",
+      120,
+      45,
+      { align: "center" }
+    );
 
-  doc.text(`Name of Student: ${application.applicantName}`, leftCol);
-  doc.text(`Application No: ${application.applicationNo}`, rightCol);
-  doc.text(`Address/Mobile: ${application.mobile}`, leftCol);
-  doc.text(`Registration No: ${application.regNo || 'N/A'}`, rightCol);
-  doc.text(`Program: ${application.program}`, leftCol);
-  doc.text(`Subject Applied: ${application.department.name}`, rightCol);
-  doc.text(`Semester: ${application.semester || 'Spring 2026'}`, leftCol);
-  doc.text(`Proposed Supervisor: ${application.supervisor.name}`, rightCol);
-  doc.moveDown();
+  doc.font("Times-Roman")
+    .fontSize(10)
+    .text("Dumki, Patuakhali–8660, Bangladesh", { align: "center" });
 
-  /* ================= GPA COUNTING TABLE (File 1 Style) ================= */
-  doc.fontSize(11).text("Academic Evaluation (GPA Calculation)", { underline: true });
+  doc.moveDown(1);
+  doc.font("Times-Bold")
+    .fontSize(12)
+    .text("APPLICATION FOR ADMISSION", {
+      align: "center",
+      underline: true
+    });
+
+  doc.moveDown(1);
+
+  /* ================= BASIC INFO ================= */
+  doc.font("Times-Roman").fontSize(10);
+  doc.text(`Program: ${safe(application.program)}`, CONTENT_X);
+  doc.text(`Department: ${safe(application.department?.name)}`, CONTENT_X);
+  doc.text(`Session: ${safe(application.academicYear)}`, CONTENT_X);
+
   doc.moveDown(0.5);
 
-  const tableTop = doc.y;
-  const col1 = 50, col2 = 250, col3 = 330, col4 = 410, col5 = 490;
+  doc.text(`Applicant Name: ${safe(application.applicantName)}`, CONTENT_X);
+  doc.text(`Father's Name: ${safe(application.fatherName)}`, CONTENT_X);
+  doc.text(`Mother's Name: ${safe(application.motherName)}`, CONTENT_X);
+  doc.text(`Date of Birth: ${formatDateLong(application.dateOfBirth)}`,CONTENT_X);
+  doc.text(`Nationality: ${safe(application.nationality)}`, CONTENT_X);
+  doc.text(`Sex: ${safe(application.sex)}`, CONTENT_X);
+  doc.text(`Mobile: ${safe(application.mobile)}`, CONTENT_X);
+  doc.text(`Email: ${safe(application.email)}`, CONTENT_X);
 
-  // Header
-  doc.rect(50, tableTop, 500, 20).stroke();
-  doc.fontSize(9).text("Course Title", col1 + 5, tableTop + 5);
-  doc.text("GP", col3 + 5, tableTop + 5);
-  doc.text("CH", col4 + 5, tableTop + 5);
-  doc.text("GP x CH", col5 + 5, tableTop + 5);
+  doc.moveDown(0.8);
 
-  // Dynamic Rows (using application.academicRecords as mock data)
-  let currentY = tableTop + 20;
-  application.academicRecords.forEach((record, index) => {
-    doc.rect(50, currentY, 500, 20).stroke();
-    doc.text(record.examLevel || "Course " + (index+1), col1 + 5, currentY + 5);
-    doc.text(record.cgpa.toString(), col3 + 5, currentY + 5);
-    doc.text(record.cgpaScale.toString(), col4 + 5, currentY + 5);
-    doc.text((record.cgpa * record.cgpaScale).toFixed(2), col5 + 5, currentY + 5);
-    currentY += 20;
+  /* ================= ADDRESS ================= */
+  doc.font("Times-Bold").text("Present Address:", CONTENT_X);
+  doc.font("Times-Roman").text(
+    `${safe(application.presentAddress?.village)}, ${safe(application.presentAddress?.subDistrict)}, ${safe(application.presentAddress?.district)}`,
+    CONTENT_X
+  );
+
+  doc.moveDown(0.4);
+  doc.font("Times-Bold").text("Permanent Address:", CONTENT_X);
+  doc.font("Times-Roman").text(
+    `${safe(application.permanentAddress?.village)}, ${safe(application.permanentAddress?.subDistrict)}, ${safe(application.permanentAddress?.district)}`,
+    CONTENT_X
+  );
+
+  doc.moveDown(1);
+
+  /* ================= ACADEMIC QUALIFICATION ================= */
+  doc.font("Times-Bold").text("Academic Qualification", CONTENT_X);
+  doc.moveDown(0.3);
+
+  const colAX = [CONTENT_X, 132, 232, 372, 452];
+  const colAW = [80, 100, 140, 80, 80];
+  const rowH = 20;
+
+  const drawAcademicRow = (y, row) => {
+    row.forEach((cell, i) => {
+      doc.rect(colAX[i], y, colAW[i], rowH).stroke();
+      doc.fontSize(9).text(
+        safe(cell),
+        colAX[i] + 4,
+        y + 6,
+        { width: colAW[i] - 6 }
+      );
+    });
+  };
+
+  let y = doc.y;
+  drawAcademicRow(y, ["Exam", "Year", "Institution", "GPA", "Scale"]);
+  y += rowH;
+
+  (application.academicRecords || []).forEach(r => {
+    drawAcademicRow(y, [
+      r.examLevel,
+      r.passingYear,
+      r.institution,
+      r.cgpa,
+      r.cgpaScale
+    ]);
+    y += rowH;
   });
 
-  // Calculation Summary (File 1: Sum of CH and GPxCH)
-  doc.rect(50, currentY, 500, 20).stroke();
-  doc.text("GPA in Applied Subject:", col1 + 5, currentY + 5, { bold: true });
-  doc.text(`Total GPA: ${application.payment.totalGpa || 'N/A'}`, col5 - 50, currentY + 5);
-  currentY += 40;
+  doc.y = y + 6;
+  doc.fontSize(10).text(
+    `Total Credit Hour (Bachelor): ${safe(application.totalCreditHourBachelor)}`,
+    CONTENT_X
+  );
 
-  /* ================= COURSE ENROLMENT (File 2 Style) ================= */
-  doc.y = currentY;
-  doc.fontSize(11).text("Course Enrolment Details", { underline: true });
+  /* ================= APPLIED SUBJECT GPA ================= */
+  doc.moveDown(1);
+  doc.font("Times-Bold").fontSize(11)
+    .text("Applied Subject GPA Calculation", CONTENT_X);
+
   doc.moveDown(0.5);
-  
-  const courseY = doc.y;
-  doc.rect(50, courseY, 500, 60).stroke();
-  doc.fontSize(9).text("A. Compulsory Courses:", 55, courseY + 5);
-  doc.text("B. Elective Courses:", 55, courseY + 20);
-  doc.text("C. Audit / Research Work:", 55, courseY + 35);
-  doc.moveDown(5);
 
-  /* ================= PAYMENT & QR CODE ================= */
-  const footerY = doc.y;
-  doc.fontSize(10).text("Payment Status", { underline: true });
-  doc.text(`TrxID: ${application.payment.transactionId} | Amount: BDT 100 | Status: SUCCESS`);
-  
-  // QR Code
-  const qrData = JSON.stringify({ appNo: application.applicationNo, status: "PAID" });
-  const qrImage = await QRCode.toDataURL(qrData);
-  doc.image(qrImage, 430, footerY - 10, { width: 80 });
+  const colBX = [CONTENT_X, 122, 312, 392];
+  const colBW = [70, 190, 80, 80];
+  const rowH2 = 20;
 
-  /* ================= SIGNATURE SECTION (Merged) ================= */
-  doc.moveDown(4);
-const sigY = doc.y;
+  const drawCourseRow = (y, row) => {
+    row.forEach((cell, i) => {
+      doc.rect(colBX[i], y, colBW[i], rowH2).stroke();
+      doc.fontSize(9).text(
+        safe(cell),
+        colBX[i] + 4,
+        y + 6,
+        { width: colBW[i] - 6 }
+      );
+    });
+  };
 
-doc.moveTo(50, sigY).lineTo(150, sigY).stroke();
-doc.moveTo(225, sigY).lineTo(325, sigY).stroke();
-doc.moveTo(400, sigY).lineTo(500, sigY).stroke();
+  y = doc.y;
+  drawCourseRow(y, ["Code", "Title", "CH", "GP"]);
+  y += rowH2;
 
-  
-  doc.fontSize(8);
-  doc.text("Student's Signature", 50, sigY + 5, { width: 100, align: "center" });
-  doc.text("Supervisor Signature", 225, sigY + 5, { width: 100, align: "center" });
-  doc.text("Chairman / Dean, PGS", 400, sigY + 5, { width: 100, align: "center" });
+  (application.appliedSubjectCourses || []).forEach(c => {
+    drawCourseRow(y, [
+      c.courseCode,
+      c.courseTitle,
+      c.creditHour,
+      c.gradePoint
+    ]);
+    y += rowH2;
+  });
+
+  doc.y = y + 6;
+  doc.fontSize(10).text(
+    `Total Credit Hour (Applied): ${safe(application.totalCreditHourAppliedSubject)}`,
+    CONTENT_X
+  );
+  doc.text(`Calculated CGPA: ${safe(application.calculatedCGPA)}`, CONTENT_X);
+
+  /* ================= SERVICE ================= */
+doc.moveDown(0.8);
+doc.font("Times-Bold").text("Service Status:", CONTENT_X);
+doc.font("Times-Roman").text(
+  `In Service: ${application.isInService ? "Yes" : "No"}`,
+  CONTENT_X
+);
+
+if (application.isInService) {
+  doc.text(`Position: ${safe(application.serviceInfo?.position)}`, CONTENT_X);
+  doc.text(`Length of Service: ${safe(application.serviceInfo?.lengthOfService)}`, CONTENT_X);
+  doc.text(`Nature of Job: ${safe(application.serviceInfo?.natureOfJob)}`, CONTENT_X);
+  doc.text(`Employer: ${safe(application.serviceInfo?.employer)}`, CONTENT_X);
+}
+
+/* ================= PUBLICATIONS (END PAGE 1) ================= */
+doc.moveDown(0.8);
+doc.font("Times-Bold").text("Publications:", CONTENT_X);
+doc.font("Times-Roman").text(
+  `Number of Publications: ${safe(application.numberOfPublications)}`,
+  CONTENT_X
+);
+
+(application.publications || []).slice(0, 5).forEach((p, i) => {
+  doc.text(`${i + 1}. ${safe(p)}`, CONTENT_X + 10);
+});
+
+  /* ================= PAGE 2 START ================= */
+  doc.addPage();
+
+  /* ================= DECLARATION ================= */
+  doc.font("Times-Bold").text("Declaration:", CONTENT_X);
+  doc.font("Times-Roman").text(
+    "I hereby declare that the information provided above is true and correct to the best of my knowledge.",
+    CONTENT_X
+  );
+  doc.text(
+    `Declaration Accepted: ${application.declarationAccepted ? "Yes" : "No"}`,
+    CONTENT_X
+  );
+
+  /* ================= PAYMENT ================= */
+  doc.moveDown(1);
+  doc.font("Times-Bold").text("Payment Information", CONTENT_X);
+  doc.font("Times-Roman");
+  doc.text(`Application No: ${safe(application.applicationNo)}`, CONTENT_X);
+  doc.text(`Transaction ID: ${safe(application.paymentTransactionId)}`, CONTENT_X);
+  doc.text(`Amount: BDT 100`, CONTENT_X);
+  doc.text(`Status: PAID`, CONTENT_X);
+
+  const qr = await QRCode.toDataURL(
+    JSON.stringify({ applicationNo: application.applicationNo, status: "PAID" })
+  );
+  doc.image(qr, 450, doc.page.height - 200, { width: 80 });
 
   doc.end();
   return filePath;

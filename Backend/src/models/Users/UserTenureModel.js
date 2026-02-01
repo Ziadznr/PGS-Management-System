@@ -17,7 +17,17 @@ const UserTenureSchema = new mongoose.Schema(
     department: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "departments",
-      default: null // Dean = null
+      default: null
+    },
+
+    /* 🔐 SNAPSHOT FIELDS */
+    nameSnapshot: {
+      type: String,
+      required: true
+    },
+    emailSnapshot: {
+      type: String,
+      required: true
     },
 
     startDate: {

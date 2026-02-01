@@ -12,6 +12,10 @@ import ServiceInfoForm from "../../components/Admission/ServiceInfoForm";
 import PublicationsForm from "../../components/Admission/PublicationsForm";
 import DocumentsUploadForm from "../../components/Admission/DocumentsUploadForm";
 import Declaration from "../../components/Admission/Declaration";
+import {
+  validateDocuments
+} from "../../helper/documentRules";
+
 
 import {
   ApplyForAdmissionRequest,
@@ -249,41 +253,57 @@ const ApplyAdmissionPage = () => {
   };
 
   /* ================= SUBMIT ================= */
-  const submit = async () => {
-    if (!isPaid) return ErrorToast("Please complete payment first");
+ const submit = async () => {
+  if (!isPaid) return ErrorToast("Please complete payment first");
 
-    if (
-      ["MS", "MBA", "LLM"].includes(formData.program) &&
-      formData.calculatedCGPA !== null &&
-      formData.calculatedCGPA < MIN_CGPA
-    ) {
-      return ErrorToast(
-        `Minimum required CGPA is ${MIN_CGPA}. You are not eligible to apply.`
-      );
+  /* ================= DOCUMENT VALIDATION ================= */
+  const docCheck = validateDocuments({
+    program: formData.program,
+    isInService: formData.isInService,
+    documents: formData.documents
+  });
+
+  if (!docCheck.isValid) {
+    return ErrorToast(
+      `Missing required documents: ${docCheck.missing.join(", ")}`
+    );
+  }
+
+  /* ================= CGPA CHECK ================= */
+  if (
+    ["MS", "MBA", "LLM"].includes(formData.program) &&
+    formData.calculatedCGPA !== null &&
+    formData.calculatedCGPA < MIN_CGPA
+  ) {
+    return ErrorToast(
+      `Minimum required CGPA is ${MIN_CGPA}. You are not eligible to apply.`
+    );
+  }
+
+  try {
+    setIsSubmitting(true);
+
+    const result = await ApplyForAdmissionRequest(formData);
+
+    if (result?.status === "success") {
+      setIsSubmitted(true);
+      localStorage.removeItem(STORAGE_KEY);
+      setFormData(initialFormState);
+      setIsPaid(false);
+      setIsSuccess(true);
+      window.scrollTo(0, 0);
     }
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
-    try {
-      setIsSubmitting(true);
-
-      const result = await ApplyForAdmissionRequest(formData);
-
-      if (result?.status === "success") {
-        setIsSubmitted(true);
-        localStorage.removeItem(STORAGE_KEY);
-        setFormData(initialFormState);
-        setIsPaid(false);
-        setIsSuccess(true);
-        window.scrollTo(0, 0);
-      }
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   /* ================= UI ================= */
   return (
-    <div className="container mt-4 mb-5">
-      <div className="position-relative text-center mb-5 border-bottom pb-3">
+    <div className="admission-page">
+    <div className="admission-card">
+      <div className="admission-header text-center">
         <h2 className="fw-bolder text-dark">
           Postgraduate Admission Application
         </h2>
@@ -358,6 +378,7 @@ const ApplyAdmissionPage = () => {
           </button>
         </div>
       )}
+    </div>
     </div>
   );
 };

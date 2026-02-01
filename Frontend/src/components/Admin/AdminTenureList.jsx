@@ -7,7 +7,11 @@ const AdminTenureList = () => {
   const [status, setStatus] = useState("All");
 
   useEffect(() => {
-    AdminTenureListRequest().then(setTenures);
+    AdminTenureListRequest().then(res => {
+      if (Array.isArray(res)) {
+        setTenures(res);
+      }
+    });
   }, []);
 
   const filtered = tenures.filter(t => {
@@ -19,7 +23,7 @@ const AdminTenureList = () => {
 
   return (
     <div className="container mt-4">
-      <h4>🏛 Tenure History </h4>
+      <h4>🏛 Tenure History</h4>
 
       {/* FILTERS */}
       <div className="row mb-3">
@@ -54,30 +58,45 @@ const AdminTenureList = () => {
           <tr>
             <th>#</th>
             <th>Name</th>
+            <th>Email</th>
             <th>Role</th>
             <th>Department</th>
             <th>Start</th>
             <th>End</th>
-            {/* <th>Appointed By</th> */}
           </tr>
         </thead>
 
         <tbody>
-          {filtered.map((t, i) => (
-            <tr key={t._id}>
-              <td>{i + 1}</td>
-              <td>{t.user?.name}</td>
-              <td>{t.role}</td>
-              <td>{t.department?.name || "—"}</td>
-              <td>{new Date(t.startDate).toDateString()}</td>
-              <td>
-                {t.endDate
-                  ? new Date(t.endDate).toDateString()
-                  : <span className="badge bg-success">Active</span>}
+          {filtered.length === 0 ? (
+            <tr>
+              <td colSpan="7" className="text-center text-muted">
+                No tenure records found
               </td>
-              {/* <td>{t.appointedBy?.name}</td> */}
             </tr>
-          ))}
+          ) : (
+            filtered.map((t, i) => (
+              <tr key={t._id}>
+                <td>{i + 1}</td>
+
+                {/* ✅ SNAPSHOT NAME */}
+                <td>{t.nameSnapshot || "—"}</td>
+
+                {/* ✅ SNAPSHOT EMAIL */}
+                <td>{t.emailSnapshot || "—"}</td>
+
+                <td>{t.role}</td>
+                <td>{t.department?.name || "—"}</td>
+                <td>{new Date(t.startDate).toDateString()}</td>
+                <td>
+                  {t.endDate ? (
+                    new Date(t.endDate).toDateString()
+                  ) : (
+                    <span className="badge bg-success">Active</span>
+                  )}
+                </td>
+              </tr>
+            ))
+          )}
         </tbody>
       </table>
     </div>

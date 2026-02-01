@@ -1,19 +1,18 @@
-import React, { Fragment, useRef } from 'react';
+import React, { Fragment, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { ErrorToast, IsEmail, IsEmpty } from "../../helper/FormHelper";
 import { LoginRequest } from "../../APIRequest/AdminAPIRequest";
+import logo from "../../assets/images/ps.png";
 
 const Login = () => {
-    // Correctly create refs for email and password inputs
     const emailRef = useRef();
     const passRef = useRef();
+    const [showPassword, setShowPassword] = useState(false);
 
     const SubmitLogin = async () => {
-        // Access values from refs
         const email = emailRef.current.value;
         const pass = passRef.current.value;
 
-        // Validate email and password
         if (!IsEmail(email)) {
             ErrorToast("Invalid Email Address");
         } else if (IsEmpty(pass)) {
@@ -21,7 +20,6 @@ const Login = () => {
         } else {
             let result = await LoginRequest(email, pass);
             if (result) {
-                // Redirect on successful login
                 window.location.href = "/";
             }
         }
@@ -31,48 +29,58 @@ const Login = () => {
         <Fragment>
             <div className="container">
                 <div className="row justify-content-center">
-                    <div className="col-md-7 col-lg-6 center-screen">
-                        <div className="card w-90 p-4">
-                            <div className="card-body">
-                                <h3>SIGN IN</h3>
-                                <br />
+                    <div className="col-md-7 col-lg-5 center-screen">
+                        <div className="card login-card p-4">
+                            <div className="card-body text-center">
+
+                                {/* Logo */}
+                                <img src={logo} className="login-logo" alt="Logo" />
+
+                                <h3 className="mb-4">SIGN IN</h3>
+
+                                {/* Email */}
                                 <input
                                     ref={emailRef}
-                                    placeholder="User Email"
-                                    className="form-control"
                                     type="email"
+                                    className="form-control mb-3"
+                                    placeholder="User Email"
                                 />
-                                <br />
-                                <input
-                                    ref={passRef}
-                                    placeholder="User Password"
-                                    className="form-control"
-                                    type="password"
-                                />
-                                <br />
-                                <button
-                                    onClick={SubmitLogin}
-                                    className="btn btn-success w-100 animated"
-                                >
-                                    Next
-                                </button>
-                                <div className="float-end mt-3">
-                                    <span>
-                                        <Link
-                                            className="text-center ms-3 h6"
-                                            to="/Registration"
-                                        >
-                                            Sign Up
-                                        </Link>
-                                        <span className="ms-1">|</span>
-                                        <Link
-                                            className="text-center ms-3 h6"
-                                            to="/send-otp"
-                                        >
-                                            Forget Password
-                                        </Link>
+
+                                {/* Password */}
+                                <div className="position-relative mb-4">
+                                    <input
+                                        ref={passRef}
+                                        type={showPassword ? "text" : "password"}
+                                        className="form-control"
+                                        placeholder="User Password"
+                                    />
+                                    <span
+                                        className="password-toggle"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                    >
+                                        {showPassword ? "🙈" : "👁️"}
                                     </span>
                                 </div>
+
+                                {/* Login Button */}
+                                <button
+                                    onClick={SubmitLogin}
+                                    className="btn login-btn w-100"
+                                >
+                                    Login
+                                </button>
+
+                                {/* Auth Actions */}
+                                <div className="mt-4 auth-actions">
+                                    <Link to="/Registration" className="btn auth-btn-outline">
+                                        Sign Up
+                                    </Link>
+
+                                    <Link to="/send-otp" className="btn auth-btn-link">
+                                        Forget Password?
+                                    </Link>
+                                </div>
+
                             </div>
                         </div>
                     </div>

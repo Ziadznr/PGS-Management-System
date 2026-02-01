@@ -19,42 +19,64 @@ const PublicNoticeList = () => {
 
   return (
     <div className="container my-4">
-      <h4>📢 All Notices</h4>
+  <h4 className="mb-4">📢 All Notices</h4>
 
-      {notices.length === 0 && <p>No notices available</p>}
+  {notices.length === 0 && (
+    <p className="text-muted">No notices available</p>
+  )}
 
-      {notices.map((n) => (
-        <div key={n._id} className="card mb-3">
-          <div className="card-body">
+  {notices.map((n) => (
+    <div
+      key={n._id}
+      className={`card notice-card mb-3 ${n.isPinned ? "notice-pinned" : ""}`}
+    >
+      <div className="card-body d-flex justify-content-between align-items-start gap-3">
 
-            <h6>
-              {n.isPinned && "📌 "} {n.title}
-            </h6>
+        {/* LEFT CONTENT */}
+        <div className="notice-content">
+          <h6 className="mb-1">
+            {n.isPinned && <span className="me-1">📌</span>}
+            {n.title}
+          </h6>
 
-            <p>{n.description}</p>
+          <p className="mb-2 text-muted small">
+            {n.description}
+          </p>
 
-            {/* 📎 ATTACHMENT */}
-            {n.attachment && (
-              <a
-                href={resolveAttachment(n.attachment)}
-                target="_blank"
-                rel="noreferrer"
-                className="btn btn-sm btn-outline-primary mt-2"
-              >
-                📎 View Attachment
-              </a>
-            )}
-
-            <div className="mt-2">
-              <small className="text-muted">
-                {new Date(n.createdAt).toLocaleDateString()}
-              </small>
-            </div>
-
-          </div>
+          <small className="text-muted">
+            📅 {new Date(n.createdAt).toLocaleDateString()}
+          </small>
         </div>
-      ))}
+
+        {/* RIGHT ACTION */}
+        {n.attachment && (
+          <div className="notice-action text-end">
+            <a
+              href={resolveAttachment(n.attachment)}
+              target="_blank"
+              rel="noreferrer"
+              className="btn btn-sm btn-outline-primary mb-2"
+            >
+              👁 View
+            </a>
+
+            <br />
+
+            {/* <a
+              href={resolveAttachment(n.attachment)}
+              download
+              className="btn btn-sm btn-primary"
+            >
+              ⬇ Download
+            </a> */}
+          </div>
+        )}
+
+      </div>
     </div>
+  ))}
+</div>
+
   );
 };
 
