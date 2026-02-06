@@ -132,7 +132,7 @@ const DepartmentSupervisorSelector = ({
       {/* ================= SUBJECT (ONLY IF EXISTS) ================= */}
       {subjects.length > 0 && (
         <div className="mb-3">
-          <label className="form-label">Degree</label>
+          <label className="form-label">Subject</label>
           <select
             className="form-control"
             value={formData.subject}
@@ -144,7 +144,7 @@ const DepartmentSupervisorSelector = ({
               }))
             }
           >
-            <option value="">Select Degree</option>
+            <option value="">Select Subject</option>
             {subjects.map((s, i) => (
               <option key={i} value={s.name}>
                 {s.name}

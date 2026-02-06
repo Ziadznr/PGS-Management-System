@@ -1,4 +1,6 @@
 const bcrypt = require("bcryptjs");
+const TemporaryEnrollmentAuthModel =
+  require("../../models/Admission/TemporaryEnrollmentAuthModel");
 const AdmissionApplicationModel =
   require("../../models/Admission/AdmissionApplicationModel");
 
@@ -10,24 +12,44 @@ const TemporaryLoginService = async (req) => {
       return { status: "fail", data: "Login ID and password required" };
     }
 
-    // ================= 1️⃣ FIND APPLICATION =================
-    const application = await AdmissionApplicationModel.findOne({
-      "temporaryLogin.tempId": tempLoginId,
-      applicationStatus: "DeanAccepted"
-    });
+    /* =================================================
+       1️⃣ FIND TEMP LOGIN RECORD
+    ================================================= */
+    const tempAuth = await TemporaryEnrollmentAuthModel
+      .findOne({ loginId: tempLoginId })
+      .populate("application");
 
-    if (!application) {
+    if (!tempAuth) {
       return { status: "fail", data: "Invalid temporary login" };
     }
 
-    const { expiresAt, isUsed, password: hashedPassword } =
-      application.temporaryLogin;
+    const {
+      application,
+      passwordHash,
+      expiresAt
+    } = tempAuth;
 
-    // ================= 2️⃣ EXPIRY =================
-    if (!expiresAt || expiresAt < new Date()) {
+    /* =================================================
+       2️⃣ APPLICATION STATE CHECK
+    ================================================= */
+    if (!application || application.applicationStatus !== "DeanAccepted") {
+      return {
+        status: "fail",
+        data: "Application not eligible for enrollment"
+      };
+    }
+
+    /* =================================================
+       3️⃣ EXPIRY CHECK (ONLY HARD BLOCK)
+    ================================================= */
+    if (expiresAt < new Date()) {
+      // ❌ Seat forfeited
       application.applicationStatus = "ChairmanWaiting";
-      application.temporaryLogin = undefined;
       await application.save();
+
+      await TemporaryEnrollmentAuthModel.deleteOne({
+        _id: tempAuth._id
+      });
 
       return {
         status: "fail",
@@ -35,27 +57,25 @@ const TemporaryLoginService = async (req) => {
       };
     }
 
-    // ================= 3️⃣ USED =================
-    if (isUsed) {
-      return { status: "fail", data: "Temporary login already used" };
-    }
-
-    // ================= 4️⃣ VERIFY =================
-    const match = await bcrypt.compare(password, hashedPassword);
+    /* =================================================
+       4️⃣ PASSWORD VERIFY
+    ================================================= */
+    const match = await bcrypt.compare(password, passwordHash);
     if (!match) {
       return { status: "fail", data: "Invalid credentials" };
     }
 
-    // ================= 5️⃣ MARK USED =================
-    application.temporaryLogin.isUsed = true;
-    await application.save();
-
+    /* =================================================
+       ✅ SUCCESS (MULTIPLE LOGINS ALLOWED)
+    ================================================= */
     return {
       status: "success",
       data: {
         applicationId: application._id,
+        applicationNo: application.applicationNo,
         applicantName: application.applicantName,
         program: application.program,
+        academicYear: application.academicYear,
         department: application.department,
         supervisor: application.supervisor,
         email: application.email,

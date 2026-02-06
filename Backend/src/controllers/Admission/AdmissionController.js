@@ -65,18 +65,24 @@ exports.ApplyForAdmission = async (req, res) => {
 };
 
 
-// 🔓 Temporary login (after Dean approval)
 exports.TemporaryLogin = async (req, res) => {
   try {
     const result = await TemporaryLoginService(req);
+
+    if (result.status === "fail") {
+      return res.status(400).json(result); // 👈 IMPORTANT
+    }
+
     return res.status(200).json(result);
+
   } catch (error) {
     return res.status(500).json({
       status: "fail",
-      data: error.message
+      data: "Internal server error"
     });
   }
 };
+
 
 /* ======================================================
    ADMIN CONTROLLERS

@@ -159,6 +159,9 @@ const handleTransitionEnd = () => {
       <li onClick={() => navigate("/ApplyAdmissionPage")}>
         Application
       </li>
+      <li onClick={() => navigate("/admission/temporary-login")}>
+        Temporary Login
+      </li>
       <li className="disabled">More options coming soon</li>
     </ul>
   </li>

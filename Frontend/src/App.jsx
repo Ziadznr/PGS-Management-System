@@ -49,7 +49,7 @@ import PublicNoticeListPage from "./pages/Notice/PublicNoticeListPage";
 
 // Application
 import ApplyAdmissionPage from "./pages/Admission/ApplyAdmissionPage";
-import DepartmentLastSemesterCoursesPage from "./pages/Admission/DepartmentLastSemesterCoursesPage";
+import TemporaryLoginPage from "./pages/Admission/TemporaryLoginPage";
 import ApplicationSuccessPage from "./pages/Admission/ApplicationSuccessPage";
 
 // ✅ ADMIN PROTECTED ROUTE
@@ -106,9 +106,10 @@ const App = () => {
 
           <Route path="/ApplyAdmissionPage" element={<ApplyAdmissionPage />} />
           <Route path="/application-success" element={<ApplicationSuccessPage />}/>
+          <Route path="/admission/temporary-login" element={<TemporaryLoginPage />}/>
 
-    
 
+  
 
           {/* ---------- PROTECTED ADMIN ROUTES ---------- */}
           <Route

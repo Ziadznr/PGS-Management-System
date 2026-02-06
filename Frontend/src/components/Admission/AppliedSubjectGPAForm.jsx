@@ -66,6 +66,7 @@ const AppliedSubjectGPAForm = ({ formData, setFormData }) => {
     }));
   }, [computedCGPA, totalAppliedCreditHour, setFormData]);
 
+  
   /* =================================================
      HANDLERS
   ================================================= */

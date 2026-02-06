@@ -54,7 +54,7 @@ const UserLogin = () => {
 
               <h3>User Sign In</h3>
               <small className="text-muted d-block mb-4">
-                Student / Supervisor / Chairman / Dean
+                Supervisor / Chairman / Dean
               </small>
 
               {/* Email */}

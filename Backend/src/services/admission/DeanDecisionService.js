@@ -3,6 +3,8 @@ const bcrypt = require("bcryptjs");
 
 const AdmissionApplicationModel =
   require("../../models/Admission/AdmissionApplicationModel");
+const TemporaryEnrollmentAuthModel =
+  require("../../models/Admission/TemporaryEnrollmentAuthModel");
 const SendEmailUtility =
   require("../../utility/SendEmailUtility");
 const UsersModel =
@@ -18,25 +20,14 @@ const DeanDecisionService = async (req) => {
       return { status: "fail", data: "Unauthorized access" };
     }
 
-    const deanId = deanSession?.id?.toString();
+    const deanId = deanSession.id;
 
-    if (!deanId) {
-      return {
-        status: "fail",
-        data: "Dean ID missing from session"
-      };
-    }
-
-    /* ================= LOAD DEAN SNAPSHOT ================= */
     const dean = await UsersModel
       .findById(deanId)
       .select("name email role");
 
     if (!dean) {
-      return {
-        status: "fail",
-        data: "Dean account not found"
-      };
+      return { status: "fail", data: "Dean account not found" };
     }
 
     if (!["Approve", "Reject"].includes(decision)) {
@@ -62,16 +53,13 @@ const DeanDecisionService = async (req) => {
     /* ================= 3️⃣ REJECT ================= */
     if (decision === "Reject") {
       application.applicationStatus = "DeanRejected";
-      application.finalDecisionAt = new Date();
 
       application.approvalLog.push({
         role: "Dean",
-
         approvedBy: dean._id,
         approvedByName: dean.name,
         approvedByEmail: dean.email,
         approvedByRoleAtThatTime: dean.role,
-
         decision: "Rejected",
         remarks: remarks || "",
         decidedAt: new Date()
@@ -98,34 +86,24 @@ PGS Admission Office
     }
 
     /* ================= 4️⃣ APPROVE ================= */
-    const tempId = Math.floor(
-      1000000000 + Math.random() * 9000000000
-    ).toString();
 
+    // 🔐 Generate temp credentials
+    const tempLoginId = application.mobile; // ✅ SAME as user enters
     const rawPassword = crypto.randomBytes(4).toString("hex");
-    const hashedPassword = await bcrypt.hash(rawPassword, 10);
+    const passwordHash = await bcrypt.hash(rawPassword, 10);
 
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7);
 
+    // ✅ Save application state
     application.applicationStatus = "DeanAccepted";
-    application.finalDecisionAt = new Date();
-
-    application.temporaryLogin = {
-      tempId,
-      password: hashedPassword,
-      expiresAt,
-      isUsed: false
-    };
 
     application.approvalLog.push({
       role: "Dean",
-
       approvedBy: dean._id,
       approvedByName: dean.name,
       approvedByEmail: dean.email,
       approvedByRoleAtThatTime: dean.role,
-
       decision: "Approved",
       remarks: remarks || "",
       decidedAt: new Date()
@@ -133,6 +111,16 @@ PGS Admission Office
 
     await application.save();
 
+    // ✅ CREATE TEMP LOGIN (🔥 THIS WAS MISSING)
+    await TemporaryEnrollmentAuthModel.create({
+      application: application._id,
+      loginId: tempLoginId,
+      passwordHash,
+      expiresAt,
+      isUsed: false
+    });
+
+    // 📧 SEND EMAIL
     await SendEmailUtility(
       application.email,
       `
@@ -146,7 +134,7 @@ has been FINALLY APPROVED.
 ━━━━━━━━━━━━━━━━━━━━━━
 TEMPORARY LOGIN DETAILS
 ━━━━━━━━━━━━━━━━━━━━━━
-Login ID   : ${tempId}
+Login ID   : ${tempLoginId}
 Password   : ${rawPassword}
 Valid Till : ${expiresAt.toDateString()}
 
@@ -163,7 +151,7 @@ PGS Admission Office
       status: "success",
       data: {
         applicationId: application._id,
-        tempLoginId: tempId,
+        tempLoginId,
         expiresAt
       }
     };

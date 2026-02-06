@@ -1,5 +1,22 @@
+import { useEffect } from "react";
 const AcademicInfoForm = ({ formData, setFormData }) => {
   const { program, academicRecords = [] } = formData;
+
+  useEffect(() => {
+  const disableWheel = e => e.target.blur();
+
+  const inputs = document.querySelectorAll('input[type=number]');
+  inputs.forEach(input =>
+    input.addEventListener('wheel', disableWheel)
+  );
+
+  return () => {
+    inputs.forEach(input =>
+      input.removeEventListener('wheel', disableWheel)
+    );
+  };
+}, []);
+
 
   /* =================================================
      UPSERT ACADEMIC RECORD (SAFE)

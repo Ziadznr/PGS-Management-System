@@ -255,9 +255,16 @@ export async function TemporaryLoginRequest(tempLoginId, password) {
     ErrorToast(res.data?.data || "Temporary login failed");
     return false;
 
-  } catch {
+  } catch (e) {
     store.dispatch(HideLoader());
-    ErrorToast("Server error");
+
+    // 🔥 THIS IS THE KEY FIX
+    const errorMsg =
+      e.response?.data?.data ||   // backend message (400)
+      e.message ||                // axios error
+      "Server error";
+
+    ErrorToast(errorMsg);
     return false;
   }
 }

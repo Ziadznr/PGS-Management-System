@@ -8,51 +8,60 @@ const emptyAddress = {
   district: ""
 };
 
-const AddressFields = ({ title, address, onChange }) => (
-  <div className="card p-3 mb-3">
-    <h6 className="mb-2">{title}</h6>
+const AddressFields = ({ title, address, onChange }) => {
+  const handleChange = (field, value) => {
+    onChange({
+      ...address,
+      [field]: value.toUpperCase()
+    });
+  };
 
-    <input
-      className="form-control mb-2"
-      placeholder="Village / Street"
-      value={address.village}
-      onChange={e => onChange({ ...address, village: e.target.value })}
-      required
-    />
+  return (
+    <div className="card p-3 mb-3">
+      <h6 className="mb-2">{title}</h6>
 
-    <input
-      className="form-control mb-2"
-      placeholder="Post Office (P.O)"
-      value={address.postOffice}
-      onChange={e => onChange({ ...address, postOffice: e.target.value })}
-      required
-    />
+      <input
+        className="form-control mb-2"
+        placeholder="Village / Street"
+        value={address.village}
+        onChange={e => handleChange("village", e.target.value)}
+        required
+      />
 
-    <input
-      className="form-control mb-2"
-      placeholder="Postal Code"
-      value={address.postalCode}
-      onChange={e => onChange({ ...address, postalCode: e.target.value })}
-      required
-    />
+      <input
+        className="form-control mb-2"
+        placeholder="Post Office (P.O)"
+        value={address.postOffice}
+        onChange={e => handleChange("postOffice", e.target.value)}
+        required
+      />
 
-    <input
-      className="form-control mb-2"
-      placeholder="Sub-District (Upazila)"
-      value={address.subDistrict}
-      onChange={e => onChange({ ...address, subDistrict: e.target.value })}
-      required
-    />
+      <input
+        className="form-control mb-2"
+        placeholder="Postal Code"
+        value={address.postalCode}
+        onChange={e => handleChange("postalCode", e.target.value)}
+        required
+      />
 
-    <input
-      className="form-control"
-      placeholder="District"
-      value={address.district}
-      onChange={e => onChange({ ...address, district: e.target.value })}
-      required
-    />
-  </div>
-);
+      <input
+        className="form-control mb-2"
+        placeholder="Sub-District (Upazila)"
+        value={address.subDistrict}
+        onChange={e => handleChange("subDistrict", e.target.value)}
+        required
+      />
+
+      <input
+        className="form-control"
+        placeholder="District"
+        value={address.district}
+        onChange={e => handleChange("district", e.target.value)}
+        required
+      />
+    </div>
+  );
+};
 
 const AddressForm = ({ formData, setFormData }) => {
   const [sameAsPresent, setSameAsPresent] = useState(false);
