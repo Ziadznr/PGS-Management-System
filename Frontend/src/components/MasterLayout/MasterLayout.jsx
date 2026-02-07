@@ -101,6 +101,15 @@ const MasterLayout = (props) => {
       ],
     },
     {
+      title: "Hall",
+      icon: <HiOutlineCalendarDays className="side-bar-item-icon" />,
+      url: "/HallCreateUpdatePage",
+      subMenu: [
+        { title: "Hall Create", icon: <BsCircle size={16} />, url: "/HallCreateUpdatePage" },
+        { title: "Hall List", icon: <BsCircle size={16} />, url: "/HallListPage" },
+      ],
+    },
+    {
       title: "User",
       icon: <BsPeople className="side-bar-item-icon" />,
       url: "/User",

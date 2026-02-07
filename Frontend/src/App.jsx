@@ -37,6 +37,8 @@ import DepartmentListPage from "./pages/Department/DepartmentListPage";
 import DepartmentCreateUpdatePage from "./pages/Department/DepartmentCreateUpdatePage";
 import SeasonRangeSetupPage from "./pages/Admission/SeasonRangeSetupPage";
 import DepartmentRangeListPage from "./pages/Admission/DepartmentRangeListPage";
+import HallListPage from "./pages/Hall/HallListPage";
+import HallCreateUpdatePage from "./pages/Hall/HallCreateUpdatePage";
 
 import DeanUsersListPage from "./pages/Dean/DeanUsersListPage";
 import ChairmanTenurePage from "./pages/Dean/ChairmanTenurePage";
@@ -162,6 +164,24 @@ const App = () => {
             element={
               <ProtectedRoute>
                 <DepartmentRangeListPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/HallCreateUpdatePage"
+            element={
+              <ProtectedRoute>
+                <HallCreateUpdatePage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/HallListPage"
+            element={
+              <ProtectedRoute>
+                <HallListPage />
               </ProtectedRoute>
             }
           />

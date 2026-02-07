@@ -25,17 +25,36 @@ const UsersSchema = new mongoose.Schema(
 
     role: {
       type: String,
-      enum: ["Dean", "Chairman", "Supervisor", "Student"],
+      enum: [
+        "Dean",
+        "VC",
+        "Registrar",
+        "PGS Specialist",
+        "Provost",
+        "Chairman",
+        "Supervisor",
+        "Student"
+      ],
       required: true
     },
 
     isActive: { type: Boolean, default: true },
 
+    /* ================= CONTEXT ================= */
+
     department: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "departments",
       required: function () {
-        return this.role !== "Dean";
+        return ["Chairman", "Supervisor", "Student"].includes(this.role);
+      }
+    },
+
+    hall: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "halls",
+      required: function () {
+        return this.role === "Provost";
       }
     },
 
@@ -71,22 +90,88 @@ UsersSchema.pre("save", async function () {
   this.password = await bcrypt.hash(this.password, 10);
 });
 
-/* ================= DB CONSTRAINTS ================= */
-UsersSchema.index(
-  { email: 1, role: 1, department: 1 },
-  { unique: true, partialFilterExpression: { isActive: true } }
-);
+/* =================================================
+   🔐 UNIQUE ROLE CONSTRAINTS
+================================================= */
 
+/* 🔒 ONLY ONE VC */
 UsersSchema.index(
   { role: 1 },
-  { unique: true, partialFilterExpression: { role: "Dean", isActive: true } }
+  {
+    unique: true,
+    partialFilterExpression: {
+      role: "VC",
+      isActive: true
+    }
+  }
 );
 
+/* 🔒 ONLY ONE Registrar */
+UsersSchema.index(
+  { role: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      role: "Registrar",
+      isActive: true
+    }
+  }
+);
+
+/* 🔒 ONLY ONE PGS Specialist */
+UsersSchema.index(
+  { role: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      role: "PGS Specialist",
+      isActive: true
+    }
+  }
+);
+
+/* 🔒 ONLY ONE Dean (SYSTEM-WIDE) */
+UsersSchema.index(
+  { role: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      role: "Dean",
+      isActive: true
+    }
+  }
+);
+
+/* 🔒 ONE Provost PER HALL */
+UsersSchema.index(
+  { role: 1, hall: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      role: "Provost",
+      isActive: true
+    }
+  }
+);
+
+/* 🔒 ONE Chairman PER DEPARTMENT */
 UsersSchema.index(
   { role: 1, department: 1 },
   {
     unique: true,
-    partialFilterExpression: { role: "Chairman", isActive: true }
+    partialFilterExpression: {
+      role: "Chairman",
+      isActive: true
+    }
+  }
+);
+
+/* 🔒 Email uniqueness per role + context */
+UsersSchema.index(
+  { email: 1, role: 1, department: 1, hall: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { isActive: true }
   }
 );
 

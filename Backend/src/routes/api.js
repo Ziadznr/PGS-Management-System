@@ -80,6 +80,9 @@ const PaymentController =
 const InitiatePaymentService =
   require("../services/admission/InitiatePaymentService");
 
+const HallController =
+  require("../controllers/Hall/HallController");  
+
 // =================================================
 // ============== USER PROTECTED ROUTES =============
 // =================================================
@@ -462,7 +465,30 @@ router.get(
   AdmissionController.EnrollmentSummary
 );
 
+// 🔒 ADMIN
+router.post(
+  "/admin/hall/create-update",
+  AuthVerifyMiddleware,
+  HallController.CreateUpdate
+);
 
+router.get(
+  "/admin/hall/list",
+  AuthVerifyMiddleware,
+  HallController.List
+);
+
+router.delete(
+  "/admin/hall/delete/:id",
+  AuthVerifyMiddleware,
+  HallController.Delete
+);
+
+// 🔓 PUBLIC / ADMIN (for Provost dropdown)
+router.get(
+  "/hall/dropdown",
+  HallController.Dropdown
+);
 
 
 module.exports = router;
