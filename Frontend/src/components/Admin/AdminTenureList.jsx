@@ -97,7 +97,7 @@ const AdminTenureList = () => {
 
                   {/* DEPARTMENT / HALL */}
                   <td>
-                    {t.department?.name ||
+                    {t.department?.departmentName ||
                      t.hall?.name ||
                      "—"}
                   </td>

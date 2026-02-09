@@ -28,7 +28,7 @@ exports.List = async (req, res) => {
       })
       .populate({
         path: "department",
-        select: "name"
+        select: "departmentName departmentCode"
       })
       .populate({
         path: "hall",

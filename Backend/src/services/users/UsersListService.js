@@ -99,7 +99,7 @@ const ListService = async (
                 subject: 1,
 
                 // 🎯 Display helpers
-                DepartmentName: "$DepartmentData.name",
+                DepartmentName: "$DepartmentData.departmentName",
                 HallName: "$HallData.name"
               }
             }

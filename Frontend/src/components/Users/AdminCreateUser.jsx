@@ -6,9 +6,7 @@ import {
   DepartmentDropdownRequest,
   DepartmentSubjectDropdownRequest
 } from "../../APIRequest/UserAPIRequest";
-import {
- HallDropdownRequest
-} from "../../APIRequest/HallAPIRequest";
+import { HallDropdownRequest } from "../../APIRequest/HallAPIRequest";
 import {
   IsEmpty,
   IsEmail,
@@ -29,6 +27,11 @@ const AdminCreateUser = () => {
   const [halls, setHalls] = useState([]);
 
   const [replaceMark, setReplaceMark] = useState(false);
+
+  /* ================= DEPARTMENT SEARCH ================= */
+  const [deptSearch, setDeptSearch] = useState("");
+  const [showDeptList, setShowDeptList] = useState(false);
+  const deptRef = useRef(null);
 
   /* ================= FORM ================= */
   const [form, setForm] = useState({
@@ -56,11 +59,7 @@ const AdminCreateUser = () => {
   /* ================= FIELD PERMISSIONS ================= */
   const canEdit = field => {
     if (!isEdit) return true;
-
-    if (replaceMark) {
-      return ["name", "nameExtension", "phone"].includes(field);
-    }
-
+    if (replaceMark) return ["name", "nameExtension", "phone"].includes(field);
     return field === "email";
   };
 
@@ -73,13 +72,34 @@ const AdminCreateUser = () => {
   /* ================= LOAD SUBJECTS ================= */
   useEffect(() => {
     if (form.role === "Supervisor" && form.department) {
-      DepartmentSubjectDropdownRequest(form.department)
-        .then(setSubjects);
+      DepartmentSubjectDropdownRequest(form.department).then(setSubjects);
     } else {
       setSubjects([]);
       setForm(prev => ({ ...prev, subject: "" }));
     }
   }, [form.role, form.department]);
+
+  /* ================= CLICK OUTSIDE ================= */
+  useEffect(() => {
+    const handleClickOutside = e => {
+      if (deptRef.current && !deptRef.current.contains(e.target)) {
+        setShowDeptList(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () =>
+      document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  /* ================= FILTERED DEPARTMENTS ================= */
+  const filteredDepartments = departments.filter(d =>
+    d.departmentName
+      .toLowerCase()
+      .includes(deptSearch.toLowerCase())
+  );
+
+  const selectedDepartmentName =
+    departments.find(d => d._id === form.department)?.departmentName || "";
 
   /* ================= HANDLER ================= */
   const handleChange = (key, value) => {
@@ -108,16 +128,14 @@ const AdminCreateUser = () => {
     if (!IsEmail(email)) return ErrorToast("Valid email required");
     if (IsEmpty(role)) return ErrorToast("Role required");
 
-    // 🔒 CREATE-ONLY VALIDATION
-if (!isEdit) {
-  if (["Chairman", "Supervisor"].includes(role) && IsEmpty(department)) {
-    return ErrorToast("Department required");
-  }
-
-  if (role === "Provost" && IsEmpty(hall)) {
-    return ErrorToast("Hall required");
-  }
-}
+    if (!isEdit) {
+      if (["Chairman", "Supervisor"].includes(role) && IsEmpty(department)) {
+        return ErrorToast("Department required");
+      }
+      if (role === "Provost" && IsEmpty(hall)) {
+        return ErrorToast("Hall required");
+      }
+    }
 
     if (role === "Supervisor" && subjects.length > 0 && IsEmpty(subject)) {
       return ErrorToast("Subject required");
@@ -130,7 +148,9 @@ if (!isEdit) {
       email,
       phone,
       role,
-      department: ["Chairman", "Supervisor"].includes(role) ? department : null,
+      department: ["Chairman", "Supervisor"].includes(role)
+        ? department
+        : null,
       hall: role === "Provost" ? hall : null,
       subject: role === "Supervisor" ? subject : null
     };
@@ -186,7 +206,9 @@ if (!isEdit) {
                 className="form-control"
                 value={form.nameExtension}
                 disabled={!canEdit("nameExtension")}
-                onChange={e => handleChange("nameExtension", e.target.value)}
+                onChange={e =>
+                  handleChange("nameExtension", e.target.value)
+                }
               >
                 <option value="">Select Title</option>
                 {titleOptions.map(t => (
@@ -236,20 +258,54 @@ if (!isEdit) {
               </select>
             </div>
 
-            {/* DEPARTMENT */}
+            {/* 🔍 SEARCHABLE DEPARTMENT */}
             {["Chairman", "Supervisor"].includes(form.role) && (
-              <div className="col-md-4">
-                <select
+              <div className="col-md-4 position-relative" ref={deptRef}>
+                <input
+                  type="text"
                   className="form-control"
-                  value={form.department}
+                  placeholder="Type department name..."
+                  value={deptSearch || selectedDepartmentName}
                   disabled={isEdit}
-                  onChange={e => handleChange("department", e.target.value)}
-                >
-                  <option value="">Select Department</option>
-                  {departments.map(d => (
-                    <option key={d._id} value={d._id}>{d.name}</option>
-                  ))}
-                </select>
+                  onChange={e => {
+                    setDeptSearch(e.target.value);
+                    setShowDeptList(true);
+                    handleChange("department", "");
+                  }}
+                  onFocus={() => setShowDeptList(true)}
+                />
+
+                {showDeptList && deptSearch && filteredDepartments.length > 0 && (
+                  <ul
+                    className="list-group position-absolute w-100"
+                    style={{
+                      zIndex: 1000,
+                      maxHeight: 200,
+                      overflowY: "auto"
+                    }}
+                  >
+                    {filteredDepartments.map(d => (
+                      <li
+                        key={d._id}
+                        className="list-group-item list-group-item-action"
+                        onClick={() => {
+                          handleChange("department", d._id);
+                          setDeptSearch(d.departmentName);
+                          setShowDeptList(false);
+                        }}
+                        style={{ cursor: "pointer" }}
+                      >
+                        {d.departmentName}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                {showDeptList && deptSearch && !filteredDepartments.length && (
+                  <div className="border p-2 bg-light text-muted">
+                    No department found
+                  </div>
+                )}
               </div>
             )}
 
@@ -264,9 +320,7 @@ if (!isEdit) {
                 >
                   <option value="">Select Hall</option>
                   {halls.map(h => (
-                    <option key={h._id} value={h._id}>
-                      {h.name}
-                    </option>
+                    <option key={h._id} value={h._id}>{h.name}</option>
                   ))}
                 </select>
               </div>
