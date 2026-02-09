@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 import ProgramSelector from "../../components/Admission/ProgramSelector";
 import SeasonSelector from "../../components/Admission/SeasonSelector";
-import DepartmentSupervisorSelector from "../../components/Admission/DepartmentSupervisorSelector";
+import ProgramDepartmentWrapper from "../../components/Admission/ProgramDepartmentWrapper";
 import PersonalInfoForm from "../../components/Admission/PersonalInfoForm";
 import AddressForm from "../../components/Admission/AddressForm";
 import AcademicInfoForm from "../../components/Admission/AcademicInfoForm";
@@ -321,14 +321,21 @@ const ApplyAdmissionPage = () => {
 
       {!isSuccess ? (
         <>
-          <ProgramSelector formData={formData} setFormData={setFormData} />
-          <SeasonSelector formData={formData} setFormData={setFormData} seasons={seasons} />
-          <DepartmentSupervisorSelector
-            formData={formData}
-            setFormData={setFormData}
-            departments={departments}
-            supervisors={supervisors}
-          />
+<ProgramSelector
+  formData={formData}
+  setFormData={setFormData}
+/>
+
+<SeasonSelector
+  formData={formData}
+  setFormData={setFormData}
+  seasons={seasons}
+/>
+
+<ProgramDepartmentWrapper
+  formData={formData}
+  setFormData={setFormData}
+/>
           <PersonalInfoForm formData={formData} setFormData={setFormData} />
           <AddressForm formData={formData} setFormData={setFormData} />
           <AcademicInfoForm formData={formData} setFormData={setFormData} />

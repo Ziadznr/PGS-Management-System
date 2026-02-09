@@ -14,24 +14,51 @@ const CheckAssociateService = require("../../services/common/CheckAssociateServi
    CREATE DEPARTMENT
 ========================= */
 exports.CreateDepartment = async (req, res) => {
-  if (!req.body.name) {
-    return res.status(400).json({
-      status: "fail",
-      message: "Department name is required"
-    });
-  }
+  try {
+    const { program, departmentName, departmentCode } = req.body;
 
-  const result = await CreateService(req, DepartmentModel);
-  res.status(200).json(result);
+    if (!program || !departmentName || !departmentCode) {
+      return res.status(400).json({
+        status: "fail",
+        message: "Program, department name, and department code are required"
+      });
+    }
+
+    const result = await CreateService(req, DepartmentModel);
+    res.status(200).json(result);
+
+  } catch (e) {
+    if (e.code === 11000) {
+      return res.status(409).json({
+        status: "fail",
+        message: "Department already exists for this program"
+      });
+    }
+
+    res.status(500).json({ status: "fail", message: e.toString() });
+  }
 };
+
+
 
 /* =========================
    UPDATE DEPARTMENT
 ========================= */
 exports.UpdateDepartment = async (req, res) => {
-  const result = await UpdateService(req, DepartmentModel);
-  res.status(200).json(result);
+  try {
+    const result = await UpdateService(req, DepartmentModel);
+    res.status(200).json(result);
+  } catch (e) {
+    if (e.code === 11000) {
+      return res.status(409).json({
+        status: "fail",
+        message: "Another department with same code exists in this program"
+      });
+    }
+    res.status(500).json({ status: "fail", message: e.toString() });
+  }
 };
+
 
 /* =========================
    LIST DEPARTMENTS
@@ -41,7 +68,13 @@ exports.ListDepartments = async (req, res) => {
 
   const SearchArray = [
     {
-      name: {
+      departmentName: {
+        $regex: searchKeyword === "0" ? "" : searchKeyword,
+        $options: "i"
+      }
+    },
+    {
+      departmentCode: {
         $regex: searchKeyword === "0" ? "" : searchKeyword,
         $options: "i"
       }
@@ -51,6 +84,7 @@ exports.ListDepartments = async (req, res) => {
   const result = await ListService(req, DepartmentModel, SearchArray);
   res.status(200).json(result);
 };
+
 
 /* =========================
    DEPARTMENT DETAILS
@@ -95,10 +129,17 @@ exports.DepartmentDropdown = async (req, res) => {
   const result = await DropDownService(
     req,
     DepartmentModel,
-    { _id: 1, name: 1 }
+    {
+      _id: 1,
+      departmentName: 1,
+      departmentCode: 1,
+      program: 1
+    },{ isActive: true }
   );
+
   res.status(200).json(result);
 };
+
 
 /* =========================
    SUBJECT DROPDOWN BY DEPARTMENT
@@ -134,3 +175,19 @@ exports.DepartmentSubjectDropdown = async (req, res) => {
     data: subjects
   });
 };
+
+
+exports.DepartmentDropdownByProgram = async (req, res) => {
+  const { program } = req.params;
+
+  const departments = await DepartmentModel.find(
+    { program, isActive: true },
+    { departmentName: 1, departmentCode: 1 }
+  ).lean();
+
+  res.status(200).json({
+    status: "success",
+    data: departments
+  });
+};
+

@@ -264,6 +264,11 @@ router.get(
   DepartmentController.DepartmentSubjectDropdown
 );
 
+router.get(
+  "/dropdown/:program",
+  DepartmentController.DepartmentDropdownByProgram
+);
+
 // =================================================
 // ============== ADMISSION ADMIN ==================
 // =================================================

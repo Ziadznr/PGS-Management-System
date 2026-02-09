@@ -159,7 +159,7 @@ const AdmissionApplicationSchema = new mongoose.Schema({
   /* ================= PROGRAM INFO ================= */
   program: {
     type: String,
-    enum: ["MBA", "MS", "LLM", "PhD"],
+    enum: ["MBA", "MS", "LLM", "PhD", "MPhil"],
     required: true
   },
 

@@ -7,7 +7,7 @@ import {
 const DepartmentSupervisorSelector = ({
   formData,
   setFormData,
-  departments
+  departments   // already filtered by selected program
 }) => {
   const [subjects, setSubjects] = useState([]);
   const [supervisors, setSupervisors] = useState([]);
@@ -16,6 +16,13 @@ const DepartmentSupervisorSelector = ({
   const [deptSearch, setDeptSearch] = useState("");
   const [showDeptList, setShowDeptList] = useState(false);
   const deptRef = useRef(null);
+
+//   /* ================= RESET DEPARTMENT SEARCH ================= */
+// useEffect(() => {
+//   if (!formData.department) {
+//     setDeptSearch("");
+//   }
+// }, [formData.department]);
 
   /* ================= LOAD SUBJECTS ================= */
   useEffect(() => {
@@ -32,7 +39,7 @@ const DepartmentSupervisorSelector = ({
       setSubjects([]);
       setSupervisors([]);
     }
-  }, [formData.department]);
+  }, [formData.department, setFormData]);
 
   /* ================= LOAD SUPERVISORS ================= */
   useEffect(() => {
@@ -60,6 +67,7 @@ const DepartmentSupervisorSelector = ({
         setShowDeptList(false);
       }
     };
+
     document.addEventListener("mousedown", handleClickOutside);
     return () =>
       document.removeEventListener("mousedown", handleClickOutside);
@@ -67,11 +75,18 @@ const DepartmentSupervisorSelector = ({
 
   /* ================= FILTERED DEPARTMENTS ================= */
   const filteredDepartments = departments.filter(d =>
-    d.name.toLowerCase().startsWith(deptSearch.toLowerCase())
+    `${d.departmentName} ${d.departmentCode}`
+      .toLowerCase()
+      .includes(deptSearch.toLowerCase())
   );
 
-  const selectedDepartmentName =
-    departments.find(d => d._id === formData.department)?.name || "";
+  const selectedDepartment = departments.find(
+    d => d._id === formData.department
+  );
+
+  const selectedDepartmentLabel = selectedDepartment
+    ? `${selectedDepartment.departmentName} (${selectedDepartment.departmentCode})`
+    : "";
 
   return (
     <>
@@ -80,16 +95,24 @@ const DepartmentSupervisorSelector = ({
         <h5 className="form-label">3. Department</h5>
 
         <input
-          type="text"
-          className="form-control"
-          placeholder="Type to search department..."
-          value={deptSearch || selectedDepartmentName}
-          onChange={e => {
-            setDeptSearch(e.target.value);
-            setShowDeptList(true);
-          }}
-          onFocus={() => setShowDeptList(true)}
-        />
+  type="text"
+  className="form-control"
+  placeholder="Type to search department..."
+  value={
+    showDeptList
+      ? deptSearch
+      : selectedDepartmentLabel
+  }
+  onChange={e => {
+    setDeptSearch(e.target.value);
+    setShowDeptList(true);
+  }}
+  onFocus={() => {
+    setShowDeptList(true);
+    setDeptSearch("");
+  }}
+  disabled={!departments.length}
+/>
 
         {showDeptList && filteredDepartments.length > 0 && (
           <ul
@@ -112,17 +135,24 @@ const DepartmentSupervisorSelector = ({
                     subject: "",
                     supervisor: ""
                   }));
-                  setDeptSearch(d.name);
+                  setDeptSearch(
+                    `${d.departmentName} (${d.departmentCode})`
+                  );
                   setShowDeptList(false);
                 }}
               >
-                {d.name}
+                <div className="fw-medium">
+                  {d.departmentName}
+                </div>
+                <small className="text-muted">
+                  Code: {d.departmentCode}
+                </small>
               </li>
             ))}
           </ul>
         )}
 
-        {!filteredDepartments.length && showDeptList && (
+        {showDeptList && !filteredDepartments.length && (
           <div className="border p-2 bg-light text-muted">
             No department found
           </div>

@@ -52,9 +52,11 @@ const DepartmentList = () => {
   /* ================= SUBJECT ACTIONS ================= */
   const updateSubjects = async (dept) => {
     const payload = {
-      name: dept.name,
-      offeredSubjects: dept.offeredSubjects
-    };
+  program: dept.program,
+  departmentName: dept.departmentName,
+  departmentCode: dept.departmentCode,
+  offeredSubjects: dept.offeredSubjects
+};
 
     const ok = await CreateDepartmentRequest(payload, dept._id);
     if (ok) {
@@ -138,22 +140,35 @@ const DepartmentList = () => {
             {/* TABLE */}
             <table className="table table-bordered align-middle">
               <thead className="table-light">
-                <tr>
-                  <th>#</th>
-                  <th>Department</th>
-                  <th>Subjects</th>
-                  <th>Created</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
+  <tr>
+    <th>#</th>
+    <th>Program</th>
+    <th>Department</th>
+    <th>Code</th>
+    <th>Subjects</th>
+    <th>Created</th>
+    <th>Action</th>
+  </tr>
+</thead>
 
               <tbody>
                 {DataList?.length ? DataList.map((dept, i) => (
                   <Fragment key={dept._id}>
                     <tr>
                       <td>{(currentPage - 1) * perPage + i + 1}</td>
-                      <td className="fw-medium">{dept.name}</td>
+                      <td>
+  <span className="badge bg-primary">{dept.program}</span>
+</td>
 
+<td className="fw-medium">
+  {dept.departmentName}
+</td>
+
+<td>
+  <span className="badge bg-secondary">
+    {dept.departmentCode}
+  </span>
+</td>
                       <td>
                         {dept.offeredSubjects?.filter(s => s.isActive).length || 0}
                       </td>

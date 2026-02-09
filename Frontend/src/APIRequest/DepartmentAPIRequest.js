@@ -144,3 +144,30 @@ export async function DeleteDepartmentRequest(ObjectID) {
     return false;
   }
 }
+
+// ================= DEPARTMENT DROPDOWN BY PROGRAM =================
+export async function DepartmentDropdownByProgramRequest(program) {
+  try {
+    if (!program) return [];
+
+    store.dispatch(ShowLoader());
+
+    const URL = `${BaseURL}/dropdown/${program}`;
+    const result = await axios.get(URL, AxiosHeader);
+
+    store.dispatch(HideLoader());
+
+    if (result.status === 200 && result.data?.status === "success") {
+      return result.data.data || [];
+    }
+
+    ErrorToast("Failed to load departments");
+    return [];
+
+  } catch (e) {
+    console.error("DepartmentDropdownByProgramRequest error:", e);
+    store.dispatch(HideLoader());
+    ErrorToast("Something went wrong");
+    return [];
+  }
+}

@@ -15,6 +15,8 @@ import {
 
 import { ErrorToast, IsEmpty, SuccessToast } from "../../helper/FormHelper";
 
+const PROGRAMS = ["MS", "MBA", "PhD", "LLM", "MPhil"];
+
 const DepartmentCreateUpdate = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -53,9 +55,9 @@ const DepartmentCreateUpdate = () => {
     loadData();
   }, [location.search, dispatch]);
 
-  /* ================= INPUT ================= */
-  const handleDepartmentChange = (value) => {
-    dispatch(OnChangeDepartmentInput({ Name: "Name", Value: value }));
+  /* ================= INPUT HANDLER ================= */
+  const handleChange = (name, value) => {
+    dispatch(OnChangeDepartmentInput({ Name: name, Value: value }));
   };
 
   /* ================= SUBJECT HANDLERS ================= */
@@ -65,19 +67,12 @@ const DepartmentCreateUpdate = () => {
       return;
     }
 
-    if (
-      subjects.some(
-        (s) => s.name.toLowerCase() === newSubject.toLowerCase()
-      )
-    ) {
+    if (subjects.some(s => s.name.toLowerCase() === newSubject.toLowerCase())) {
       ErrorToast("Subject already exists");
       return;
     }
 
-    setSubjects([
-      ...subjects,
-      { name: newSubject.trim(), isActive: true }
-    ]);
+    setSubjects([...subjects, { name: newSubject.trim(), isActive: true }]);
     setNewSubject("");
   };
 
@@ -90,7 +85,6 @@ const DepartmentCreateUpdate = () => {
   const removeSubject = async (index) => {
     const confirm = await Swal.fire({
       title: "Remove Subject?",
-      text: "Existing admission data will NOT be affected.",
       icon: "warning",
       showCancelButton: true,
       confirmButtonText: "Yes, Remove",
@@ -98,14 +92,25 @@ const DepartmentCreateUpdate = () => {
 
     if (!confirm.isConfirmed) return;
 
-    const updated = subjects.filter((_, i) => i !== index);
-    setSubjects(updated);
+    setSubjects(subjects.filter((_, i) => i !== index));
   };
 
   /* ================= SAVE ================= */
   const SaveChange = async () => {
-    if (IsEmpty(FormValue.Name)) {
-      ErrorToast("Department Name Required!");
+    const { program, departmentName, departmentCode } = FormValue;
+
+    if (IsEmpty(program)) {
+      ErrorToast("Program is required");
+      return;
+    }
+
+    if (IsEmpty(departmentName)) {
+      ErrorToast("Department name is required");
+      return;
+    }
+
+    if (IsEmpty(departmentCode)) {
+      ErrorToast("Department code is required");
       return;
     }
 
@@ -115,8 +120,6 @@ const DepartmentCreateUpdate = () => {
         text: "Are you sure you want to update this department?",
         icon: "warning",
         showCancelButton: true,
-        confirmButtonColor: "#198754",
-        cancelButtonColor: "#dc3545",
         confirmButtonText: "Yes, Update",
       });
 
@@ -126,7 +129,9 @@ const DepartmentCreateUpdate = () => {
     setLoading(true);
 
     const payload = {
-      name: FormValue.Name,
+      program,
+      departmentName,
+      departmentCode: departmentCode.toUpperCase(),
       offeredSubjects: subjects,
     };
 
@@ -135,11 +140,7 @@ const DepartmentCreateUpdate = () => {
     setLoading(false);
 
     if (success) {
-      SuccessToast(
-        ObjectID
-          ? "Department Updated Successfully!"
-          : "Department Created Successfully!"
-      );
+      SuccessToast(ObjectID ? "Department Updated Successfully!" : "Department Created Successfully!");
       navigate("/department-list");
     }
   };
@@ -155,12 +156,19 @@ const DepartmentCreateUpdate = () => {
           </h5>
           <hr />
 
-          {/* FACULTY (STATIC) */}
+          {/* PROGRAM */}
           <div className="mb-3 col-4">
-            <label className="form-label fw-bold">Faculty</label>
-            <div className="form-control form-control-sm bg-light">
-              PGS
-            </div>
+            <label className="form-label fw-bold">Program</label>
+            <select
+              className="form-select form-select-sm"
+              value={FormValue.program || ""}
+              onChange={(e) => handleChange("program", e.target.value)}
+            >
+              <option value="">Select Program</option>
+              {PROGRAMS.map(p => (
+                <option key={p} value={p}>{p}</option>
+              ))}
+            </select>
           </div>
 
           {/* DEPARTMENT NAME */}
@@ -169,8 +177,19 @@ const DepartmentCreateUpdate = () => {
             <input
               type="text"
               className="form-control form-control-sm"
-              value={FormValue.Name || ""}
-              onChange={(e) => handleDepartmentChange(e.target.value)}
+              value={FormValue.departmentName || ""}
+              onChange={(e) => handleChange("departmentName", e.target.value)}
+            />
+          </div>
+
+          {/* DEPARTMENT CODE */}
+          <div className="mb-3 col-4">
+            <label className="form-label fw-bold">Department Code</label>
+            <input
+              type="text"
+              className="form-control form-control-sm text-uppercase"
+              value={FormValue.departmentCode || ""}
+              onChange={(e) => handleChange("departmentCode", e.target.value)}
             />
           </div>
 
@@ -186,47 +205,26 @@ const DepartmentCreateUpdate = () => {
                 value={newSubject}
                 onChange={(e) => setNewSubject(e.target.value)}
               />
-              <button
-                className="btn btn-sm btn-primary"
-                onClick={addSubject}
-              >
+              <button className="btn btn-sm btn-primary" onClick={addSubject}>
                 Add
               </button>
             </div>
 
-            {subjects.length === 0 && (
-              <p className="text-muted small">
-                No subjects added yet.
-              </p>
-            )}
-
             {subjects.map((s, i) => (
-              <div
-                key={i}
-                className="d-flex align-items-center justify-content-between border rounded p-2 mb-2 col-6"
-              >
-                <span
-                  className={
-                    s.isActive ? "fw-medium" : "text-muted text-decoration-line-through"
-                  }
-                >
+              <div key={i} className="d-flex justify-content-between border rounded p-2 mb-2 col-6">
+                <span className={s.isActive ? "" : "text-muted text-decoration-line-through"}>
                   {s.name}
                 </span>
 
                 <div className="d-flex gap-2">
                   <button
-                    className={`btn btn-sm ${
-                      s.isActive ? "btn-warning" : "btn-success"
-                    }`}
+                    className={`btn btn-sm ${s.isActive ? "btn-warning" : "btn-success"}`}
                     onClick={() => toggleSubject(i)}
                   >
                     {s.isActive ? "Deactivate" : "Activate"}
                   </button>
 
-                  <button
-                    className="btn btn-sm btn-danger"
-                    onClick={() => removeSubject(i)}
-                  >
+                  <button className="btn btn-sm btn-danger" onClick={() => removeSubject(i)}>
                     Remove
                   </button>
                 </div>

@@ -157,21 +157,29 @@ if (exists) {
     /* =================================================
        4️⃣ DEPARTMENT & SUPERVISOR VALIDATION
     ================================================= */
-    const dept = await DepartmentModel.findById(department);
-    if (!dept) {
-      return { status: "fail", data: "Invalid department" };
-    }
+const dept = await DepartmentModel.findById(department);
+if (!dept) {
+  return { status: "fail", data: "Invalid department" };
+}
 
-    const sup = await UsersModel.findOne({
-      _id: supervisor,
-      role: "Supervisor",
-      department,
-      isActive: true
-    });
+// ✅ PROGRAM–DEPARTMENT CONSISTENCY
+if (dept.program !== program) {
+  return {
+    status: "fail",
+    data: "Selected department does not belong to the chosen program"
+  };
+}
 
-    if (!sup) {
-      return { status: "fail", data: "Invalid supervisor" };
-    }
+const sup = await UsersModel.findOne({
+  _id: supervisor,
+  role: "Supervisor",
+  department,
+  isActive: true
+});
+
+if (!sup) {
+  return { status: "fail", data: "Invalid supervisor" };
+}
 
     /* =================================================
        5️⃣ ACADEMIC RULES
@@ -404,7 +412,7 @@ if (
     ================================================= */
     const populatedApplication =
       await AdmissionApplicationModel.findById(application._id)
-        .populate("department", "name")
+        .populate("department", "departmentName departmentCode program")
         .populate("supervisor", "name email")
         .populate("payment");
 
@@ -423,7 +431,8 @@ Your admission application has been submitted successfully.
 Application No        : ${populatedApplication.applicationNo}
 Payment Transaction ID: ${populatedApplication.payment.transactionId}
 Program               : ${program}
-Department            : ${populatedApplication.department.name}
+Department            : ${populatedApplication.department.departmentName}
+Department Code       : ${populatedApplication.department.departmentCode}
 Supervisor            : ${populatedApplication.supervisor.name}
 
 Regards,
