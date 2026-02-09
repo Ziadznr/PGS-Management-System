@@ -15,13 +15,15 @@ import {
 const UserProfile = () => {
   const { user } = useSelector((state) => state.userProfile);
 
+  /* ================= STATE ================= */
   const [form, setForm] = useState({
     name: "",
     nameExtension: "",
     email: "",
     phone: "",
     role: "",
-    department: "",
+    department: null,
+    hall: null,
     photo: "",
     isFirstLogin: false
   });
@@ -29,28 +31,48 @@ const UserProfile = () => {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  // ================= LOAD PROFILE =================
+  const [loading, setLoading] = useState(true);
+
+  /* ================= LOAD PROFILE ================= */
   useEffect(() => {
-    const init = async () => {
+    (async () => {
       const profile = await UserProfileRequest();
       if (!profile) return;
-      setForm(profile);
-    };
-    init();
+
+      setForm({
+        name: profile.name || "",
+        nameExtension: profile.nameExtension || "",
+        email: profile.email || "",
+        phone: profile.phone || "",
+        role: profile.role || "",
+        department: profile.department || null,
+        hall: profile.hall || null,
+        photo: profile.photo || "",
+        isFirstLogin: profile.isFirstLogin || false
+      });
+
+      setLoading(false);
+    })();
   }, []);
 
+  /* ================= HANDLER ================= */
   const handleChange = (name, value) => {
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  // ================= UPDATE =================
+  /* ================= UPDATE ================= */
   const handleUpdate = async () => {
 
-    // 🔐 FORCE PASSWORD CHANGE
+    /* 🔐 FORCE PASSWORD CHANGE */
     if (form.isFirstLogin) {
       if (IsEmpty(newPassword) || IsEmpty(confirmPassword)) {
-        return ErrorToast("Password fields required");
+        return ErrorToast("Password fields are required");
       }
+
+      if (newPassword.length < 6) {
+        return ErrorToast("Password must be at least 6 characters");
+      }
+
       if (newPassword !== confirmPassword) {
         return ErrorToast("Passwords do not match");
       }
@@ -67,24 +89,37 @@ const UserProfile = () => {
       return;
     }
 
-    // NORMAL PROFILE UPDATE
-    if (IsEmpty(form.name)) return ErrorToast("Name Required");
-    if (IsEmpty(form.nameExtension)) return ErrorToast("Name Extension Required");
-    if (!IsMobile(form.phone)) return ErrorToast("Valid Mobile Required");
-    if (!IsEmail(form.email)) return ErrorToast("Valid Email Required");
+    /* ================= NORMAL PROFILE UPDATE ================= */
+    if (IsEmpty(form.name)) return ErrorToast("Name required");
+    if (IsEmpty(form.nameExtension)) return ErrorToast("Title required");
+    if (!IsMobile(form.phone)) return ErrorToast("Valid phone required");
+    if (!IsEmail(form.email)) return ErrorToast("Valid email required");
 
-    const result = await UserUpdateRequest(form);
-    if (result) SuccessToast("Profile Updated");
+    const result = await UserUpdateRequest({
+      name: form.name,
+      nameExtension: form.nameExtension,
+      phone: form.phone,
+      email: form.email
+    });
+
+    if (result) SuccessToast("Profile updated successfully");
   };
 
-  if (!user?.email) {
-    return <h4 className="text-center mt-5">Loading profile...</h4>;
+  /* ================= LOADING ================= */
+  if (loading || !user?.email) {
+    return (
+      <h4 className="text-center mt-5">
+        Loading profile...
+      </h4>
+    );
   }
 
+  /* ================= UI ================= */
   return (
     <div className="container mt-4">
+
       <h2 className="mb-4 text-center">
-        {form.isFirstLogin ? "Change Password" : "My Profile"}
+        {form.isFirstLogin ? "🔐 Change Password" : "👤 My Profile"}
       </h2>
 
       <div className="row">
@@ -98,20 +133,23 @@ const UserProfile = () => {
             disabled={form.isFirstLogin}
             onChange={(e) => handleChange("name", e.target.value)}
           />
-          {/* NAME EXTENTION */}
+
+          {/* TITLE */}
           <input
             className="form-control mb-3"
-            placeholder="Name Extension"
+            placeholder="Title / Designation"
             value={form.nameExtension}
             disabled={form.isFirstLogin}
-            onChange={(e) => handleChange("nameExtension", e.target.value)}
+            onChange={(e) =>
+              handleChange("nameExtension", e.target.value)
+            }
           />
 
           {/* PHONE */}
           <input
             className="form-control mb-3"
             placeholder="Phone"
-            value={form.phone || ""}
+            value={form.phone}
             disabled={form.isFirstLogin}
             onChange={(e) => handleChange("phone", e.target.value)}
           />
@@ -131,10 +169,19 @@ const UserProfile = () => {
           />
 
           {/* DEPARTMENT */}
-          {form.department && (
+          {form.department?.name && (
             <input
               className="form-control mb-3"
-              value={form.department?.Name || "Assigned Department"}
+              value={form.department.name}
+              readOnly
+            />
+          )}
+
+          {/* HALL (PROVOST) */}
+          {form.hall?.name && (
+            <input
+              className="form-control mb-3"
+              value={form.hall.name}
               readOnly
             />
           )}
@@ -145,9 +192,11 @@ const UserProfile = () => {
               <input
                 type="password"
                 className="form-control mb-3"
-                placeholder="New Password(must be minimum 6 characters)"
+                placeholder="New Password (min 6 characters)"
                 value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
+                onChange={(e) =>
+                  setNewPassword(e.target.value)
+                }
               />
 
               <input
@@ -155,16 +204,21 @@ const UserProfile = () => {
                 className="form-control mb-3"
                 placeholder="Confirm Password"
                 value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
+                onChange={(e) =>
+                  setConfirmPassword(e.target.value)
+                }
               />
             </>
           )}
 
+          {/* ACTION */}
           <button
             onClick={handleUpdate}
             className="btn btn-success w-100 mt-3"
           >
-            {form.isFirstLogin ? "Update Password" : "Update Profile"}
+            {form.isFirstLogin
+              ? "Update Password"
+              : "Update Profile"}
           </button>
 
         </div>

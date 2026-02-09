@@ -25,23 +25,29 @@ const HallCreateUpdate = () => {
   const [ObjectID, setObjectID] = useState(0);
   const [loading, setLoading] = useState(false);
 
-  /* ================= LOAD FOR EDIT ================= */
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const id = params.get("id");
+/* ================= LOAD FOR EDIT ================= */
+useEffect(() => {
+  const params = new URLSearchParams(location.search);
+  const id = params.get("id");
 
-    const loadData = async () => {
-      if (id && id !== "null" && id !== "undefined") {
-        setObjectID(id);
-        await FillHallFormRequest(id);
-      } else {
-        setObjectID(0);
-        dispatch(ResetHallFormValue());
-      }
-    };
+  const loadData = async () => {
+    // EDIT MODE
+    if (id && id !== "null" && id !== "undefined") {
+      setObjectID(id);
+      await FillHallFormRequest(id); // ✅ MUST await
+      return;
+    }
 
-    loadData();
-  }, [location.search, dispatch]);
+    // CREATE MODE
+    setObjectID(0);
+    dispatch(ResetHallFormValue());
+  };
+
+  loadData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [location.search]);
+
+
 
   /* ================= INPUT ================= */
   const handleChange = (name, value) => {
@@ -83,7 +89,7 @@ const HallCreateUpdate = () => {
       description: FormValue.description
     };
 
-    const success = await CreateHallRequest(payload);
+    const success = await CreateHallRequest(payload, ObjectID);
     setLoading(false);
 
     if (success) {

@@ -467,15 +467,27 @@ router.get(
 
 // 🔒 ADMIN
 router.post(
-  "/admin/hall/create-update",
+  "/admin/hall/create",
   AuthVerifyMiddleware,
-  HallController.CreateUpdate
+  HallController.CreateHall
+);
+
+router.post(
+  "/admin/hall/update/:id",
+  AuthVerifyMiddleware,
+  HallController.UpdateHall
 );
 
 router.get(
   "/admin/hall/list",
   AuthVerifyMiddleware,
   HallController.List
+);
+
+router.get(
+  "/HallDetailsByID/:id",
+  AuthVerifyMiddleware,
+  HallController.HallDetailsByID
 );
 
 router.delete(

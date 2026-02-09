@@ -55,11 +55,15 @@ export async function HallListRequest() {
 /* =================================================
    CREATE / UPDATE HALL
 ================================================= */
-export async function CreateHallRequest(PostBody) {
+export async function CreateHallRequest(PostBody, ObjectID = 0) {
   try {
     store.dispatch(ShowLoader());
 
-    const URL = `${BaseURL}/admin/hall/create-update`;
+    const URL =
+      ObjectID && ObjectID !== "0"
+        ? `${BaseURL}/admin/hall/update/${ObjectID}`
+        : `${BaseURL}/admin/hall/create`;
+
     const result = await axios.post(URL, PostBody, AxiosHeader);
 
     store.dispatch(HideLoader());
@@ -70,7 +74,7 @@ export async function CreateHallRequest(PostBody) {
       return true;
     }
 
-    ErrorToast(result.data?.data || "Request failed");
+    ErrorToast(result.data?.message || "Request failed");
     return false;
 
   } catch (e) {
@@ -89,13 +93,13 @@ export async function FillHallFormRequest(ObjectID) {
   try {
     store.dispatch(ShowLoader());
 
-    const URL = `${BaseURL}/admin/hall/details/${ObjectID}`;
+    const URL = `${BaseURL}/HallDetailsByID/${ObjectID}`;
     const result = await axios.get(URL, AxiosHeader);
 
     store.dispatch(HideLoader());
 
     if (result.status === 200 && result.data?.status === "success") {
-      const data = result.data?.data;
+      const data = result.data.data;
 
       store.dispatch(
         OnChangeHallInput({ Name: "name", Value: data?.name || "" })
@@ -110,17 +114,17 @@ export async function FillHallFormRequest(ObjectID) {
         })
       );
 
-      return true;
+      return data; // ✅ THIS IS THE FIX
     }
 
     ErrorToast("Failed to load hall");
-    return false;
+    return null;
 
   } catch (e) {
     console.error("FillHallFormRequest error:", e);
     store.dispatch(HideLoader());
     ErrorToast("Something went wrong");
-    return false;
+    return null;
   }
 }
 
@@ -158,12 +162,11 @@ export async function DeleteHallRequest(ObjectID) {
 export async function HallDropdownRequest() {
   try {
     const result = await axios.get(`${BaseURL}/hall/dropdown`);
-    return result.data?.status === "success"
-      ? result.data.data
-      : [];
+    return Array.isArray(result.data) ? result.data : [];
   } catch (e) {
     console.error("HallDropdownRequest error:", e);
     return [];
   }
 }
+
 

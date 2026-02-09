@@ -88,3 +88,73 @@ UsersSchema.pre("save", async function () {
 });
 
 module.exports = mongoose.model("users", UsersSchema);
+
+
+
+
+
+
+
+
+
+
+
+
+    /* =================================================
+       👨‍🏫 SUPERVISOR (CREATE ONLY)
+    ================================================= */
+    if (!existingUserById && !department) {
+      return { status: "fail", data: "Department required" };
+    }
+
+    const dept = await DepartmentModel.findById(department);
+    if (!dept) {
+      return { status: "fail", data: "Invalid department" };
+    }
+
+    const activeSubjects = dept.offeredSubjects?.filter(s => s.isActive) || [];
+    let finalSubject = null;
+
+    if (activeSubjects.length > 0) {
+      if (!subject) {
+        return { status: "fail", data: "Subject required" };
+      }
+      if (!activeSubjects.some(s => s.name === subject)) {
+        return { status: "fail", data: "Invalid subject" };
+      }
+      finalSubject = subject;
+    }
+
+    const tempPassword = crypto.randomBytes(4).toString("hex");
+
+    const supervisor = await UsersModel.create({
+      name,
+      nameExtension,
+      email: email.toLowerCase(),
+      phone,
+      password: tempPassword,
+      role: "Supervisor",
+      department,
+      subject: finalSubject,
+      createdBy: req.user.id,
+      isFirstLogin: true,
+      isActive: true
+    });
+
+    await SendEmailUtility(
+      supervisor.email,
+      `
+Hello ${supervisor.name},
+
+Your Supervisor account has been created.
+
+Login Email: ${supervisor.email}
+Temporary Password: ${tempPassword}
+
+Please change your password after login.
+
+Regards,
+PGS Administration
+      `,
+      "PGS Supervisor Account Created"
+    );

@@ -5,13 +5,20 @@ import {
   AdminDeleteUserRequest,
   AdminSendEmailRequest
 } from "../../APIRequest/UserAPIRequest";
-import {AiOutlineEdit, AiOutlineDelete, AiOutlineMail } from "react-icons/ai";
+import {
+  AiOutlineEdit,
+  AiOutlineDelete,
+  AiOutlineMail
+} from "react-icons/ai";
 import ReactPaginate from "react-paginate";
 import { DeleteAlert } from "../../helper/DeleteAlert";
 import { ErrorToast, SuccessToast } from "../../helper/FormHelper";
 import "../../assets/css/EmailModal.css";
 
 const AdminUsersList = () => {
+  const navigate = useNavigate();
+
+  /* ================= STATE ================= */
   const [searchKeyword, setSearchKeyword] = useState("");
   const [role, setRole] = useState("All");
   const [perPage, setPerPage] = useState(20);
@@ -21,7 +28,7 @@ const AdminUsersList = () => {
   const [users, setUsers] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
 
-  // Email modal
+  /* ================= EMAIL MODAL ================= */
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState(null);
   const [emailSubject, setEmailSubject] = useState("");
@@ -30,9 +37,8 @@ const AdminUsersList = () => {
   const [attachments, setAttachments] = useState([]);
 
   const searchTimeout = useRef(null);
-  const navigate = useNavigate();
 
-  // ---------------- FETCH USERS ----------------
+  /* ================= FETCH USERS ================= */
   const fetchUsers = async (page = 1, keyword = searchKeyword) => {
     try {
       setLoading(true);
@@ -56,12 +62,12 @@ const AdminUsersList = () => {
     }
   };
 
-  // Initial & filter change load
+  /* ================= INITIAL LOAD ================= */
   useEffect(() => {
     fetchUsers(1);
   }, [perPage, role]);
 
-  // 🔍 Debounced search
+  /* ================= DEBOUNCED SEARCH ================= */
   useEffect(() => {
     clearTimeout(searchTimeout.current);
 
@@ -72,18 +78,19 @@ const AdminUsersList = () => {
     return () => clearTimeout(searchTimeout.current);
   }, [searchKeyword]);
 
+  /* ================= PAGINATION ================= */
   const handlePageClick = (event) => {
     fetchUsers(event.selected + 1);
   };
 
-  // ---------------- DELETE USER ----------------
+  /* ================= DELETE USER ================= */
   const DeleteItem = async (id) => {
     const confirm = await DeleteAlert();
     if (!confirm) return;
 
     const result = await AdminDeleteUserRequest(id);
     if (result) {
-      SuccessToast("User deleted");
+      SuccessToast("User deleted successfully");
 
       const newPage =
         users.length === 1 && pageNo > 1 ? pageNo - 1 : pageNo;
@@ -92,7 +99,7 @@ const AdminUsersList = () => {
     }
   };
 
-  // ---------------- SEND EMAIL ----------------
+  /* ================= SEND EMAIL ================= */
   const SendEmail = async () => {
     if (!emailSubject.trim() || !emailMessage.trim()) {
       ErrorToast("Subject & message required");
@@ -113,7 +120,7 @@ const AdminUsersList = () => {
     setEmailSending(false);
 
     if (result) {
-      SuccessToast("Email sent");
+      SuccessToast("Email sent successfully");
       closeEmailModal();
     }
   };
@@ -126,25 +133,26 @@ const AdminUsersList = () => {
     setAttachments([]);
   };
 
+  /* ================= UI ================= */
   return (
     <div className="container-fluid my-4">
 
-      {/* FILTERS */}
+      {/* ================= FILTERS ================= */}
       <div className="row mb-3 align-items-center">
         <div className="col-3">
           <h5>Users List</h5>
         </div>
 
-        <div className="col-2">
+        <div className="col-3">
           <input
             className="form-control form-control-sm"
-            placeholder="Search name/email"
+            placeholder="Search name / email"
             value={searchKeyword}
             onChange={(e) => setSearchKeyword(e.target.value)}
           />
         </div>
 
-        <div className="col-2">
+        <div className="col-3">
           <select
             className="form-select form-select-sm"
             value={role}
@@ -152,36 +160,40 @@ const AdminUsersList = () => {
           >
             <option value="All">All Roles</option>
             <option value="Dean">Dean</option>
+            <option value="VC">VC</option>
+            <option value="Registrar">Registrar</option>
+            <option value="PGS Specialist">PGS Specialist</option>
+            <option value="Provost">Provost</option>
             <option value="Chairman">Chairman</option>
             <option value="Supervisor">Supervisor</option>
             <option value="Student">Student</option>
           </select>
         </div>
 
-        <div className="col-2">
+        <div className="col-3">
           <select
             className="form-select form-select-sm"
             value={perPage}
             onChange={(e) => setPerPage(Number(e.target.value))}
           >
-            <option value={20}>20</option>
-            <option value={50}>50</option>
-            <option value={100}>100</option>
+            <option value={20}>20 / page</option>
+            <option value={50}>50 / page</option>
+            <option value={100}>100 / page</option>
           </select>
         </div>
       </div>
 
-      {/* TABLE */}
+      {/* ================= TABLE ================= */}
       <div className="table-responsive">
-        <table className="table table-bordered">
-          <thead>
+        <table className="table table-bordered align-middle">
+          <thead className="table-light">
             <tr>
               <th>No</th>
               <th>Name</th>
               <th>Email</th>
               <th>Phone</th>
               <th>Role</th>
-              <th>Department</th>
+              <th>Department / Hall</th>
               <th>Edit</th>
               <th>Delete</th>
               <th>Mail</th>
@@ -191,79 +203,86 @@ const AdminUsersList = () => {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={8} className="text-center">Loading...</td>
+                <td colSpan={9} className="text-center">
+                  Loading...
+                </td>
               </tr>
             ) : users.length ? (
               users.map((u, i) => (
                 <tr key={u._id}>
-  <td>{i + 1 + (pageNo - 1) * perPage}</td>
+                  <td>{i + 1 + (pageNo - 1) * perPage}</td>
 
-  <td>
-    <div>
-      <strong>{u.name}</strong>
-  <div className="text-muted small ps-3">
-       {u.nameExtension}
-  </div>
+                  <td>
+                    <strong>{u.name}</strong>
+                    <div className="text-muted small ps-2">
+                      {u.nameExtension}
+                    </div>
 
-      {u.role === "Supervisor" && u.subject && (
-        <div className="text-muted small">
-          (Subject: {u.subject})
-        </div>
-      )}
-    </div>
-  </td>
+                    {u.role === "Supervisor" && u.subject && (
+                      <div className="text-muted small">
+                        Subject: {u.subject}
+                      </div>
+                    )}
+                  </td>
 
-  <td>{u.email}</td>
-  <td>{u.phone}</td>
-  <td>{u.role}</td>
-  <td>{u.DepartmentName || "-"}</td>
-  <td>
-  <button
-    className="btn btn-outline-secondary btn-sm"
-    onClick={() =>
-      navigate("/AdminCreateUserPage", {
-        state: { user: u }
-      })
-    }
-  >
-    <AiOutlineEdit />
-  </button>
-</td>
+                  <td>{u.email}</td>
+                  <td>{u.phone}</td>
+                  <td>{u.role}</td>
 
-  <td>
-    <button
-      className="btn btn-outline-danger btn-sm"
-      onClick={() => DeleteItem(u._id)}
-    >
-      <AiOutlineDelete />
-    </button>
-  </td>
+                  <td>
+                    {u.DepartmentName ||
+                      u.HallName ||
+                      "-"}
+                  </td>
 
-  <td>
-    <button
-      className="btn btn-outline-primary btn-sm"
-      onClick={() => {
-        setSelectedUserId(u._id);
-        setEmailSubject(`Hello ${u.name}`);
-        setShowEmailModal(true);
-      }}
-    >
-      <AiOutlineMail />
-    </button>
-  </td>
-</tr>
+                  <td>
+                    <button
+                      className="btn btn-outline-secondary btn-sm"
+                      onClick={() =>
+                        navigate("/AdminCreateUserPage", {
+                          state: { user: u }
+                        })
+                      }
+                    >
+                      <AiOutlineEdit />
+                    </button>
+                  </td>
 
+                  <td>
+                    <button
+                      className="btn btn-outline-danger btn-sm"
+                      onClick={() => DeleteItem(u._id)}
+                    >
+                      <AiOutlineDelete />
+                    </button>
+                  </td>
+
+                  <td>
+                    <button
+                      className="btn btn-outline-primary btn-sm"
+                      onClick={() => {
+                        setSelectedUserId(u._id);
+                        setEmailSubject(`Hello ${u.name}`);
+                        setShowEmailModal(true);
+                      }}
+                    >
+                      <AiOutlineMail />
+                    </button>
+                  </td>
+                </tr>
               ))
             ) : (
               <tr>
-                <td colSpan={8} className="text-center">No users found</td>
+                <td colSpan={9} className="text-center text-muted">
+                  No users found
+                </td>
               </tr>
             )}
           </tbody>
         </table>
       </div>
 
-      {/* PAGINATION */}
+      {/* ================= PAGINATION ================= */}
       {totalCount > perPage && (
         <ReactPaginate
           previousLabel="<"
@@ -275,7 +294,7 @@ const AdminUsersList = () => {
         />
       )}
 
-      {/* EMAIL MODAL */}
+      {/* ================= EMAIL MODAL ================= */}
       {showEmailModal && (
         <div className="modal-backdrop-custom">
           <div className="modal-content-custom">

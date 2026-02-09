@@ -7,26 +7,38 @@ const ListService = async (
   MatchQuery = {}
 ) => {
   try {
-    let pageNo = Number(req.params.pageNo) || 1;
-    let perPage = Number(req.params.perPage) || 20;
+    /* ================= PAGINATION ================= */
+    const pageNo = Number(req.params.pageNo) || 1;
+    const perPage = Number(req.params.perPage) || 20;
     const searchKeyword = req.params.searchKeyword || "0";
     const skipRow = (pageNo - 1) * perPage;
 
+    /* ================= BASE MATCH ================= */
     let matchStage = {
       ...MatchQuery,
-      isActive: true // ✅ ONLY ACTIVE USERS
+      isActive: true // ✅ only active users
     };
 
-    /* ================= ROLE BASED FILTER ================= */
+    /* ================= ROLE-BASED ACCESS ================= */
+
+    // 🎓 Student → can only see self
     if (req.user.role === "Student") {
       matchStage.email = req.user.email;
     }
 
+    // 🏫 Chairman / Supervisor → only own department
     if (
       ["Chairman", "Supervisor"].includes(req.user.role) &&
       req.user.department
     ) {
-      matchStage.department = new mongoose.Types.ObjectId(req.user.department);
+      matchStage.department = new mongoose.Types.ObjectId(
+        req.user.department
+      );
+    }
+
+    // 🏠 Provost → only own hall
+    if (req.user.role === "Provost" && req.user.hall) {
+      matchStage.hall = new mongoose.Types.ObjectId(req.user.hall);
     }
 
     /* ================= SEARCH ================= */
@@ -34,6 +46,7 @@ const ListService = async (
       matchStage.$or = SearchArray;
     }
 
+    /* ================= AGGREGATION ================= */
     const data = await DataModel.aggregate([
       { $match: matchStage },
 
@@ -53,6 +66,22 @@ const ListService = async (
         }
       },
 
+      /* ================= HALL LOOKUP ================= */
+      {
+        $lookup: {
+          from: "halls",
+          localField: "hall",
+          foreignField: "_id",
+          as: "HallData"
+        }
+      },
+      {
+        $unwind: {
+          path: "$HallData",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+
       /* ================= RESULT ================= */
       {
         $facet: {
@@ -67,12 +96,11 @@ const ListService = async (
                 email: 1,
                 phone: 1,
                 role: 1,
-
-                // ✅ IMPORTANT: subject for Supervisor
                 subject: 1,
 
-                // Department display
-                DepartmentName: "$DepartmentData.name"
+                // 🎯 Display helpers
+                DepartmentName: "$DepartmentData.name",
+                HallName: "$HallData.name"
               }
             }
           ]
@@ -80,17 +108,21 @@ const ListService = async (
       }
     ]);
 
-    let result = data[0] || { Total: [], Rows: [] };
+    /* ================= SAFE RESPONSE ================= */
+    const result = data[0] || { Total: [], Rows: [] };
 
     if (!result.Total.length) {
       result.Total = [{ count: 0 }];
     }
 
-    return { status: "success", data: [result] };
+    return {
+      status: "success",
+      data: [result]
+    };
 
   } catch (error) {
     console.error("ListService error:", error);
-    return { status: "fail", data: error.toString() };
+    return { status: "fail", data: error.message };
   }
 };
 
