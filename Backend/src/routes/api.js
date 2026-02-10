@@ -36,10 +36,14 @@ const DepartmentController =
 // Admission
 const AdmissionController =
   require("../controllers/Admission/AdmissionController");
-  // const DepartmentLastSemesterCourseController =
-  // require("../controllers/Admission/DepartmentLastSemesterCourseController");
     const UploadTempDocumentsController =
   require("../controllers/Admission/UploadTempDocumentsController");
+
+// Enrollment
+const TemporaryEnrollmentAuthMiddleware =
+  require("../middlewares/TemporaryEnrollmentAuthMiddleware");
+
+const StudentEnrollmentController = require("../controllers/Enrollment/StudentEnrollmentController"); 
 
 // Notice
 const NoticeController =
@@ -317,6 +321,21 @@ router.delete(
   AdmissionController.DeleteDepartmentRange
 );
 
+/* ======================================================
+   STUDENT ENROLLMENT (TEMP LOGIN PROTECTED)
+====================================================== */
+router.post(
+  "/create-or-update",
+  TemporaryEnrollmentAuthMiddleware,
+  StudentEnrollmentController.CreateOrUpdateEnrollment
+);
+
+router.get(
+  "/enrollment/details",
+  TemporaryEnrollmentAuthMiddleware,
+  StudentEnrollmentController.EnrollmentDetails
+);
+
 // =================================================
 // ============== ADMIN USER MANAGEMENT =============
 // =================================================
@@ -459,16 +478,13 @@ router.get(
 const CheckPaymentService =
   require("../services/admission/CheckPaymentService");
 
+
 router.post(
   "/payment/check",
   CheckPaymentService
 );
 
-router.get(
-  "/admission/enrollment/summary",
-  AuthVerifyMiddleware,
-  AdmissionController.EnrollmentSummary
-);
+
 
 // 🔒 ADMIN
 router.post(

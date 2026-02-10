@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ErrorToast, IsEmpty } from "../../helper/FormHelper";
 import { TemporaryLoginRequest } from "../../APIRequest/AdmissionAPIRequest";
+import { setTempEnrollment } from "../../helper/SessionHelper";
 import logo from "../../assets/images/ps.png";
 
 const TemporaryLogin = () => {
@@ -12,7 +13,7 @@ const TemporaryLogin = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  /* 🔒 STATE CONTROL */
+  /* 🔒 BLOCK STATE */
   const [blocked, setBlocked] = useState(false);
   const [blockMessage, setBlockMessage] = useState("");
 
@@ -25,8 +26,9 @@ const TemporaryLogin = () => {
     if (!deadline) return;
 
     const timer = setInterval(() => {
-      const now = new Date();
-      const diff = new Date(deadline) - now;
+      const now = Date.now();
+      const end = Date.parse(deadline);
+      const diff = end - now;
 
       if (diff <= 0) {
         setTimeLeft("Expired");
@@ -59,10 +61,12 @@ const TemporaryLogin = () => {
     }
 
     setLoading(true);
+
     const result = await TemporaryLoginRequest(
       tempLoginId.trim(),
       password.trim()
     );
+
     setLoading(false);
 
     if (!result) {
@@ -70,14 +74,20 @@ const TemporaryLogin = () => {
       return;
     }
 
-    // ✅ success
+    /* ✅ SAVE TEMP ENROLLMENT (CRITICAL STEP) */
+    setTempEnrollment({
+  loginId: result.loginId || result.tempLoginId, // 🔑 normalize key
+  applicationId: result.applicationId,
+  applicationNo: result.applicationNo,
+  enrollmentDeadline: result.enrollmentDeadline
+});
+
+    /* ✅ SET DEADLINE FOR UI COUNTDOWN */
     setDeadline(result.enrollmentDeadline);
 
-    // redirect after short delay (UX)
+    /* ✅ NAVIGATE AFTER SHORT DELAY */
     setTimeout(() => {
-      navigate(`/enrollment/${result.applicationId}`, {
-        state: result
-      });
+      navigate(`/enrollment/${result.applicationId}`);
     }, 1200);
   };
 
@@ -122,7 +132,7 @@ const TemporaryLogin = () => {
                 className="form-control mb-3"
                 placeholder="Temporary Login ID"
                 value={tempLoginId}
-                onChange={e => setTempLoginId(e.target.value)}
+                onChange={(e) => setTempLoginId(e.target.value)}
                 disabled={loading}
               />
 
@@ -133,7 +143,7 @@ const TemporaryLogin = () => {
                   className="form-control"
                   placeholder="Temporary Password"
                   value={password}
-                  onChange={e => setPassword(e.target.value)}
+                  onChange={(e) => setPassword(e.target.value)}
                   disabled={loading}
                 />
                 <span

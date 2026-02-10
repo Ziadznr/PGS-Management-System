@@ -68,20 +68,21 @@ const TemporaryLoginService = async (req) => {
     /* =================================================
        ✅ SUCCESS (MULTIPLE LOGINS ALLOWED)
     ================================================= */
-    return {
-      status: "success",
-      data: {
-        applicationId: application._id,
-        applicationNo: application.applicationNo,
-        applicantName: application.applicantName,
-        program: application.program,
-        academicYear: application.academicYear,
-        department: application.department,
-        supervisor: application.supervisor,
-        email: application.email,
-        enrollmentDeadline: expiresAt
-      }
-    };
+   return {
+  status: "success",
+  data: {
+    loginId: tempAuth.loginId,          // ✅ REQUIRED
+    applicationId: application._id,
+    applicationNo: application.applicationNo,
+    applicantName: application.applicantName,
+    program: application.program,
+    academicYear: application.academicYear,
+    department: application.department,
+    supervisor: application.supervisor,
+    email: application.email,
+    enrollmentDeadline: expiresAt
+  }
+};
 
   } catch (error) {
     console.error("TemporaryLoginService Error:", error);

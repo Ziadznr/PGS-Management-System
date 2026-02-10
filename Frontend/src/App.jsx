@@ -54,6 +54,10 @@ import ApplyAdmissionPage from "./pages/Admission/ApplyAdmissionPage";
 import TemporaryLoginPage from "./pages/Admission/TemporaryLoginPage";
 import ApplicationSuccessPage from "./pages/Admission/ApplicationSuccessPage";
 
+// Enrollment
+import TempEnrollmentRoute from "./route/TempEnrollmentRoute";
+import StudentEnrollmentPage from "./pages/Enrollment/StudentEnrollmentPage";
+
 // ✅ ADMIN PROTECTED ROUTE
 const ProtectedRoute = ({ children }) => {
   return getAdminToken() ? children : <Navigate to="/login" replace />;
@@ -110,6 +114,14 @@ const App = () => {
           <Route path="/application-success" element={<ApplicationSuccessPage />}/>
           <Route path="/admission/temporary-login" element={<TemporaryLoginPage />}/>
 
+          <Route
+  path="/enrollment/:applicationId"
+  element={
+    <TempEnrollmentRoute>
+      <StudentEnrollmentPage />
+    </TempEnrollmentRoute>
+  }
+/>
 
   
 
