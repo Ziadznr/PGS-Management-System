@@ -90,7 +90,11 @@ useEffect(() => {
                   <td>{index + 1}</td>
                   <td>{app.applicantName}</td>
                   <td>{app.program}</td>
-                  <td>{app.department?.name}</td>
+                  <td>
+  {app.department
+    ? `${app.department.departmentName} (${app.department.departmentCode})`
+    : ""}
+</td>
                   <td>{app.mobile}</td>
 
                   <td className="d-flex gap-2">

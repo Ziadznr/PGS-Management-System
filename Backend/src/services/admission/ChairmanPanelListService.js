@@ -62,7 +62,7 @@ const ChairmanPanelListService = async (req) => {
   }
 })
       .populate([
-        { path: "department", select: "name" },
+        { path: "department", select: "departmentName departmentCode" },
         { path: "supervisor", select: "name email" }
       ])
       .lean();

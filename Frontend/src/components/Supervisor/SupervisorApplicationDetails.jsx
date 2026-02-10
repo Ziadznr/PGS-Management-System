@@ -24,7 +24,7 @@ const SupervisorApplicationDetails = ({ app, onClose }) => {
             {/* ================= PROGRAM ================= */}
             <h6 className="fw-bold">Program Information</h6>
             <p><b>Program:</b> {app.program}</p>
-            <p><b>Department:</b> {app.department?.name}</p>
+            <p><b>Department:</b> {app.department?.departmentName}</p>
             <p><b>Supervisor:</b> {app.supervisor?.name}</p>
             <p><b>Academic Year:</b> {app.academicYear}</p>
 

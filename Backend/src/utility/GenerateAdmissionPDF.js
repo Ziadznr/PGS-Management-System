@@ -69,7 +69,7 @@ module.exports = async (application) => {
   /* ================= BASIC INFO ================= */
   doc.font("Times-Roman").fontSize(10);
   doc.text(`Program: ${safe(application.program)}`, CONTENT_X);
-  doc.text(`Department: ${safe(application.department?.name)}`, CONTENT_X);
+  doc.text(`Department: ${safe(application.department?.departmentName)}`, CONTENT_X);
   doc.text(`Session: ${safe(application.academicYear)}`, CONTENT_X);
 
   doc.moveDown(0.5);

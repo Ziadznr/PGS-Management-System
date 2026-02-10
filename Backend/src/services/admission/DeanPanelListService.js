@@ -11,13 +11,13 @@ const DeanPanelListService = async (req) => {
       applicationStatus: "ChairmanSelected"
     })
       .populate([
-        { path: "department", select: "name" },
-        { path: "supervisor", select: "name email" },
+        { path: "department", select: "departmentName departmentCode" },
+        { path: "supervisor", select: "name nameExtension email" },
         { path: "payment", select: "transactionId amount status" },
         { path: "admissionSeason", select: "academicYear" },
         {
           path: "approvalLog.approvedBy",
-          select: "name role"
+          select: "name nameExtension role"
         }
       ])
       .sort({
@@ -28,9 +28,12 @@ const DeanPanelListService = async (req) => {
 
     const data = applications.map((app, index) => {
       const chairmanLog = app.approvalLog
-        ?.slice()
-        .reverse()
-        .find(log => log.role === "Chairman");
+  ?.slice()
+  .reverse()
+  .find(log => log.role === "Chairman");
+
+const chairmanUser = chairmanLog?.approvedBy;
+
 
       return {
         /* ================= TABLE FIELDS ================= */
@@ -40,11 +43,14 @@ const DeanPanelListService = async (req) => {
         applicantName: app.applicantName,
         program: app.program,
 
-        departmentName: app.department?.name || "",
+        departmentName: app.department?.departmentName || "",
+        departmentCode: app.department?.departmentCode || "",
         supervisorName: app.supervisor?.name || "",
+        supervisorNameExtension: app.supervisor?.nameExtension || "",
         supervisorEmail: app.supervisor?.email || "",
 
-        chairmanName: chairmanLog?.approvedByName || "—",
+  chairmanName: chairmanUser?.name || "—",
+  chairmanNameExtension: chairmanUser?.nameExtension || "",
 
         mobile: app.mobile,
         academicQualificationPoints: app.academicQualificationPoints || 0,

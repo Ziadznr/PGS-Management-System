@@ -16,7 +16,7 @@ const SupervisorPanelListService = async (req) => {
       applicationStatus: "Submitted"
     })
       .populate([
-        { path: "department", select: "name" },
+        { path: "department", select: "departmentName departmentCode" },
         { path: "supervisor", select: "name email" },
         { path: "payment", select: "transactionId amount status" },
         { path: "admissionSeason", select: "seasonName academicYear" }

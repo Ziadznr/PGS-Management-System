@@ -101,9 +101,12 @@ const DeanDashboard = () => {
                   <td>{index + 1}</td>
                   <td>{app.applicantName}</td>
                   <td>{app.program}</td>
-                  <td>{app.departmentName}</td>
-                  <td>{app.supervisorName}</td>
-                  <td>{app.chairmanName}</td>
+                  <td>
+  {app.departmentName}
+  {app.departmentCode ? ` (${app.departmentCode})` : ""}
+</td>
+                  <td>{app.supervisorNameExtension} {app.supervisorName}</td>
+                  <td>{app.chairmanNameExtension} {app.chairmanName}</td>
                   <td>{app.mobile}</td>
                   <td>{app.academicQualificationPoints}</td>
                   <td>{app.supervisorRank}</td>
