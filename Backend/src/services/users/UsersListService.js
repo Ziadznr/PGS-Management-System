@@ -97,6 +97,7 @@ const ListService = async (
                 phone: 1,
                 role: 1,
                 subject: 1,
+                photo: 1,
 
                 // 🎯 Display helpers
                 DepartmentName: "$DepartmentData.departmentName",
@@ -109,16 +110,28 @@ const ListService = async (
     ]);
 
     /* ================= SAFE RESPONSE ================= */
-    const result = data[0] || { Total: [], Rows: [] };
+   /* ================= SAFE RESPONSE ================= */
+const result = data[0] || { Total: [], Rows: [] };
 
-    if (!result.Total.length) {
-      result.Total = [{ count: 0 }];
-    }
+if (!result.Total.length) {
+  result.Total = [{ count: 0 }];
+}
 
-    return {
-      status: "success",
-      data: [result]
-    };
+/* ================= PHOTO URL FIX ================= */
+const baseUrl =
+  `${req.protocol}://${req.get("host")}`;
+
+result.Rows = result.Rows.map(row => ({
+  ...row,
+  photo: row.photo
+    ? baseUrl + row.photo
+    : ""
+}));
+
+return {
+  status: "success",
+  data: [result]
+};
 
   } catch (error) {
     console.error("ListService error:", error);

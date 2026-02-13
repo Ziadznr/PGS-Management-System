@@ -3,10 +3,17 @@ const UsersModel = require("../../models/Users/UsersModel");
 
 const UserUpdateService = async (req) => {
   try {
+
     const email = req.user.email;
     const updateData = { ...req.body };
 
-    // ================= BLOCK FORBIDDEN FIELDS =================
+    /* ================= PHOTO UPLOAD ================= */
+    if (req.file) {
+      updateData.photo =
+        "/uploads/user-photos/" + req.file.filename;
+    }
+
+    /* ================= BLOCK FORBIDDEN FIELDS ================= */
     delete updateData.role;
     delete updateData.department;
     delete updateData._id;
@@ -15,8 +22,9 @@ const UserUpdateService = async (req) => {
     delete updateData.isActive;
     delete updateData.tenure;
 
-    // ================= PASSWORD CHANGE =================
+    /* ================= PASSWORD CHANGE ================= */
     if (updateData.password) {
+
       if (updateData.password.length < 6) {
         return {
           status: "fail",
@@ -25,13 +33,14 @@ const UserUpdateService = async (req) => {
       }
 
       const salt = await bcrypt.genSalt(10);
-      updateData.password = await bcrypt.hash(updateData.password, salt);
+      updateData.password =
+        await bcrypt.hash(updateData.password, salt);
 
-      // 🔥 VERY IMPORTANT
+      // 🔥 force first login false
       updateData.isFirstLogin = false;
     }
 
-    const result = await UsersModel.updateOne(
+    await UsersModel.updateOne(
       { email },
       { $set: updateData }
     );
@@ -42,7 +51,9 @@ const UserUpdateService = async (req) => {
     };
 
   } catch (error) {
+
     console.error("UserUpdateService Error:", error);
+
     return {
       status: "fail",
       data: error.toString()

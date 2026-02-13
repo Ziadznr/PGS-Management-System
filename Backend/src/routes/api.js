@@ -87,6 +87,10 @@ const InitiatePaymentService =
 const HallController =
   require("../controllers/Hall/HallController");  
 
+
+const uploadUserPhoto =
+  require("../utility/uploadUserPhoto");
+
 // =================================================
 // ============== USER PROTECTED ROUTES =============
 // =================================================
@@ -101,6 +105,7 @@ router.get(
 router.post(
   "/users/profile/update",
   UserAuthMiddleware,
+  uploadUserPhoto.single("photo"),
   UsersController.ProfileUpdate
 );
 

@@ -27,6 +27,7 @@ const AdminUsersList = () => {
 
   const [users, setUsers] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
+  const [previewPhoto, setPreviewPhoto] = useState(null);
 
   /* ================= EMAIL MODAL ================= */
   const [showEmailModal, setShowEmailModal] = useState(false);
@@ -189,6 +190,7 @@ const AdminUsersList = () => {
           <thead className="table-light">
             <tr>
               <th>No</th>
+              <th>Photo</th>
               <th>Name</th>
               <th>Email</th>
               <th>Phone</th>
@@ -211,7 +213,21 @@ const AdminUsersList = () => {
               users.map((u, i) => (
                 <tr key={u._id}>
                   <td>{i + 1 + (pageNo - 1) * perPage}</td>
-
+<td className="text-center">
+ <img
+  src={u.photo || "/default-user.png"}
+  alt="user"
+  onClick={() => setPreviewPhoto(u.photo)}
+  style={{
+    width: "45px",
+    height: "45px",
+    borderRadius: "50%",
+    objectFit: "cover",
+    cursor: "pointer",
+    transition: "0.2s"
+  }}
+/>
+</td>
                   <td>
                     <strong>{u.name}</strong>
                     <div className="text-muted small ps-2">
@@ -224,7 +240,6 @@ const AdminUsersList = () => {
                       </div>
                     )}
                   </td>
-
                   <td>{u.email}</td>
                   <td>{u.phone}</td>
                   <td>{u.role}</td>
@@ -341,6 +356,38 @@ const AdminUsersList = () => {
           </div>
         </div>
       )}
+
+      {/* ================= PHOTO PREVIEW ================= */}
+{previewPhoto && (
+  <div
+    style={{
+      position: "fixed",
+      top: 0,
+      left: 0,
+      width: "100%",
+      height: "100%",
+      background: "rgba(0,0,0,0.7)",
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+      zIndex: 9999
+    }}
+    onClick={() => setPreviewPhoto(null)}
+  >
+    <img
+      src={previewPhoto}
+      alt="preview"
+      style={{
+        maxWidth: "500px",
+        maxHeight: "80vh",
+        borderRadius: "10px",
+        boxShadow: "0 10px 30px rgba(0,0,0,0.5)"
+      }}
+      onClick={(e) => e.stopPropagation()}
+    />
+  </div>
+)}
+
 
     </div>
   );

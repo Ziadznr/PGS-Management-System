@@ -12,6 +12,11 @@ import {
   IsEmpty
 } from "../../helper/FormHelper";
 
+import * as faceapi from "face-api.js";
+
+
+
+
 const UserProfile = () => {
   const { user } = useSelector((state) => state.userProfile);
 
@@ -30,8 +35,27 @@ const UserProfile = () => {
 
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [photoFile, setPhotoFile] = useState(null);
+const [preview, setPreview] = useState("");
+const [modelsLoaded, setModelsLoaded] = useState(false);
 
   const [loading, setLoading] = useState(true);
+
+useEffect(() => {
+  const loadModels = async () => {
+    try {
+      await faceapi.nets.tinyFaceDetector.loadFromUri("/models");
+      setModelsLoaded(true);
+      console.log("Face model loaded");
+    } catch (err) {
+      console.error("Model load error:", err);
+    }
+  };
+
+  loadModels();
+}, []);
+
+
 
   /* ================= LOAD PROFILE ================= */
   useEffect(() => {
@@ -39,17 +63,20 @@ const UserProfile = () => {
       const profile = await UserProfileRequest();
       if (!profile) return;
 
-      setForm({
-        name: profile.name || "",
-        nameExtension: profile.nameExtension || "",
-        email: profile.email || "",
-        phone: profile.phone || "",
-        role: profile.role || "",
-        department: profile.department || null,
-        hall: profile.hall || null,
-        photo: profile.photo || "",
-        isFirstLogin: profile.isFirstLogin || false
-      });
+     setForm({
+  name: profile.name || "",
+  nameExtension: profile.nameExtension || "",
+  email: profile.email || "",
+  phone: profile.phone || "",
+  role: profile.role || "",
+  department: profile.department || null,
+  hall: profile.hall || null,
+  photo: profile.photo || "",
+  isFirstLogin: profile.isFirstLogin || false
+});
+
+setPreview(profile.photo || "");
+
 
       setLoading(false);
     })();
@@ -60,50 +87,209 @@ const UserProfile = () => {
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  /* ================= UPDATE ================= */
-  const handleUpdate = async () => {
+const handlePhotoChange = async (e) => {
+  try {
 
-    /* 🔐 FORCE PASSWORD CHANGE */
-    if (form.isFirstLogin) {
-      if (IsEmpty(newPassword) || IsEmpty(confirmPassword)) {
-        return ErrorToast("Password fields are required");
-      }
+    const file = e.target.files[0];
+    if (!file) return;
 
-      if (newPassword.length < 6) {
-        return ErrorToast("Password must be at least 6 characters");
-      }
+    /* ===============================
+       BASIC VALIDATION
+    =============================== */
 
-      if (newPassword !== confirmPassword) {
-        return ErrorToast("Passwords do not match");
-      }
-
-      const result = await UserUpdateRequest({
-        password: newPassword,
-        isFirstLogin: false
-      });
-
-      if (result) {
-        SuccessToast("Password updated. Please login again.");
-        window.location.href = "/users/login";
-      }
+    if (!file.type.startsWith("image/")) {
+      ErrorToast("Please upload an image file");
       return;
     }
 
-    /* ================= NORMAL PROFILE UPDATE ================= */
-    if (IsEmpty(form.name)) return ErrorToast("Name required");
-    if (IsEmpty(form.nameExtension)) return ErrorToast("Title required");
-    if (!IsMobile(form.phone)) return ErrorToast("Valid phone required");
-    if (!IsEmail(form.email)) return ErrorToast("Valid email required");
+    // max 5MB
+    if (file.size > 5 * 1024 * 1024) {
+      ErrorToast("Image too large (max 5MB)");
+      return;
+    }
+
+    /* ===============================
+       CHECK MODEL LOADED
+    =============================== */
+
+   if (!modelsLoaded) {
+  ErrorToast("Face model still loading...");
+  return;
+}
+
+
+    /* ===============================
+       IMAGE LOAD
+    =============================== */
+
+    const img = await faceapi.bufferToImage(file);
+
+    /* ===============================
+       FACE DETECTION
+    =============================== */
+
+    const detection = await faceapi.detectSingleFace(
+      img,
+      new faceapi.TinyFaceDetectorOptions({
+        inputSize: 320,
+        scoreThreshold: 0.5
+      })
+    );
+
+    // ❌ no face detected
+    if (!detection) {
+      ErrorToast("No clear face detected");
+      return;
+    }
+
+    const { x, y, width, height } = detection.box;
+
+    // prevent tiny face
+    if (width < 70 || height < 70) {
+      ErrorToast("Face too small. Move closer.");
+      return;
+    }
+
+    /* ===============================
+       PASSPORT STYLE AUTO CROP
+    =============================== */
+
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+
+    const size = 400; // final image size
+    canvas.width = size;
+    canvas.height = size;
+
+    // padding around face (head + shoulders)
+    const padding = 1.8;
+
+    let cropX = x - width * 0.4;
+    let cropY = y - height * 0.6;
+    let cropW = width * padding;
+    let cropH = height * padding;
+
+    // prevent negative crop values
+    cropX = Math.max(0, cropX);
+    cropY = Math.max(0, cropY);
+
+    // prevent overflow
+    if (cropX + cropW > img.width)
+      cropW = img.width - cropX;
+
+    if (cropY + cropH > img.height)
+      cropH = img.height - cropY;
+
+    /* ===============================
+       DRAW CENTERED FACE
+    =============================== */
+
+    ctx.drawImage(
+      img,
+      cropX,
+      cropY,
+      cropW,
+      cropH,
+      0,
+      0,
+      size,
+      size
+    );
+
+    /* ===============================
+       CANVAS → FILE
+    =============================== */
+
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) {
+          ErrorToast("Image processing failed");
+          return;
+        }
+
+        const croppedFile = new File(
+          [blob],
+          file.name,
+          { type: "image/jpeg" }
+        );
+
+        setPhotoFile(croppedFile);
+        setPreview(URL.createObjectURL(blob));
+      },
+      "image/jpeg",
+      0.9
+    );
+
+  } catch (err) {
+    console.error("Face upload error:", err);
+    ErrorToast("Face detection failed");
+  }
+};
+
+
+
+  /* ================= UPDATE ================= */
+ const handleUpdate = async () => {
+
+  /* =================================================
+     🔐 FORCE PASSWORD CHANGE (FIRST LOGIN)
+  ================================================= */
+  if (form.isFirstLogin) {
+
+    if (IsEmpty(newPassword) || IsEmpty(confirmPassword)) {
+      return ErrorToast("Password fields are required");
+    }
+
+    if (newPassword.length < 6) {
+      return ErrorToast("Password must be at least 6 characters");
+    }
+
+    if (newPassword !== confirmPassword) {
+      return ErrorToast("Passwords do not match");
+    }
 
     const result = await UserUpdateRequest({
-      name: form.name,
-      nameExtension: form.nameExtension,
-      phone: form.phone,
-      email: form.email
+      password: newPassword,
+      isFirstLogin: false
     });
 
-    if (result) SuccessToast("Profile updated successfully");
-  };
+    if (result) {
+      SuccessToast("Password updated. Please login again.");
+      window.location.href = "/users/login";
+    }
+
+    return;
+  }
+
+  /* =================================================
+     👤 NORMAL PROFILE UPDATE
+  ================================================= */
+
+  if (IsEmpty(form.name)) return ErrorToast("Name required");
+  if (IsEmpty(form.nameExtension)) return ErrorToast("Title required");
+  if (!IsMobile(form.phone)) return ErrorToast("Valid phone required");
+  if (!IsEmail(form.email)) return ErrorToast("Valid email required");
+
+  /* ---------- FormData (PHOTO SUPPORT) ---------- */
+  const formData = new FormData();
+
+  formData.append("name", form.name);
+  formData.append("nameExtension", form.nameExtension);
+  formData.append("phone", form.phone);
+  formData.append("email", form.email);
+
+  // 🔥 photo upload
+  if (photoFile) {
+    formData.append("photo", photoFile);
+  }
+
+  const result = await UserUpdateRequest(formData);
+
+  if (result) {
+    SuccessToast("Profile updated successfully");
+  }
+};
+
 
   /* ================= LOADING ================= */
   if (loading || !user?.email) {
@@ -124,6 +310,29 @@ const UserProfile = () => {
 
       <div className="row">
         <div className="col-md-6 offset-md-3">
+          <div className="text-center mb-3">
+
+  <img
+    src={preview || "/default-user.png"}
+    alt="profile"
+    style={{
+      width: "120px",
+      height: "120px",
+      borderRadius: "50%",
+      objectFit: "cover"
+    }}
+  />
+
+  {!form.isFirstLogin && (
+    <input
+      type="file"
+      accept="image/*"
+      className="form-control mt-2"
+      onChange={handlePhotoChange}
+    />
+  )}
+
+</div>
 
           {/* NAME */}
           <input
@@ -169,13 +378,13 @@ const UserProfile = () => {
           />
 
           {/* DEPARTMENT */}
-          {form.department?.name && (
-            <input
-              className="form-control mb-3"
-              value={form.department.name}
-              readOnly
-            />
-          )}
+        {form.department?.departmentName && (
+  <input
+    className="form-control mb-3"
+    value={form.department.departmentName}
+    readOnly
+  />
+)}
 
           {/* HALL (PROVOST) */}
           {form.hall?.name && (

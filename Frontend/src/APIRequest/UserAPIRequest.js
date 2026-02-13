@@ -177,18 +177,25 @@ export async function UserProfileRequest() {
 
 export async function UserUpdateRequest(userData) {
   try {
+
     store.dispatch(ShowLoader());
 
     const res = await axios.post(
       `${BaseURL}/users/profile/update`,
       userData,
-      getAxiosHeader()
+      {
+        ...getAxiosHeader(),
+        headers: {
+          ...getAxiosHeader().headers,
+          "Content-Type": "multipart/form-data"
+        }
+      }
     );
 
     store.dispatch(HideLoader());
 
     if (res.status === 200 && res.data?.status === "success") {
-      await UserProfileRequest(); // ✅ FIX
+      await UserProfileRequest();
       SuccessToast("Profile Updated");
       return true;
     }
@@ -202,6 +209,7 @@ export async function UserUpdateRequest(userData) {
     return false;
   }
 }
+
 
 
 /* ================= PASSWORD RECOVERY ================= */
